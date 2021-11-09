@@ -1,0 +1,5 @@
+# environment
+.direnv/
+
+# build outputs
+target/
