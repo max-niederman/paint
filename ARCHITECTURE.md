@@ -10,6 +10,6 @@ Provides a visual user interface to Paint.
 
 Serves all requisite data to client components. It does not keep track of this state, instead relaying requests to Canvas's API and to **Pigment**.
 
-## `/res` - Resources Service - "Pigment"
+## `/res` - Resources Cache - "Pigment"
 
-Resolves queries about Canvas resources, including **Assignments** and **Announcements**. This is achieved by caching and indexing periodically polled Canvas data.
+Read-through cache of Canvas resources, including **Assignments** and **Announcements**. This is necessary to improve query performance.
