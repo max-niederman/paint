@@ -9,7 +9,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, fenix, naersk }:
+  outputs = { self, nixpkgs, flake-utils, fenix }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
