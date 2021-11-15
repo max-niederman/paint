@@ -13,3 +13,7 @@ Serves all requisite data to client components. It does not keep track of this s
 ## `/res` - Resources Cache - "Pigment"
 
 Read-through cache of Canvas resources, including **Assignments** and **Announcements**. This is necessary to improve query performance.
+
+## `/canvas` - Canvas API Client
+
+Rust client for Canvas's Rest and GraphQL API. GraphQL is used whenever possible to prevent overquerying, but we fallback to REST where the GraphQL API is incomplete.

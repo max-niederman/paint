@@ -1,2 +1,2 @@
 [workspace]
-members = ["api", "res"]
+members = ["canvas", "api", "res"]

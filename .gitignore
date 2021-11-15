@@ -1,5 +1,9 @@
 # environment
 .direnv/
+.envrc.secret
 
 # build outputs
 target/
+
+# editor
+.vscode/
