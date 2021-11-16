@@ -16,13 +16,16 @@ impl Client {
                     headers.insert(
                         reqwest::header::AUTHORIZATION,
                         match auth {
-                            Auth::Bearer(token) => format!("Bearer {}", token),
+                            Auth::Bearer(token) => format!("Bearer {}", token)
+                                .try_into()
+                                .expect("auth token was invalid"),
                         },
                     );
                     headers
                 })
-                .build(),
-            base_url: base_url.into(),
+                .build()
+                .expect("failed to instantiate HTTP client"),
+            base_url: base_url.as_ref().to_owned(),
         }
     }
 

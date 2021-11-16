@@ -1,6 +1,9 @@
 use crate::Id;
 use serde::{Deserialize, Serialize};
 
+/// Wrapper type for values present only if we have grading rights.
+pub type IfGradingRights<T> = Option<T>;
+
 // FIXME: figure out how attachments are structured
 pub type Attachment = serde_json::Value;
 

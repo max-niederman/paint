@@ -16,4 +16,4 @@ Read-through cache of Canvas resources, including **Assignments** and **Announce
 
 ## `/canvas` - Canvas API Client
 
-Rust client for Canvas's Rest and GraphQL API. GraphQL is used whenever possible to prevent overquerying, but we fallback to REST where the GraphQL API is incomplete.
+Rust client for Canvas's REST API. It is reasonably complete, but doesn't support all of Canvas's many features.
