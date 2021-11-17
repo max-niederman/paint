@@ -1,8 +1,6 @@
-pub mod resource;
+#![feature(min_specialization)]
 
-pub type DateTime = chrono::DateTime<chrono::Utc>;
+pub mod selector;
+pub use selector::Selector;
 
-#[tarpc::service]
-pub trait ResourceCache {
-    async fn get(selector: ResourceSelector) -> Box<dyn tokio_stream::Stream<Item = Resource>>;
-}
+pub mod rpc;

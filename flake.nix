@@ -24,14 +24,14 @@
             cargo-flamegraph
             cargo-watch
 
-
-            # Protocol Buffers
-            protobuf
-
             # JavaScript
             nodejs-16_x
             nodePackages.pnpm
           ];
+
+          # needed for rust-openssl
+          OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
+          OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
         };
       }
     );
