@@ -1,4 +1,4 @@
-use super::{shared::*, Resource};
+use super::{misc::*, Resource};
 use crate::{DateTime, Id};
 use serde::{Deserialize, Serialize};
 
@@ -16,8 +16,4 @@ pub struct GradingPeriod {
     pub is_closed: bool,
 }
 
-impl Resource for GradingPeriod {
-    fn id(&self) -> Id {
-        self.id
-    }
-}
+impl Resource for GradingPeriod {}

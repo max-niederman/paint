@@ -1,8 +1,5 @@
-use std::fs::OpenOptions;
-
-use super::{shared::*, submission::Submission, Resource};
+use super::{submission::SubmissionType, Resource};
 use crate::{DateTime, Id};
-use chrono::Date;
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Assignment.
@@ -37,11 +34,7 @@ pub struct Assignment {
     pub grading_type: GradingType,
 }
 
-impl Resource for Assignment {
-    fn id(&self) -> Id {
-        self.id
-    }
-}
+impl Resource for Assignment {}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AssignmentOverride {
@@ -66,21 +59,6 @@ pub struct AssignmentOverride {
     pub unlock_at: Option<DateTime>,
     #[serde(default)]
     pub lock_at: Option<DateTime>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SubmissionType {
-    DiscussionTopic,
-    OnlineQuiz,
-    OnPaper,
-    None,
-    ExternalTool,
-    OnlineTextEntry,
-    OnlineUrl,
-    OnlineUpload,
-    MediaRecording,
-    StudentAnnotation,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

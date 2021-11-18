@@ -1,4 +1,4 @@
-use super::{shared::*, Resource};
+use super::{misc::*, Resource};
 use crate::{DateTime, Id};
 use serde::{Deserialize, Serialize};
 
@@ -6,10 +6,14 @@ use serde::{Deserialize, Serialize};
 ///
 /// Refer to [Canvas's API documentation](https://canvas.instructure.com/doc/api/users.html).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct User; // FIXME: implement fields
+pub struct User {
+    id: Id,
+    login_id: String,
 
-impl Resource for User {
-    fn id(&self) -> Id {
-        unimplemented!()
-    }
+    name: String,
+    last_name: String,
+    first_name: String,
+    short_name: String,
 }
+
+impl Resource for User {}

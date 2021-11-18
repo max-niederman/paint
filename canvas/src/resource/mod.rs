@@ -1,11 +1,9 @@
 use crate::Id;
 use serde::{de::DeserializeOwned, Serialize};
 
-pub trait Resource: DeserializeOwned + Serialize {
-    fn id(&self) -> Id;
-}
+pub trait Resource: DeserializeOwned + Serialize {}
 
-pub mod shared;
+pub mod misc;
 
 pub mod assignment;
 pub mod course;
