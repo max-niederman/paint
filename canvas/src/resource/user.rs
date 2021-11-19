@@ -7,13 +7,13 @@ use serde::{Deserialize, Serialize};
 /// Refer to [Canvas's API documentation](https://canvas.instructure.com/doc/api/users.html).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct User {
-    id: Id,
-    login_id: String,
+    pub id: Id,
+    pub login_id: String,
 
-    name: String,
-    last_name: String,
-    first_name: String,
-    short_name: String,
+    pub name: String,
+    pub last_name: String,
+    pub first_name: String,
+    pub short_name: String,
 }
 
 impl Resource for User {}
