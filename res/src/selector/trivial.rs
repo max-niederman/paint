@@ -1,6 +1,6 @@
 //! Trivial Selectors
 
-use canvas_lms::Resource;
+use canvas_lms::resource::*;
 
 use super::Selector;
 
@@ -12,18 +12,27 @@ impl<R: Resource> Selector<R> for All {
 }
 
 struct None;
-impl<R: Resource> Selector<R> for All {
+impl<R: Resource> Selector<R> for None {
     fn matches(&self, resource: &R) -> bool {
         false
     }
 }
 
 struct Id(canvas_lms::Id);
-impl<R: Resource> Resource for Id {
-    fn matches(&self, resource: &R) -> bool {
-        resource.id() == self.0
-    }
+macro_rules! id_selector {
+    ($res:ty) => {
+        impl Selector<$res> for Id {
+            fn matches(&self, resource: &$res) -> bool {
+                resource.id == self.0
+            }
+        }
+    };
 }
+id_selector!(Assignment);
+id_selector!(Course);
+id_selector!(Enrollment);
+id_selector!(GradingPeriod);
+id_selector!(User);
 
 struct Not<A>(A);
 impl<R: Resource, A: Selector<R>> Selector<R> for Not<A> {

@@ -1,21 +1,25 @@
 //! Fetchers for Canvas Resources
 
+use std::{any::TypeId, collections::HashMap};
+
 use canvas_lms::Resource;
 use pigment::Selector;
 
-/// The implementation of [`Fetch`] is responsible for fetching and deserializing the [`Resource`] from Canvas
-pub trait Fetch: Resource {
-    type Dependency: Resource;
-
-    /// Fetch a superset of the resources matching the given [`Selector`] from Canvas
-    pub fn fetch_superset<S>(selector: S) -> Vec<Self>;
+/// The implementation of [`Fetch`] is responsible for fetching, deserializing, and temporarily storing the [`Resource`] from Canvas.
+#[async_trait::async_trait]
+pub trait Fetch<R, Resource, S: Selector<R>> {
+    /// Fetch and store a superset of the resources matching the given [`Selector`].
+    /// Takes an immutable reference to [`Self`] to allow for concurrent fetches.
+    async fn fetch_superset(&self);
 }
 
-pub struct NoDependencies;
-impl Resource for NoDependencies {
-    fn id(&self) -> Id {
-        0
-    }
+/// Implements logic for fetching multiple resource types from Canvas.
+pub struct Fetcher {
+    resources: HashMap<TypeId, RwLock<HashSet<Box<dyn Resource>>>>,
+}
+
+impl Fetcher {
+    pub fn get_or_fetch<R: Resource, S: Selector<R>>(&self) where Self: Fetch<R, S> {}
 }
 
 /// A [`Selector`] for resources which might be fetch dependencies of the resources matching a given selector.
