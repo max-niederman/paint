@@ -4,11 +4,12 @@ use std::{
     any::{Any, TypeId},
     collections::{HashMap, HashSet},
     marker::PhantomData,
-    sync::RwLock,
+    sync::RwLockReadGuard,
 };
+use tokio::sync::RwLock;
 
 use canvas_lms::Resource;
-use pigment::Selector;
+use pigment::selector::{self, Selector};
 
 /// The implementation of [`Fetch`] is responsible for fetching, deserializing, and temporarily storing the [`Resource`] from Canvas.
 #[async_trait::async_trait]
@@ -23,25 +24,34 @@ pub trait Fetch<R: Resource, S: Selector<R>> {
 
 /// Implements logic for fetching multiple resource types from Canvas.
 pub struct Fetcher {
-    resources: RwLock<HashMap<TypeId, HashSet<RwLock<Box<dyn Any>>>>>,
+    pub resources: RwLock<HashMap<TypeId, RwLock<HashSet<Box<dyn Any>>>>>,
 }
 
 impl Fetcher {
+    /// Construct a new empty [`Fetcher`].
+    pub fn new() -> Self {
+        Self {
+            resources: RwLock::new(HashMap::new()),
+        }
+    }
+
     /// Ensure that the resource map is initialized for a given resource type.
     /// This is helpful for ensuring we don't hold onto a write guard for the outer lock longer than necessary.
-    fn ensure_resource_initialized<R>(&self)
+    async fn ensure_resource_initialized<R>(&self)
     where
         R: Resource + 'static,
     {
         self.resources
             .write()
-            .unwrap()
+            .await
             .entry(TypeId::of::<R>())
             .or_default();
     }
 }
 
 /// A [`Selector`] for resources which might be fetch dependencies of the resources matching a given selector.
+///
+/// Can be read as "might produce a resource `T` such that `T` matches the selector `S`."
 pub struct MightProduce<T: Resource, S: Selector<T>> {
     selector: S,
     _target: PhantomData<T>,

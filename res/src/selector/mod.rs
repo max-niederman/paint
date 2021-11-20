@@ -1,6 +1,6 @@
 //! Composable selectors by which queries are defined and efficiently executed.
 
-use canvas_lms::Id;
+
 use canvas_lms::Resource;
 
 pub mod trivial;
