@@ -1,4 +1,4 @@
-use super::{misc::*, Assignment, Course, Resource};
+use super::{Assignment, Course, Resource};
 use crate::{DateTime, Id};
 use serde::{Deserialize, Serialize};
 

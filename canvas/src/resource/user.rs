@@ -1,5 +1,5 @@
-use super::{misc::*, Resource};
-use crate::{DateTime, Id};
+use super::Resource;
+use crate::Id;
 use serde::{Deserialize, Serialize};
 
 /// A Canvas User.

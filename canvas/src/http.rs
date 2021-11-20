@@ -1,4 +1,4 @@
-use reqwest::{IntoUrl, Method, RequestBuilder};
+use reqwest::{Method, RequestBuilder};
 
 /// Canvas API Client
 #[derive(Debug, Clone)]

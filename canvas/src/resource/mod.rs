@@ -1,4 +1,3 @@
-use crate::Id;
 use serde::{de::DeserializeOwned, Serialize};
 
 pub trait Resource: DeserializeOwned + Serialize {}
