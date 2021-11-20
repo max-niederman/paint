@@ -19,11 +19,17 @@ impl<R: Resource> Selector<R> for None {
 }
 
 struct Id(canvas_lms::Id);
+struct Ids(Vec<canvas_lms::Id>);
 macro_rules! id_selector {
     ($res:ty) => {
         impl Selector<$res> for Id {
             fn matches(&self, resource: &$res) -> bool {
                 resource.id == self.0
+            }
+        }
+        impl Selector<$res> for Ids {
+            fn matches(&self, resource: &$res) -> bool {
+                self.0.iter().any(|id| id == &resource.id)
             }
         }
     };
