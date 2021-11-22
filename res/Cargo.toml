@@ -7,7 +7,6 @@ edition = "2021"
 async-trait = "0.1"
 tokio = { version = "1.13", features = ["rt-multi-thread"] }
 tokio-stream = "0.1"
-tarpc = "0.27"
 canvas-lms = { path = "../canvas" }
 log = "0.4"
 pretty_env_logger = "0.4"
@@ -15,7 +14,3 @@ pretty_env_logger = "0.4"
 [[bin]]
 name = "pigment"
 path = "src/server/main.rs"
-
-# [[bin]]
-# name = "pigment-client"
-# path = "src/client.rs"
