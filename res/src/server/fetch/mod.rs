@@ -1,18 +1,20 @@
 //! Fetchers for Canvas Resources
 
+use async_trait::async_trait;
 use std::{
     any::{Any, TypeId},
     collections::{HashMap, HashSet},
     marker::PhantomData,
-    sync::RwLockReadGuard,
 };
 use tokio::sync::RwLock;
 
 use canvas_lms::Resource;
 use pigment::selector::{self, Selector};
 
+mod impls;
+
 /// The implementation of [`Fetch`] is responsible for fetching, deserializing, and temporarily storing the [`Resource`] from Canvas.
-#[async_trait::async_trait]
+#[async_trait]
 pub trait Fetch<R: Resource, S: Selector<R>> {
     /// Fetch and store a superset of the resources matching the given [`Selector`].
     ///
@@ -24,15 +26,25 @@ pub trait Fetch<R: Resource, S: Selector<R>> {
 
 /// Implements logic for fetching multiple resource types from Canvas.
 pub struct Fetcher {
-    pub resources: RwLock<HashMap<TypeId, RwLock<HashSet<Box<dyn Any>>>>>,
+    client: canvas_lms::Client,
+    resources: RwLock<HashMap<TypeId, RwLock<HashSet<Box<dyn Any>>>>>,
 }
 
 impl Fetcher {
     /// Construct a new empty [`Fetcher`].
-    pub fn new() -> Self {
+    pub fn new(client: canvas_lms::Client) -> Self {
         Self {
+            client,
             resources: RwLock::new(HashMap::new()),
         }
+    }
+
+    pub fn client(&self) -> &canvas_lms::Client {
+        &self.client
+    }
+
+    pub fn resources(&self) -> &RwLock<HashMap<TypeId, RwLock<HashSet<Box<dyn Any>>>>> {
+        &self.resources
     }
 
     /// Ensure that the resource map is initialized for a given resource type.
