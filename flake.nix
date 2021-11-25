@@ -23,6 +23,7 @@
             rust-analyzer
             cargo-flamegraph
             cargo-watch
+            cargo-edit
 
             # JavaScript
             nodejs-16_x
