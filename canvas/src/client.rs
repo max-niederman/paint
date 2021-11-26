@@ -100,16 +100,16 @@ impl Default for ClientBuilder {
 }
 
 impl ClientBuilder {
-    fn build(self) -> Client {
+    pub fn build(self) -> Client {
         Client::new(self.base_url, self.auth)
     }
 
-    fn with_base_url<U: AsRef<str>>(&mut self, base_url: U) -> &mut Self {
+    pub fn with_base_url<U: AsRef<str>>(mut self, base_url: U) -> Self {
         self.base_url = base_url.as_ref().to_owned();
         self
     }
 
-    fn with_auth(&mut self, auth: Auth) -> &mut Self {
+    pub fn with_auth(mut self, auth: Auth) -> Self {
         self.auth = Some(auth);
         self
     }

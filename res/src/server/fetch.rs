@@ -1,6 +1,6 @@
 use async_stream::stream;
 use futures::Stream;
-use miette::{IntoDiagnostic, Result, WrapErr};
+use miette::Result;
 
 /// Responsible for fetching a resource from the underlying Canvas API.
 pub trait Fetch: Sized {
@@ -16,7 +16,7 @@ mod impls {
         client::{deserialize_from_slice, Pagination},
         resource::*,
     };
-    use futures::{stream::FuturesUnordered, Future};
+    
     use miette::{IntoDiagnostic, WrapErr};
 
     impl Fetch for Course {
