@@ -1,4 +1,4 @@
-use super::{enrollment::Enrollment, grading_period::GradingPeriod, misc::*, Resource};
+use super::{enrollment::InlineEnrollment, grading_period::GradingPeriod, misc::*, Resource};
 use crate::{DateTime, Id};
 use serde::{Deserialize, Serialize};
 
@@ -19,17 +19,18 @@ pub struct Course {
 
     #[serde(default)]
     pub grading_periods: Vec<GradingPeriod>,
-    pub grading_standard_id: Id,
+    pub grading_standard_id: Option<Id>,
 
     pub created_at: DateTime,
     pub start_at: DateTime,
-    pub end_at: DateTime,
+    pub end_at: Option<DateTime>,
 
-    pub enrollments: Vec<Enrollment>, // enrollment grades present on include[]=total_scores
+    pub enrollments: Vec<InlineEnrollment>, // enrollment grades present on include[]=total_scores
     pub total_students: Option<u32>,
 
     pub default_view: CourseView,
-    pub syllabus_body: String,
+    #[serde(default)]
+    pub syllabus_body: Option<String>, // present on include[]=sylabus_body
 
     #[serde(default)]
     pub term: Option<Term>, // present on include[]=term
@@ -39,11 +40,8 @@ pub struct Course {
 
     pub hide_final_grades: bool,
 
-    pub allow_student_assignment_edits: bool,
-    pub allow_wiki_comments: bool,
-    pub allow_student_forum_attachments: bool,
-
-    pub course_format: CourseFormat,
+    #[serde(default)]
+    pub course_format: Option<CourseFormat>, // present on include[]=course_format
     #[serde(default)]
     pub access_restricted_by_date: Option<bool>,
 }

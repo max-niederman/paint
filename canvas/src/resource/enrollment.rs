@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 /// and [Source Code](https://github.com/instructure/canvas-lms/blob/master/app/controllers/enrollments_api_controller.rb).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Enrollment {
+    #[serde(default)]
     pub id: Id,
     pub course_id: Id,
     pub course_section_id: Id,
@@ -15,11 +16,6 @@ pub struct Enrollment {
     pub enrollment_state: EnrollmentState,
     #[serde(rename = "type")]
     pub enrollment_type: EnrollmentType,
-
-    pub user_id: Id,
-    pub associated_user_id: Option<Id>, // set if we are enrolled as an observer
-    pub role: EnrollmentState,
-    pub role_id: Id,
 
     pub created_at: DateTime,
     pub updated_at: DateTime,
@@ -32,6 +28,24 @@ pub struct Enrollment {
     pub html_url: String,
     pub grades: Grade, // WHY IS IT `grades` NOT `grade` AAAAAAAAAAAAAAAAAAAAAAAAAA
     pub user: User,
+
+    pub user_id: Id,
+    pub associated_user_id: Option<Id>, // set if we are enrolled as an observer
+    pub role: EnrollmentRole,
+    pub role_id: Id,
+}
+
+/// An inline enrollment. This includes all fields which are present when Enrollments are inlined in other resources.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct InlineEnrollment {
+    pub enrollment_state: EnrollmentState,
+    #[serde(rename = "type")]
+    pub enrollment_type: EnrollmentType,
+
+    pub user_id: Id,
+    pub associated_user_id: Option<Id>, // set if we are enrolled as an observer
+    pub role: EnrollmentRole,
+    pub role_id: Id,
 }
 
 impl Resource for Enrollment {}
@@ -45,8 +59,18 @@ pub enum EnrollmentState {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "PascalCase")]
+#[serde(rename_all = "snake_case")]
 pub enum EnrollmentType {
+    Student,
+    Teacher,
+    Ta,
+    Designer,
+    Observer,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub enum EnrollmentRole {
     StudentEnrollment,
     TeacherEnrollment,
     TaEnrollment,
