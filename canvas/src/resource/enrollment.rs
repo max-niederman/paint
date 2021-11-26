@@ -35,7 +35,7 @@ pub struct Enrollment {
     pub role_id: Id,
 }
 
-/// An inline enrollment. This includes all fields which are present when Enrollments are inlined in other resources.
+/// An inline enrollment. This includes all fields which are present when Enrollments are inlined in Courses.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct InlineEnrollment {
     pub enrollment_state: EnrollmentState,
@@ -46,6 +46,15 @@ pub struct InlineEnrollment {
     pub associated_user_id: Option<Id>, // set if we are enrolled as an observer
     pub role: EnrollmentRole,
     pub role_id: Id,
+
+    #[serde(default)]
+    pub computed_current_score: Option<f64>,
+    #[serde(default)]
+    pub computed_final_score: Option<f64>,
+    #[serde(default)]
+    pub computed_current_grade: Option<String>,
+    #[serde(default)]
+    pub computed_final_grade: Option<String>,
 }
 
 impl Resource for Enrollment {}

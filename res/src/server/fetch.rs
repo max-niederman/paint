@@ -28,10 +28,18 @@ mod impls {
                     let resp = client
                         .http_client()
                         .get(link)
+                        .query(&[
+                            ("per_page", "50"),
+                            ("include[]", "syllabus_body"),
+                            ("include[]", "total_scores"),
+                            ("include[]", "current_grading_period_scores"),
+                        ])
                         .send()
                         .await
                         .into_diagnostic()
                         .wrap_err("failed to fetch resources from Canvas")?;
+                    log::debug!("fetched course list from <{}>", resp.url());
+
                     let next_link = Pagination::from_headers(resp.headers())?.next().map(ToString::to_string);
                     let body = resp
                         .bytes()
