@@ -18,7 +18,7 @@ async fn main() -> Result<()> {
 
     let mut courses = canvas::resource::Course::fetch_all(client.clone())?;
     while let Some(course) = courses.next().await {
-        println!("{:#?}", course?);
+        log::info!("fetched course '{}'", course?.name);
     }
 
     todo!("implement RPC server")

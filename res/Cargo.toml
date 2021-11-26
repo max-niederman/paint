@@ -11,7 +11,7 @@ tokio = { version = "1.13", features = ["macros", "rt-multi-thread"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 bincode = "1.0"
-canvas-lms = { path = "../canvas" }
+canvas-lms = { path = "../crates/canvas" }
 sled = "0.34"
 log = "0.4"
 pretty_env_logger = "0.4"
