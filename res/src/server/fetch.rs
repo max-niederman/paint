@@ -16,24 +16,19 @@ mod impls {
         client::{deserialize_from_slice, Pagination},
         resource::*,
     };
-    
+
     use miette::{IntoDiagnostic, WrapErr};
 
     impl Fetch for Course {
         type FetchAll = Pin<Box<dyn Stream<Item = Result<Course>>>>;
         fn fetch_all(client: canvas::Client) -> Result<Self::FetchAll> {
             Ok(Box::pin(stream! {
-                let mut link = format!("{}/api/v1/courses", client.base_url());
+                // we don't use [`RequestBuilder::query`] because it would add paramaters on each iteration
+                let mut link = format!("{}/api/v1/courses?per_page=50?include[]=syllabus_body&include[]=total_scores&include[]=current_grading_period_scores", client.base_url());
                 loop {
                     let resp = client
                         .http_client()
                         .get(link)
-                        .query(&[
-                            ("per_page", "50"),
-                            ("include[]", "syllabus_body"),
-                            ("include[]", "total_scores"),
-                            ("include[]", "current_grading_period_scores"),
-                        ])
                         .send()
                         .await
                         .into_diagnostic()
