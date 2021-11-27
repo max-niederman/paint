@@ -1,4 +1,4 @@
-use super::{enrollment::InlineEnrollment, grading_period::GradingPeriod, misc::*, Resource};
+use super::{enrollment::InlineEnrollment, grading_period::GradingPeriod, Resource};
 use crate::{DateTime, Id};
 use serde::{Deserialize, Serialize};
 
@@ -91,4 +91,11 @@ pub enum CourseFormat {
     OnCampus,
     Online,
     Blended,
+}
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Permissions {
+    pub attach: bool,
+    pub update: bool,
+    pub reply: bool,
+    pub delete: bool,
 }

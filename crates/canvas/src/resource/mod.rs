@@ -1,8 +1,6 @@
 use serde::{de::DeserializeOwned, Serialize};
 
-pub trait Resource: DeserializeOwned + Serialize {}
-
-pub mod misc;
+pub trait Resource: Clone + DeserializeOwned + Serialize {}
 
 pub mod assignment;
 pub mod course;
