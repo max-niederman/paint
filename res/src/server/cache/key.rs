@@ -1,5 +1,5 @@
 use canvas::Id;
-use miette::{IntoDiagnostic, Result, WrapErr, miette};
+use miette::{miette, IntoDiagnostic, Result, WrapErr};
 use std::ffi::CString;
 
 /// A structured key in the cache [`Tree`].
@@ -17,7 +17,7 @@ impl Key for () {
     fn as_bytes(&self) -> Self::Bytes {
         []
     }
-    fn parse_bytes<B: Iterator<Item = u8>>(bytes: &mut B) -> Result<Self> {
+    fn parse_bytes<B: Iterator<Item = u8>>(_bytes: &mut B) -> Result<Self> {
         Ok(())
     }
 }
@@ -32,7 +32,7 @@ impl<P: Key> Key for CanvasKey<P> {
     fn as_bytes(&self) -> Self::Bytes {
         [
             self.prefix.as_bytes().as_ref(),
-            &self.instance.as_bytes_with_nul(),
+            self.instance.as_bytes_with_nul(),
         ]
         .concat()
     }
@@ -70,7 +70,7 @@ impl<'p, P: Key> Key for IdKey<P> {
                     .collect::<Vec<u8>>()
                     .try_into()
                     .map_err(|_| miette!("unexpected end of input"))
-                    .wrap_err("while parsing Canvas ID key segment")?
+                    .wrap_err("while parsing Canvas ID key segment")?,
             ),
         })
     }

@@ -8,7 +8,7 @@ impl Cache for Course {
 }
 
 impl Viewable for CacheEntry<Course> {
-    fn merge(self, viewer: &Viewer, other: Self) -> Self {
+    fn merge(self, _viewer: &Viewer, other: Self) -> Self {
         Self { ..other }
     }
 

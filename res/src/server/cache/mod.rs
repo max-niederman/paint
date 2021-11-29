@@ -7,9 +7,9 @@ pub mod view;
 use key::*;
 use view::*;
 
-use std::{borrow::Cow, time::SystemTime};
+use std::time::SystemTime;
 
-use canvas::{DateTime, Id, Resource};
+use canvas::{DateTime, Resource};
 use miette::{IntoDiagnostic, Result, WrapErr};
 use serde::{Deserialize, Serialize};
 use sled::Tree;
@@ -24,7 +24,7 @@ where
     type Key: Key;
 
     /// Merge or insert a resource into the cache.
-    fn merge_insert(tree: &Tree, viewer: &Viewer, key: &Self::Key, resource: Self) -> Result<()> {
+    fn merge_insert(tree: &Tree, _viewer: &Viewer, key: &Self::Key, resource: Self) -> Result<()> {
         let new = CacheEntry {
             resource,
             updated: SystemTime::now().into(),
@@ -83,11 +83,11 @@ where
     }
 
     /// Get all resources matching the key from the cache.
-    fn get_all<'t, P: KeyPrefix<Self::Key>>(
+    fn get_all<'t, 'v, P: KeyPrefix<Self::Key>>(
         tree: &'t Tree,
-        viewer: Viewer,
+        viewer: &'v Viewer,
         prefix: &P,
-    ) -> Box<dyn Iterator<Item = Result<(Self::Key, View<CacheEntry<Self>>)>>> {
+    ) -> Box<dyn 'v + Iterator<Item = Result<(Self::Key, View<CacheEntry<Self>>)>>> {
         Box::new(tree.scan_prefix(prefix.as_bytes()).map(move |res| {
             let (key, val) = res.into_diagnostic()?;
 
@@ -97,7 +97,7 @@ where
                 .into_diagnostic()
                 .wrap_err("failed to deserialize entry")?;
 
-            Ok((key, entry.view(&viewer).into_owned()))
+            Ok((key, entry.view(viewer).into_owned()))
         }))
     }
 }

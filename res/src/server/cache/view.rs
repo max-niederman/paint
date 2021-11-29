@@ -1,13 +1,10 @@
-use canvas::Resource;
 use std::borrow::Cow;
-
-use super::CacheEntry;
 
 /// Behavior common to resources which can be constructed from views and into which views can be recreated.
 pub trait Viewable: Sized + Clone {
     /// Merge this view into the underlying resource with another one.
     /// The default implementation is to return `other`. This implies that the views cannot be merged.
-    fn merge(self, viewer: &Viewer, other: Self) -> Self {
+    fn merge(self, _viewer: &Viewer, other: Self) -> Self {
         other
     }
 
