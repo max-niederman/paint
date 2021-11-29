@@ -3,7 +3,7 @@ use miette::{miette, IntoDiagnostic, Result, WrapErr};
 use std::ffi::CString;
 
 /// A structured key in the cache [`Tree`].
-pub trait Key: Sized {
+pub trait Key: Sized + Eq {
     type Bytes: AsRef<[u8]>;
     fn as_bytes(&self) -> Self::Bytes;
     fn parse_bytes<B: Iterator<Item = u8>>(bytes: &mut B) -> Result<Self>;
@@ -22,6 +22,7 @@ impl Key for () {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CanvasKey<P> {
     pub prefix: P,
     // the instance must not contain a null byte, so we use [`CString`]
@@ -42,7 +43,6 @@ impl<P: Key> Key for CanvasKey<P> {
             instance: CString::new(
                 bytes
                     .take_while(|&b| b != b'\0')
-                    .chain(std::iter::once(b'\0'))
                     .collect::<Vec<u8>>(),
             )
             .into_diagnostic()
@@ -52,6 +52,7 @@ impl<P: Key> Key for CanvasKey<P> {
 }
 impl<P: Key> KeyPrefix<CanvasKey<P>> for P {}
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IdKey<P> {
     pub prefix: P,
     pub id: Id,
@@ -80,3 +81,39 @@ impl<P: Key> KeyPrefix<IdKey<P>> for P {}
 // we alias these to make the semantics clearer
 pub type CourseKey<P> = IdKey<P>;
 pub type UserKey<P> = IdKey<P>;
+
+#[test]
+fn parse_bytes_inverts_as_bytes() {
+    use std::fmt::Debug;
+
+    fn test<K: Key + Debug>(key: K) {
+        let bytes = key.as_bytes();
+        let mut bytes = bytes.as_ref().iter().copied();
+        let parsed = K::parse_bytes(&mut bytes).unwrap();
+        assert_eq!(parsed, key);
+    }
+
+    test(());
+    test(CanvasKey {
+        prefix: (),
+        instance: CString::new("foo").unwrap(),
+    });
+    test(IdKey {
+        prefix: (),
+        id: 1,
+    });
+    test(CanvasKey {
+        prefix: (),
+        instance: CString::new("foo").unwrap(),
+    });
+    test(IdKey {
+        prefix: CanvasKey {
+            prefix: IdKey {
+                prefix: (),
+                id: 2,
+            },
+            instance: CString::new("foo").unwrap(),
+        },
+        id: 1,
+    });
+}

@@ -1,9 +1,11 @@
 //! Trivial Selectors
 
-use canvas_lms::resource::*;
-
 use super::Selector;
 
+use canvas::resource::*;
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct All;
 impl<R: Resource> Selector<R> for All {
     fn matches(&self, _resource: &R) -> bool {
@@ -11,6 +13,7 @@ impl<R: Resource> Selector<R> for All {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct None;
 impl<R: Resource> Selector<R> for None {
     fn matches(&self, _resource: &R) -> bool {
@@ -18,8 +21,12 @@ impl<R: Resource> Selector<R> for None {
     }
 }
 
-pub struct Id(canvas_lms::Id);
-pub struct Ids(Vec<canvas_lms::Id>);
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Id(canvas::Id);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Ids(Vec<canvas::Id>);
+
 macro_rules! id_selector {
     ($res:ty) => {
         impl Selector<$res> for Id {
@@ -34,12 +41,14 @@ macro_rules! id_selector {
         }
     };
 }
+
 id_selector!(Assignment);
 id_selector!(Course);
 id_selector!(Enrollment);
 id_selector!(GradingPeriod);
 id_selector!(User);
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Not<A>(A);
 impl<R: Resource, A: Selector<R>> Selector<R> for Not<A> {
     fn matches(&self, resource: &R) -> bool {
@@ -47,6 +56,7 @@ impl<R: Resource, A: Selector<R>> Selector<R> for Not<A> {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Or<A, B>(A, B);
 impl<R: Resource, A: Selector<R>, B: Selector<R>> Selector<R> for Or<A, B> {
     fn matches(&self, resource: &R) -> bool {
@@ -54,6 +64,7 @@ impl<R: Resource, A: Selector<R>, B: Selector<R>> Selector<R> for Or<A, B> {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct And<A, B>(A, B);
 impl<R: Resource, A: Selector<R>, B: Selector<R>> Selector<R> for And<A, B> {
     fn matches(&self, resource: &R) -> bool {
@@ -61,6 +72,7 @@ impl<R: Resource, A: Selector<R>, B: Selector<R>> Selector<R> for And<A, B> {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExclusiveOr<A, B>(A, B);
 impl<R: Resource, A: Selector<R>, B: Selector<R>> Selector<R> for ExclusiveOr<A, B> {
     fn matches(&self, resource: &R) -> bool {

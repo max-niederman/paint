@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use pigment::Viewer;
 
 /// Behavior common to resources which can be constructed from views and into which views can be recreated.
 pub trait Viewable: Sized + Clone {
@@ -12,13 +13,6 @@ pub trait Viewable: Sized + Clone {
     /// If the user has full access to the view, we must return `View::Full(self)`.
     /// This implies that the view was originally derived from the user's view and is not merged.
     fn view(&self, viewer: &Viewer) -> View<Cow<'_, Self>>;
-}
-
-/// A viewer with respect to a resource. This loosely corresponds to a user.
-#[derive(Debug, Clone, Copy)]
-pub enum Viewer {
-    User(canvas::Id),
-    Omniscient,
 }
 
 /// A view into a resource.

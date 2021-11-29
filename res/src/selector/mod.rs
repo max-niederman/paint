@@ -1,9 +1,12 @@
 //! Composable selectors by which queries are defined and efficiently executed.
 
-use canvas_lms::Resource;
+use canvas::Resource;
 
 pub mod trivial;
 pub use trivial::*;
+
+pub mod discriminated;
+pub use discriminated::DSelector;
 
 /// A [`Selector`] is a type which selects resources.
 ///

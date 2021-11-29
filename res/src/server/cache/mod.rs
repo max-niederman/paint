@@ -13,6 +13,7 @@ use canvas::{DateTime, Resource};
 use miette::{IntoDiagnostic, Result, WrapErr};
 use serde::{Deserialize, Serialize};
 use sled::Tree;
+use pigment::Viewer;
 
 pub trait Cache: Resource
 where
