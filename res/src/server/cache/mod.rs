@@ -39,10 +39,10 @@ where
             key.as_bytes(),
             bincode::serialize(&entry)
                 .into_diagnostic()
-                .wrap_err("failed to serialize resource")?,
+                .wrap_err("while serializing resource")?,
         )
         .into_diagnostic()
-        .wrap_err("failed to insert into cache")?;
+        .wrap_err("while inserting into cache")?;
 
         Ok(())
     }
@@ -56,12 +56,12 @@ where
         let val = tree
             .get(key.as_bytes())
             .into_diagnostic()
-            .wrap_err("failed to get entry")?;
+            .wrap_err("while getting entry")?;
 
         val.map(|res| {
             bincode::deserialize(&res)
                 .into_diagnostic()
-                .wrap_err("failed to deserialize entry")
+                .wrap_err("while deserializing entry")
                 .map(|e: CacheEntry<Self>| e.view(viewer).into_owned())
         })
         .transpose()
@@ -72,12 +72,12 @@ where
         let val = tree
             .get(key.as_bytes())
             .into_diagnostic()
-            .wrap_err("failed to get entry")?;
+            .wrap_err("while get entry")?;
 
         val.map(|res| {
             bincode::deserialize(&res)
                 .into_diagnostic()
-                .wrap_err("failed to deserialize entry")
+                .wrap_err("while deserializing entry")
         })
         .transpose()
     }
@@ -95,7 +95,7 @@ where
 
             let entry: CacheEntry<Self> = bincode::deserialize(val.as_ref())
                 .into_diagnostic()
-                .wrap_err("failed to deserialize entry")?;
+                .wrap_err("while deserializing entry")?;
 
             Ok((key, entry.view(viewer).into_owned()))
         }))

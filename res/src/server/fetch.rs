@@ -32,7 +32,7 @@ mod impls {
                         .send()
                         .await
                         .into_diagnostic()
-                        .wrap_err("failed to fetch resources from Canvas")?;
+                        .wrap_err("while fetching resources from Canvas")?;
                     log::debug!("fetched course list from <{}>", resp.url());
 
                     let next_link = Pagination::from_headers(resp.headers())?.next().map(ToString::to_string);
@@ -40,9 +40,9 @@ mod impls {
                         .bytes()
                         .await
                         .into_diagnostic()
-                        .wrap_err("failed to read response body")?;
+                        .wrap_err("while reading response body")?;
                     let courses = deserialize_from_slice::<Vec<Course>>(&body)
-                        .wrap_err("failed to parse fetched resources")?; // TODO: add other metadata to wrapper (e.g. source URL)
+                        .wrap_err("while parsing fetched resources")?; // TODO: add other metadata to wrapper (e.g. source URL)
 
                     for course in courses {
                         yield Ok(course);

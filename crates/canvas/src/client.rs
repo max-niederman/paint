@@ -30,7 +30,7 @@ impl Client {
                     headers
                 })
                 .build()
-                .expect("failed to instantiate HTTP client"),
+                .expect("while instantiating HTTP client"),
             base_url: base_url.as_ref().to_owned(),
         }
     }

@@ -6,7 +6,7 @@ pub enum Error {
     #[error(transparent)]
     Pagination(#[from] crate::client::pagination::Error),
 
-    #[error("failed to parse JSON data from Canvas")]
+    #[error("while parsing JSON data from Canvas")]
     #[diagnostic(code(canvas_lms::malformed_json))]
     MalformedJson {
         #[source]
