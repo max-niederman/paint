@@ -1,3 +1,5 @@
+#![feature(specialization)]
+
 extern crate canvas_lms as canvas;
 
 mod cache;

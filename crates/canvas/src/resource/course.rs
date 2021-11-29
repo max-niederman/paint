@@ -30,7 +30,7 @@ pub struct Course {
 
     pub default_view: CourseView,
     #[serde(default)]
-    pub syllabus_body: Option<String>, // present on include[]=sylabus_body
+    pub syllabus_body: Option<String>, // present on include[]=syllabus_body
 
     #[serde(default)]
     pub term: Option<Term>, // present on include[]=term
