@@ -11,9 +11,9 @@ use std::time::SystemTime;
 
 use canvas::{DateTime, Resource};
 use miette::{IntoDiagnostic, Result, WrapErr};
+use pigment::Viewer;
 use serde::{Deserialize, Serialize};
 use sled::Tree;
-use pigment::Viewer;
 
 pub trait Cache: Resource
 where

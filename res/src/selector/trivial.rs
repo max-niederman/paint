@@ -3,7 +3,7 @@
 use super::Selector;
 
 use canvas::resource::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct All;

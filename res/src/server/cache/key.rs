@@ -40,13 +40,9 @@ impl<P: Key> Key for CanvasKey<P> {
     fn parse_bytes<B: Iterator<Item = u8>>(bytes: &mut B) -> Result<Self> {
         Ok(Self {
             prefix: P::parse_bytes(bytes)?,
-            instance: CString::new(
-                bytes
-                    .take_while(|&b| b != b'\0')
-                    .collect::<Vec<u8>>(),
-            )
-            .into_diagnostic()
-            .wrap_err("while parsing Canvas instance key segment")?,
+            instance: CString::new(bytes.take_while(|&b| b != b'\0').collect::<Vec<u8>>())
+                .into_diagnostic()
+                .wrap_err("while parsing Canvas instance key segment")?,
         })
     }
 }
@@ -98,20 +94,14 @@ fn parse_bytes_inverts_as_bytes() {
         prefix: (),
         instance: CString::new("foo").unwrap(),
     });
-    test(IdKey {
-        prefix: (),
-        id: 1,
-    });
+    test(IdKey { prefix: (), id: 1 });
     test(CanvasKey {
         prefix: (),
         instance: CString::new("foo").unwrap(),
     });
     test(IdKey {
         prefix: CanvasKey {
-            prefix: IdKey {
-                prefix: (),
-                id: 2,
-            },
+            prefix: IdKey { prefix: (), id: 2 },
             instance: CString::new("foo").unwrap(),
         },
         id: 1,

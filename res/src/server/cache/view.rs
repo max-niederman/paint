@@ -1,5 +1,5 @@
-use std::borrow::Cow;
 use pigment::Viewer;
+use std::borrow::Cow;
 
 /// Behavior common to resources which can be constructed from views and into which views can be recreated.
 pub trait Viewable: Sized + Clone {

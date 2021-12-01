@@ -1,7 +1,7 @@
 use super::*;
 
-use serde::{Serialize, Deserialize};
 use canvas::resource;
+use serde::{Deserialize, Serialize};
 
 /// A discriminated resource selector which may be serialized.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,7 +18,7 @@ pub enum DSelector {
 }
 
 macro_rules! impl_selector {
-    ( 
+    (
         resource = $resource:ty;
         special = [ $( $var:ident, )* ];
     ) => {
@@ -47,7 +47,7 @@ macro_rules! impl_selector {
 
 impl_selector! {
     resource = resource::Assignment;
-    special = [ 
+    special = [
         Id,
         Ids,
     ];
@@ -55,7 +55,7 @@ impl_selector! {
 
 impl_selector! {
     resource = resource::Course;
-    special = [ 
+    special = [
         Id,
         Ids,
     ];
@@ -68,7 +68,7 @@ impl_selector! {
 
 impl_selector! {
     resource = resource::User;
-    special = [ 
+    special = [
         Id,
         Ids,
     ];

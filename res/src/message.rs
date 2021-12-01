@@ -1,7 +1,7 @@
 use crate::{DSelector, Viewer};
 
 use canvas_lms::resource;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// A request sent to the server by the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,7 +15,7 @@ pub enum Request {
         viewer: Viewer,
         /// The resource selector.
         selector: DSelector,
-    }
+    },
 }
 
 /// A response sent by the server to the client.
