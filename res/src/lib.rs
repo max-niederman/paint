@@ -2,12 +2,12 @@
 
 extern crate canvas_lms as canvas;
 
-pub mod selector;
-pub use selector::{Selector, DSelector};
-
 pub mod message;
+pub mod selector;
 
 use serde::{Serialize, Deserialize};
+
+pub use selector::{Selector, DSelector};
 
 /// A viewer with respect to a resource. This loosely corresponds to an end user.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

@@ -10,8 +10,6 @@ pub trait Viewable: Sized + Clone {
     }
 
     /// Reconstruct a view into the resource from the merged one.
-    /// If the user has full access to the view, we must return `View::Full(self)`.
-    /// This implies that the view was originally derived from the user's view and is not merged.
     fn view(&self, viewer: &Viewer) -> View<Cow<'_, Self>>;
 }
 
