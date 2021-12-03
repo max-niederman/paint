@@ -20,17 +20,8 @@ pub enum Request {
 
 /// A response sent by the server to the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Response {
-    /// The number of the request this response is for.
-    pub request: u64,
-    /// The fallible response body. Errors are represented as miette's output.
-    pub body: Result<ResponseBody, String>,
-}
-
-/// The body of a response.
-#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "content")]
-pub enum ResponseBody {
+pub enum Response {
     UpdateResult {
         downloaded: u32,
         updated: u32,
