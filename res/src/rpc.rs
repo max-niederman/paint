@@ -3,7 +3,7 @@ use crate::{
     Error, Result,
 };
 use futures::Stream;
-use miette::ReportHandler;
+use miette::{IntoDiagnostic, ReportHandler};
 use serde::{de::DeserializeOwned, Serialize};
 use std::io::{Read, Write};
 
@@ -52,9 +52,9 @@ pub trait Transport {
 
 impl<T: Read + Write> Transport for T {
     fn read<M: DeserializeOwned>(&mut self) -> Result<M> {
-        bincode::deserialize_from(self)
+        bincode::deserialize_from(self).map_err(Error::Transport)
     }
     fn write<M: Serialize>(&mut self, msg: &M) -> Result<()> {
-        bincode::serialize_into(self, msg)
+        bincode::serialize_into(self, msg).map_err(Error::Transport)
     }
 }
