@@ -89,7 +89,7 @@ where
         viewer: &'v Viewer,
         prefix: &P,
     ) -> Box<dyn 'v + Iterator<Item = Result<(Self::Key, View<CacheEntry<Self>>)>>> {
-        Box::new(tree.scan_prefix(prefix.as_bytes()).map(move |res| {
+        Box::new(tree.scan_prefix(prefix.as_bytes()).map(|res| {
             let (key, val) = res.into_diagnostic()?;
 
             let key = Self::Key::parse_bytes(&mut key.iter().copied())?;
