@@ -1,10 +1,9 @@
-use crate::{
-    message::{Request, Response},
-    Error, Result,
+use crate::message::{Request, Response};
+use futures::{
+    io,
+    stream::{Stream, StreamExt},
+    Sink, SinkExt,
 };
-use futures::{Stream, StreamExt};
-use serde::{de::DeserializeOwned, Serialize};
-use std::io::{Read, Write};
 
 pub struct Server<H: Handler> {
     handler: H,
@@ -15,58 +14,61 @@ impl<H: Handler> Server<H> {
         Self { handler }
     }
 
-    pub async fn handle<T: Transport>(&self, transport: &mut T) -> Result<()> {
-        let request = transport.read()?;
-        let mut responses = self.handler.handle(request);
+    pub async fn handle<T>(&self, transport: &mut T) -> crate::Result<()>
+    where
+        T: Stream<Item = Request> + Sink<Result<Response, String>> + Unpin,
+        <T as Sink<Result<Response, String>>>::Error: std::error::Error + 'static,
+    {
+        let request = transport.next().await.ok_or_else(|| {
+            crate::Error::Transport(Box::new(io::Error::new(
+                io::ErrorKind::UnexpectedEof,
+                "unexpected EOF while waiting for request",
+            )))
+        })?;
 
-        while let Some(handled) = responses.next().await {
-            let msg = match handled {
-                Ok(res) => Ok(res),
-                Err(err) => {
-                    log::error!("handler failed:\n {}", err);
-                    Err(err.to_string())
-                },
-            };
-            transport.write(&msg)?;
-        }
+        self.handler
+            .handle(request)
+            .map(|res| Ok(res.map_err(|e| e.to_string())))
+            .forward(transport)
+            .await
+            .map_err(|e| crate::Error::Transport(Box::new(e)))?;
+
         Ok(())
+    }
+}
+
+impl Request {
+    pub async fn send<T>(
+        self,
+        transport: &mut T,
+    ) -> crate::Result<impl Stream<Item = Result<Response, String>> + '_>
+    where
+        T: Stream<Item = Result<Response, String>> + Sink<Request> + Unpin,
+        <T as Sink<Request>>::Error: std::error::Error + 'static,
+    {
+        transport
+            .send(self)
+            .await
+            .map_err(|source| crate::Error::Transport(Box::new(source)))?;
+        Ok(transport)
     }
 }
 
 pub trait Handler {
     type Err: std::error::Error;
-    type ResponseStream: Stream<Item = std::result::Result<Response, Self::Err>> + Unpin;
+    type ResponseStream: Stream<Item = Result<Response, Self::Err>> + Unpin;
     fn handle(&self, request: Request) -> Self::ResponseStream;
 }
 
 impl<Err, Ret, Func> Handler for Func
 where
     Err: std::error::Error,
-    Ret: Stream<Item = std::result::Result<Response, Err>> + Unpin,
+    Ret: Stream<Item = Result<Response, Err>> + Unpin,
     Func: Fn(Request) -> Ret,
 {
     type Err = Err;
     type ResponseStream = Ret;
     fn handle(&self, request: Request) -> Self::ResponseStream {
         self(request)
-    }
-}
-
-pub trait Transport {
-    fn read<M: DeserializeOwned>(&mut self) -> Result<M>;
-    fn write<M: Serialize>(&mut self, msg: &M) -> Result<()>;
-    fn close(self) -> Result<()>;
-}
-
-#[allow(drop_bounds)]
-impl<T: Read + Write + Drop> Transport for T {
-    fn read<M: DeserializeOwned>(&mut self) -> Result<M> {
-        bincode::deserialize_from(self).map_err(Error::Transport)
-    }
-    fn write<M: Serialize>(&mut self, msg: &M) -> Result<()> {
-        bincode::serialize_into(self, msg).map_err(Error::Transport)
-    }
-    fn close(self) -> Result<()> {
-        Ok(drop(self))
     }
 }
