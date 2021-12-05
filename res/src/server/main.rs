@@ -1,3 +1,6 @@
+#![feature(inline_const)]
+#![feature(generic_const_exprs)]
+#![feature(marker_trait_attr)]
 #![feature(specialization)]
 
 extern crate canvas_lms as canvas;
@@ -5,23 +8,21 @@ extern crate canvas_lms as canvas;
 mod cache;
 mod fetch;
 
-use fetch::Fetch;
-use futures::stream::StreamExt;
-use miette::Result;
+use miette::{IntoDiagnostic, Result};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     pretty_env_logger::init();
 
-    let client = canvas::Client::builder()
-        .with_base_url("https://lms.pps.net")
-        .with_auth(canvas::Auth::Bearer(std::env::var("CANVAS_TOKEN").unwrap()))
-        .build();
+    let listen_addr = std::env::var("PIGMENT_ADDR").unwrap_or_else(|_| "0.0.0.0:4211".into());
+    let listener = tokio::net::TcpListener::bind(&listen_addr)
+        .await
+        .into_diagnostic()?;
 
-    let mut courses = canvas::resource::Course::fetch_all(client.clone())?;
-    while let Some(course) = courses.next().await {
-        log::info!("fetched course '{}'", course?.name);
+    loop {
+        let (socket, remote) = listener.accept().await.into_diagnostic()?;
+        tokio::spawn(async move {
+            log::debug!("accepted connection from {}", remote);
+        });
     }
-
-    todo!("implement RPC server")
 }

@@ -7,3 +7,6 @@ target/
 
 # editor
 .vscode/
+
+# performance profiling
+perf.data

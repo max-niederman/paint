@@ -13,9 +13,10 @@ use serde::{Deserialize, Serialize};
 pub use error::{Error, Result};
 pub use selector::{DSelector, Selector};
 
-/// A viewer with respect to a resource. This loosely corresponds to an end user.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum Viewer {
+/// A view into a Canvas instance.
+///
+/// At the moment, there are only [`User`] views.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum View {
     User(canvas::Id),
-    Omniscient,
 }

@@ -1,79 +1,30 @@
 //! Caching and Querying Schemes for Canvas Resources
 
 pub mod key;
-mod resource;
-pub mod view;
 
 use key::*;
-use view::*;
-
-use std::time::SystemTime;
 
 use canvas::{DateTime, Resource};
 use miette::{IntoDiagnostic, Result, WrapErr};
-use pigment::Viewer;
+use pigment::View;
 use serde::{Deserialize, Serialize};
 use sled::Tree;
 
-pub trait Cache: Resource
-where
-    CacheEntry<Self>: Viewable,
-{
-    /// The key type represents both the structure of the cache and also how entries are duplicated.
-    /// For example, using a [`CanvasPrefix`], [`CoursePrefix`], and [`IdPrefix`] would mean that independent entries are kept
-    /// not only for each ID but also for each Canvas instance and each course thereof.
+pub trait Cache: Resource {
+    /// The key type represents how resources are stored under each [`View`].
     type Key: Key;
 
-    /// Merge or insert a resource into the cache.
-    fn merge_insert(tree: &Tree, _viewer: &Viewer, key: &Self::Key, resource: Self) -> Result<()> {
-        let new = CacheEntry {
-            resource,
-            updated: SystemTime::now().into(),
-            last_accessed: None,
-        };
-        let entry = match Self::get_omniscient(tree, key)? {
-            Some(old) => old.merge(&Viewer::Omniscient, new),
-            None => new,
-        };
-
-        tree.insert(
-            key.as_bytes(),
-            bincode::serialize(&entry)
-                .into_diagnostic()
-                .wrap_err("while serializing resource")?,
-        )
-        .into_diagnostic()
-        .wrap_err("while inserting into cache")?;
-
-        Ok(())
+    /// Atomically replace all resources in the cache under a given view with the given resources.
+    fn replace_view(tree: &Tree, view: &View, key: &Self::Key, resource: Self) -> Result<()> {
+        unimplemented!()
     }
 
     /// Get a single resource from the cache.
-    fn get<'t>(
-        tree: &'t Tree,
-        viewer: &Viewer,
-        key: &Self::Key,
-    ) -> Result<Option<View<CacheEntry<Self>>>> {
+    fn get(tree: &Tree, view: &View, key: &Self::Key) -> Result<Option<CacheEntry<Self>>> {
         let val = tree
-            .get(key.as_bytes())
+            .get(Join(view, key).as_bytes())
             .into_diagnostic()
             .wrap_err("while getting entry")?;
-
-        val.map(|res| {
-            bincode::deserialize(&res)
-                .into_diagnostic()
-                .wrap_err("while deserializing entry")
-                .map(|e: CacheEntry<Self>| e.view(viewer).into_owned())
-        })
-        .transpose()
-    }
-    /// Get a single resource from the cache with omniscience.
-    /// This is equivalent to calling [`get`] with [`Viewer::Omniscient`], except we return a raw [`CacheEntry`] rather than a [`View`] into one.
-    fn get_omniscient(tree: &Tree, key: &Self::Key) -> Result<Option<CacheEntry<Self>>> {
-        let val = tree
-            .get(key.as_bytes())
-            .into_diagnostic()
-            .wrap_err("while get entry")?;
 
         val.map(|res| {
             bincode::deserialize(&res)
@@ -86,19 +37,19 @@ where
     /// Get all resources matching the key from the cache.
     fn get_all<'t, 'v, P: KeyPrefix<Self::Key>>(
         tree: &'t Tree,
-        viewer: &'v Viewer,
+        view: &'v View,
         prefix: &P,
-    ) -> Box<dyn 'v + Iterator<Item = Result<(Self::Key, View<CacheEntry<Self>>)>>> {
-        Box::new(tree.scan_prefix(prefix.as_bytes()).map(|res| {
+    ) -> Box<dyn 'v + Iterator<Item = Result<(Self::Key, CacheEntry<Self>)>>> {
+        Box::new(tree.scan_prefix(Join(view, prefix).as_bytes()).map(|res| {
             let (key, val) = res.into_diagnostic()?;
 
-            let key = Self::Key::parse_bytes(&mut key.iter().copied())?;
+            let key = Self::Key::from_bytes(&key)?;
 
             let entry: CacheEntry<Self> = bincode::deserialize(val.as_ref())
                 .into_diagnostic()
                 .wrap_err("while deserializing entry")?;
 
-            Ok((key, entry.view(viewer).into_owned()))
+            Ok((key, entry))
         }))
     }
 }

@@ -1,4 +1,7 @@
-use crate::{DSelector, Viewer};
+// memory usage doesn't really matter, so wasting a bit of the stack is alright
+#![allow(clippy::large_enum_variant)]
+
+use crate::{View, DSelector};
 
 use canvas_lms::resource;
 use serde::{Deserialize, Serialize};
@@ -7,12 +10,12 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Request {
     Update {
-        /// The viewer to use for the update.
-        viewer: Viewer,
+        /// The view to update.
+        view: View,
     },
     Query {
-        /// The viewer performing the query.
-        viewer: Viewer,
+        /// The viewer being queried.
+        view: View,
         /// The resource selector.
         selector: DSelector,
     },
