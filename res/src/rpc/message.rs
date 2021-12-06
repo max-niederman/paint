@@ -1,7 +1,7 @@
 // memory usage doesn't really matter, so wasting a bit of the stack is alright
 #![allow(clippy::large_enum_variant)]
 
-use crate::{View, DSelector};
+use crate::{DSelector, View};
 
 use canvas_lms::resource;
 use serde::{Deserialize, Serialize};

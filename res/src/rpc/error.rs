@@ -1,5 +1,5 @@
-use thiserror::Error;
 use miette::Diagnostic;
+use thiserror::Error;
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum Error {
@@ -11,5 +11,5 @@ pub enum Error {
     /// A transport error.
     #[error("in rpc transport")]
     #[diagnostic(code(pigment::rpc::transport))]
-    Transport(#[from] tokio::io::Error),   
+    Transport(#[from] tokio::io::Error),
 }

@@ -1,5 +1,5 @@
-pub mod message;
 pub mod error;
+pub mod message;
 
 pub use error::Error;
 
@@ -21,7 +21,9 @@ impl<H: Handler> Server<H> {
 
     pub async fn handle<T>(&self, transport: &mut T) -> crate::Result<()>
     where
-        T: Stream<Item = Request> + Sink<Result<Response, String>, Error = tokio::io::Error> + Unpin,
+        T: Stream<Item = Request>
+            + Sink<Result<Response, String>, Error = tokio::io::Error>
+            + Unpin,
     {
         let request = transport.next().await.ok_or_else(|| {
             Error::Transport(io::Error::new(
@@ -47,14 +49,11 @@ impl Request {
         transport: &mut T,
     ) -> crate::Result<impl Stream<Item = Result<Response, String>> + '_>
     where
-        T: Stream<Item = Result<Response, String>> 
-            + Sink<Request, Error = tokio::io::Error> 
+        T: Stream<Item = Result<Response, String>>
+            + Sink<Request, Error = tokio::io::Error>
             + Unpin,
     {
-        transport
-            .send(self)
-            .await
-            .map_err(Error::Transport)?;
+        transport.send(self).await.map_err(Error::Transport)?;
         Ok(transport)
     }
 }
