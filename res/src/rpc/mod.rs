@@ -1,9 +1,14 @@
-use crate::message::{Request, Response};
+pub mod message;
+pub mod error;
+
+pub use error::Error;
+
 use futures::{
     io,
     stream::{Stream, StreamExt},
     Sink, SinkExt,
 };
+use message::{Request, Response};
 
 pub struct Server<H: Handler> {
     handler: H,
@@ -20,7 +25,7 @@ impl<H: Handler> Server<H> {
         <T as Sink<Result<Response, String>>>::Error: std::error::Error + 'static,
     {
         let request = transport.next().await.ok_or_else(|| {
-            crate::Error::Transport(Box::new(io::Error::new(
+            Error::Transport(Box::new(io::Error::new(
                 io::ErrorKind::UnexpectedEof,
                 "unexpected EOF while waiting for request",
             )))
@@ -31,7 +36,7 @@ impl<H: Handler> Server<H> {
             .map(|res| Ok(res.map_err(|e| e.to_string())))
             .forward(transport)
             .await
-            .map_err(|e| crate::Error::Transport(Box::new(e)))?;
+            .map_err(|e| Error::Transport(Box::new(e)))?;
 
         Ok(())
     }

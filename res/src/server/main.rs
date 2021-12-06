@@ -1,11 +1,5 @@
-#![feature(inline_const)]
-#![feature(generic_const_exprs)]
-#![feature(marker_trait_attr)]
-#![feature(specialization)]
-
 extern crate canvas_lms as canvas;
 
-mod cache;
 mod fetch;
 
 use miette::{IntoDiagnostic, Result};

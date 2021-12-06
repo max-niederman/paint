@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+heapless = "0.7"
 futures = "0.3"
 async-trait = "0.1"
 async-stream = "0.3"
