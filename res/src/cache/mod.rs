@@ -49,7 +49,7 @@ default impl<R: Resource> Cache<Tree> for R {
     /// Get a single resource from the cache.
     fn get(store: &Tree, view: &View, key: &Self::Key) -> Result<Option<CacheEntry<Self>>> {
         let val = store
-            .get([view.serialize(), key.serialize()].concat())
+            .get([view.serialize()?, key.serialize()?].concat())
             .into_diagnostic()
             .wrap_err("while getting entry")?;
 
