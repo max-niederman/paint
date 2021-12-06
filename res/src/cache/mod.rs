@@ -5,18 +5,15 @@ pub mod key;
 
 pub use error::Error;
 
-use crate::View;
+use crate::{View, Result};
 use key::Key;
 
 use canvas::{DateTime, Resource};
 use futures::Stream;
-use miette::{IntoDiagnostic, Result, WrapErr};
 use sled::Tree;
 
 pub trait Cache<S: Store>: Resource {
     type Key: Key;
-
-    // FIXME: return concrete error types
 
     /// Atomically replace all resources in the cache under a given view with the given resources.
     fn replace_view<R: Stream<Item = Self>>(
@@ -49,14 +46,12 @@ default impl<R: Resource> Cache<Tree> for R {
     /// Get a single resource from the cache.
     fn get(store: &Tree, view: &View, key: &Self::Key) -> Result<Option<CacheEntry<Self>>> {
         let val = store
-            .get([view.serialize()?, key.serialize()?].concat())
-            .into_diagnostic()
-            .wrap_err("while getting entry")?;
+            .get([view.serialize()?, key.serialize()?].concat()).map_err(Error::Sled)?;
 
         val.map(|res| {
             bincode::deserialize(&res)
-                .into_diagnostic()
-                .wrap_err("while deserializing entry")
+            .map_err(Error::Deserialization)
+            .map_err(Into::into)
         })
         .transpose()
     }
@@ -67,20 +62,19 @@ default impl<R: Resource> Cache<Tree> for R {
         view: &'v View,
     ) -> Result<Box<dyn 'v + Iterator<Item = Result<(Self::Key, CacheEntry<Self>)>>>> {
         Ok(Box::new(store.scan_prefix(view.serialize()?).map(|res| {
-            let (key, val) = res.into_diagnostic()?;
+            let (key, val) = res.map_err(Error::Sled)?;
 
             let key = Self::Key::deserialize(&mut key.iter().copied())?;
 
-            let entry: CacheEntry<Self> = bincode::deserialize(val.as_ref())
-                .into_diagnostic()
-                .wrap_err("while deserializing entry")?;
+            let entry: CacheEntry<Self> = bincode::deserialize(val.as_ref()).map_err(Error::Deserialization)?;
 
             Ok((key, entry))
         })))
     }
 }
 
-trait Store {}
+// TODO: move implementation to [`Store`]
+pub trait Store {}
 impl Store for Tree {}
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

@@ -53,7 +53,7 @@ impl Key for view::Canvas {
                 Error::IllegalCanvasBaseUrl {
                     base_url: format!(
                         "{:#?} followed by {} invalid bytes",
-                        std::str::from_utf8(&base_url_bytes[..valid_up_to]),
+                        std::str::from_utf8(&e.as_bytes()[..valid_up_to]),
                         valid_up_to
                     ),
                     location: None,
