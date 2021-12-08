@@ -12,6 +12,8 @@ pub enum Request {
     Update {
         /// The view to update.
         view: View,
+        /// The Canvas token to use.
+        canvas_token: String,
     },
     Query {
         /// The viewer being queried.

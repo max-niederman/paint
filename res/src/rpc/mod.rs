@@ -2,13 +2,13 @@ pub mod error;
 pub mod message;
 
 pub use error::Error;
+pub use message::{Request, Response};
 
 use futures::{
     io,
     stream::{Stream, StreamExt},
     Sink, SinkExt,
 };
-use message::{Request, Response};
 
 pub struct Server<H: Handler> {
     handler: H,
