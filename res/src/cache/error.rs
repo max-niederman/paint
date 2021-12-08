@@ -9,12 +9,8 @@ pub enum Error {
     #[error("while deserializing cache entry")]
     Deserialization(#[source] bincode::Error),
 
-    #[error("while serializing {value:#?}")]
-    Serialization {
-        #[source]
-        source: bincode::Error,
-        value: Box<dyn std::fmt::Debug>,
-    },
+    #[error("while serializing cache entry")]
+    Serialization(#[source] bincode::Error),
 
     #[error("expected {expected} but got {actual}")]
     UnexpectedStreamYield {

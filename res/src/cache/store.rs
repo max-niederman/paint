@@ -7,7 +7,7 @@ use std::ops::Deref;
 type Result<T> = std::result::Result<T, Error>;
 
 pub trait Store {
-    type ByteVec: AsRef<[u8]> + Deref<Target = [u8]> = Vec<u8>;
+    type ByteVec: AsRef<[u8]> + Deref<Target = [u8]> + From<Vec<u8>> = Vec<u8>;
 
     /// Get a value from the store by its key.
     fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<Self::ByteVec>>;
@@ -49,6 +49,7 @@ impl Store for sled::Tree {
     }
 
     fn destroy_prefix<P: AsRef<[u8]>>(&self, prefix: P) -> Result<()> {
-        todo!()
+        self.scan_prefix(prefix)
+            .try_for_each(|kv| self.remove(kv?.0).map_err(Error::Sled).map(|_| ()))
     }
 }

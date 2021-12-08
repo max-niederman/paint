@@ -3,7 +3,7 @@ use crate::{view, Result};
 
 pub trait Key: Sized {
     /// The length in bytes of the serialized key.
-    const LEN: usize;
+    const SER_LEN: usize;
 
     /// Serialize the key into a byte vector.
     ///
@@ -22,7 +22,7 @@ pub trait Key: Sized {
 pub const MAX_CANVAS_LENGTH: usize = 64;
 
 impl Key for view::Canvas {
-    const LEN: usize = MAX_CANVAS_LENGTH;
+    const SER_LEN: usize = MAX_CANVAS_LENGTH;
 
     fn serialize(&self) -> Result<Vec<u8>> {
         if !self.base_url.as_bytes().iter().all(|&b| b != b'\0') {
@@ -33,7 +33,7 @@ impl Key for view::Canvas {
             .into());
         }
 
-        let mut bytes = heapless::Vec::<u8, { Self::LEN }>::from_slice(self.base_url.as_bytes())
+        let mut bytes = heapless::Vec::<u8, { Self::SER_LEN }>::from_slice(self.base_url.as_bytes())
             .map_err(|_| Error::IllegalCanvasBaseUrl {
                 base_url: self.base_url.clone(),
                 location: Some((MAX_CANVAS_LENGTH, self.base_url.len() - 1)),
@@ -44,8 +44,8 @@ impl Key for view::Canvas {
     }
 
     fn deserialize<I: Iterator<Item = u8>>(bytes: &mut I) -> Result<Self> {
-        let mut base_url_bytes = Vec::with_capacity(Self::LEN);
-        base_url_bytes.extend(bytes.take(Self::LEN).take_while(|&b| b != b'\0'));
+        let mut base_url_bytes = Vec::with_capacity(Self::SER_LEN);
+        base_url_bytes.extend(bytes.take(Self::SER_LEN).take_while(|&b| b != b'\0'));
 
         Ok(Self {
             base_url: String::from_utf8(base_url_bytes).map_err(|e| {
@@ -66,10 +66,10 @@ impl Key for view::Canvas {
 
 impl Key for view::Viewer {
     // one byte for the discriminant and eight for the union
-    const LEN: usize = 1 + 8;
+    const SER_LEN: usize = 1 + 8;
 
     fn serialize(&self) -> Result<Vec<u8>> {
-        let mut bytes = heapless::Vec::<u8, { Self::LEN }>::new();
+        let mut bytes = heapless::Vec::<u8, { Self::SER_LEN }>::new();
 
         match self {
             Self::User(id) => {
@@ -104,10 +104,10 @@ impl Key for view::Viewer {
 }
 
 impl Key for view::View {
-    const LEN: usize = view::Canvas::LEN + view::Viewer::LEN;
+    const SER_LEN: usize = view::Canvas::SER_LEN + view::Viewer::SER_LEN;
 
     fn serialize(&self) -> Result<Vec<u8>> {
-        let mut bytes = heapless::Vec::<u8, { Self::LEN }>::new();
+        let mut bytes = heapless::Vec::<u8, { Self::SER_LEN }>::new();
 
         bytes.extend(self.truth.serialize()?);
         bytes.extend(self.viewer.serialize()?);
