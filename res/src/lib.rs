@@ -3,6 +3,7 @@
 #![feature(marker_trait_attr)]
 #![feature(never_type)]
 #![feature(associated_type_defaults)]
+#![feature(result_flattening)]
 
 extern crate canvas_lms as canvas;
 

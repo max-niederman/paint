@@ -30,7 +30,9 @@ pub trait Cache<S: Store>: Resource {
     fn get_all<'s, 'v>(
         store: &'s S,
         view: &'v View,
-    ) -> Result<Box<dyn 'v + Iterator<Item = Result<(Self::Key, CacheEntry<Self>)>>>>;
+    ) -> Result<Box<dyn 'v + Iterator<Item = Result<(Self::Key, CacheEntry<Self>)>>>>
+    where
+        S::ScanPrefixIter: 'v;
 }
 
 default impl<R: Resource, S: Store> Cache<S> for R {
@@ -56,11 +58,14 @@ default impl<R: Resource, S: Store> Cache<S> for R {
         .transpose()
     }
 
-    /// Get all resources matching the key from the cache.
+    /// Get all resources under the view from the cache.
     fn get_all<'s, 'v>(
         store: &'s S,
         view: &'v View,
-    ) -> Result<Box<dyn 'v + Iterator<Item = Result<(Self::Key, CacheEntry<Self>)>>>> {
+    ) -> Result<Box<dyn 'v + Iterator<Item = Result<(Self::Key, CacheEntry<Self>)>>>>
+    where
+        S::ScanPrefixIter: 'v,
+    {
         Ok(Box::new(store.scan_prefix(view.serialize()?).map(|res| {
             let (key, val) = res?;
 
