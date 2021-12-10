@@ -27,4 +27,4 @@ path = "src/server/main.rs"
 
 [[bin]]
 name = "cpig"
-path = "src/cpig.rs"
+path = "src/client.rs"
