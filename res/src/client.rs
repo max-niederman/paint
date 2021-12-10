@@ -80,11 +80,16 @@ async fn main() -> miette::Result<()> {
                 todo!()
             }
         };
-        rpc_req
+
+        let mut resps  = rpc_req
             .send(&mut transport)
             .await
             .into_diagnostic()
             .wrap_err("while sending request")?;
+
+        while let Some(resp) = resps.next().await {
+            println!("{:?}", resp);
+        }
     }
 
     Ok(())
