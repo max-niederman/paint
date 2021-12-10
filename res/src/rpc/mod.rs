@@ -24,12 +24,13 @@ impl<H: Handler> Server<H> {
         T: Stream<Item = Request>
             + Sink<Result<Response, String>, Error = tokio::io::Error>
             + Unpin,
+        <T as Sink<Result<Response, String>>>::Error: std::error::Error + Send + Sync,
     {
         let request = transport.next().await.ok_or_else(|| {
-            Error::Transport(io::Error::new(
+            Error::Transport(Box::new(io::Error::new(
                 io::ErrorKind::UnexpectedEof,
                 "unexpected EOF while waiting for request",
-            ))
+            )))
         })?;
 
         self.handler
@@ -37,7 +38,7 @@ impl<H: Handler> Server<H> {
             .map(|res| Ok(res.map_err(|e| e.to_string())))
             .forward(transport)
             .await
-            .map_err(Error::Transport)?;
+            .map_err(|e| Error::Transport(Box::new(e)))?;
 
         Ok(())
     }
@@ -49,11 +50,14 @@ impl Request {
         transport: &mut T,
     ) -> crate::Result<impl Stream<Item = Result<Response, String>> + '_>
     where
-        T: Stream<Item = Result<Response, String>>
-            + Sink<Request, Error = tokio::io::Error>
-            + Unpin,
+        T: Stream<Item = Result<Response, String>> + Sink<Request> + Unpin,
+        <T as Sink<Request>>::Error: 'static + std::error::Error + Send + Sync,
     {
-        transport.send(self).await.map_err(Error::Transport)?;
+        transport
+            .send(self)
+            .await
+            .map_err(|e| Error::Transport(Box::new(e)))?;
+
         Ok(transport)
     }
 }

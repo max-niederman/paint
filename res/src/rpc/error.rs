@@ -6,10 +6,10 @@ pub enum Error {
     /// An error returned by a handler.
     #[error("in request handler")]
     #[diagnostic(code(pigment::rpc::request_handler))]
-    Handler(#[source] Box<dyn std::error::Error>),
+    Handler(#[source] Box<dyn std::error::Error + Send + Sync>),
 
     /// A transport error.
     #[error("in rpc transport")]
     #[diagnostic(code(pigment::rpc::transport))]
-    Transport(#[from] tokio::io::Error),
+    Transport(#[source] Box<dyn std::error::Error + Send + Sync>),
 }

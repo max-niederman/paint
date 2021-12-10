@@ -1,5 +1,12 @@
+#![feature(result_flattening)]
+
 use async_bincode::AsyncBincodeStream;
-use pigment::{rpc, view::{self, View}};
+use futures::StreamExt;
+use miette::{Context, IntoDiagnostic};
+use pigment::{
+    rpc::*,
+    view::{self, View},
+};
 use structopt::StructOpt;
 use tokio::net::TcpStream;
 
@@ -10,7 +17,7 @@ struct Opt {
     host: std::net::SocketAddr,
 
     #[structopt(subcommand)]
-    request: Option<Request>,
+    request: Option<Verb>,
 
     /// Shell to generate completions for.
     #[structopt(long, possible_values = &structopt::clap::Shell::variants())]
@@ -18,7 +25,7 @@ struct Opt {
 }
 
 #[derive(Debug, StructOpt)]
-enum Request {
+enum Verb {
     Update {
         #[structopt(short, long, env = "CANVAS_TOKEN")]
         token: String,
@@ -29,9 +36,7 @@ enum Request {
         #[structopt(short, long, env = "CANVAS_USER")]
         user: canvas_lms::Id,
     },
-    Query {
-
-    },
+    Query {},
 }
 
 #[tokio::main]
@@ -49,26 +54,37 @@ async fn main() -> miette::Result<()> {
         return Ok(());
     }
 
-    let transport = AsyncBincodeStream::from(TcpStream::connect(opt.host).await?).for_async();
+    let mut transport = AsyncBincodeStream::<_, Result<Response, String>, Request, _>::from(
+        TcpStream::connect(opt.host)
+            .await
+            .into_diagnostic()
+            .wrap_err("while connecting to host")?,
+    )
+    .for_async()
+    .map(|r| r.map_err(|e| e.to_string()).flatten());
 
     if let Some(req_opt) = opt.request {
-        let rpc_req: rpc::Request = match req_opt {
-            Request::Update { token, canvas, user } => {
-                rpc::Request::Update {
-                    canvas_token: token,
-                    view: View {
-                        truth: view::Canvas {
-                            base_url: canvas,
-                        },
-                        viewer: view::Viewer::User(user),
-                    }
-                }
-            }
-            Request::Query { } => {
+        let rpc_req: Request = match req_opt {
+            Verb::Update {
+                token,
+                canvas,
+                user,
+            } => Request::Update {
+                canvas_token: token,
+                view: View {
+                    truth: view::Canvas { base_url: canvas },
+                    viewer: view::Viewer::User(user),
+                },
+            },
+            Verb::Query {} => {
                 todo!()
             }
         };
-        rpc_req.send(&mut transport).await?;
+        rpc_req
+            .send(&mut transport)
+            .await
+            .into_diagnostic()
+            .wrap_err("while sending request")?;
     }
 
     Ok(())
