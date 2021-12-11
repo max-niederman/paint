@@ -54,14 +54,14 @@ async fn main() -> miette::Result<()> {
         return Ok(());
     }
 
+    log::debug!("initiating transport...");
     let mut transport = AsyncBincodeStream::<_, Result<Response, String>, Request, _>::from(
         TcpStream::connect(opt.host)
             .await
             .into_diagnostic()
             .wrap_err("while connecting to host")?,
     )
-    .for_async()
-    .map(|r| r.map_err(|e| e.to_string()).flatten());
+    .for_async();
 
     if let Some(req_opt) = opt.request {
         let rpc_req: Request = match req_opt {
@@ -81,14 +81,22 @@ async fn main() -> miette::Result<()> {
             }
         };
 
-        let mut resps  = rpc_req
+        log::debug!("sending request...");
+        let mut resps = rpc_req
             .send(&mut transport)
             .await
             .into_diagnostic()
             .wrap_err("while sending request")?;
 
+        log::debug!("awaiting responses...");
         while let Some(resp) = resps.next().await {
-            println!("{:?}", resp);
+            match resp? {
+                Ok(r) => println!("{:#?}", r),
+                Err(e) => {
+                    log::error!("got error from host: {}", e);
+                    break;
+                }
+            }
         }
     }
 

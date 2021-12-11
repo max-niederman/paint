@@ -25,7 +25,6 @@ pub enum Request {
 
 /// A response sent by the server to the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type", content = "content")]
 pub enum Response {
     UpdateResult {
         downloaded: u32,
@@ -39,7 +38,6 @@ pub enum Response {
 
 /// A discriminated resource.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
 pub enum DResource {
     Assignment(resource::Assignment),
     Course(resource::Course),

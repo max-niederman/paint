@@ -5,60 +5,22 @@ pub use error::Error;
 pub use message::{Request, Response};
 
 use futures::{
-    io,
-    stream::{Stream, StreamExt},
+    stream::{Stream, TryStreamExt},
     Sink, SinkExt,
 };
 
-pub struct Server<H: Handler> {
-    handler: H,
-}
-
-impl<H: Handler> Server<H> {
-    pub fn new(handler: H) -> Self {
-        Self { handler }
-    }
-
-    pub async fn handle<T>(&self, transport: &mut T) -> crate::Result<()>
-    where
-        T: Stream<Item = Request>
-            + Sink<Result<Response, String>, Error = tokio::io::Error>
-            + Unpin,
-        <T as Sink<Result<Response, String>>>::Error: std::error::Error + Send + Sync,
-    {
-        let request = transport.next().await.ok_or_else(|| {
-            Error::Transport(Box::new(io::Error::new(
-                io::ErrorKind::UnexpectedEof,
-                "unexpected EOF while waiting for request",
-            )))
-        })?;
-
-        self.handler
-            .handle(request)
-            .map(|res| Ok(res.map_err(|e| e.to_string())))
-            .forward(transport)
-            .await
-            .map_err(|e| Error::Transport(Box::new(e)))?;
-
-        Ok(())
-    }
-}
-
 impl Request {
-    pub async fn send<T>(
+    pub async fn send<T, E>(
         self,
         transport: &mut T,
-    ) -> crate::Result<impl Stream<Item = Result<Response, String>> + '_>
+    ) -> crate::Result<impl Stream<Item = Result<Result<Response, String>, Error>> + '_>
     where
-        T: Stream<Item = Result<Response, String>> + Sink<Request> + Unpin,
-        <T as Sink<Request>>::Error: 'static + std::error::Error + Send + Sync,
+        T: Stream<Item = Result<Result<Response, String>, E>> + Sink<Request, Error = E> + Unpin,
+        E: 'static + std::error::Error + Send + Sync,
     {
-        transport
-            .send(self)
-            .await
-            .map_err(|e| Error::Transport(Box::new(e)))?;
+        transport.send(self).await.map_err(Error::transport)?;
 
-        Ok(transport)
+        Ok(transport.map_err(Error::transport))
     }
 }
 
