@@ -34,12 +34,16 @@ async fn replace_view<S: Store, R: Cache, RStream: Stream<Item = R> + Unpin>(
 ) -> Result<()> {
     store.destroy_prefix(view.serialize()?)?;
 
-    for resource in resources.next().await {
-        store.insert(view.serialize()?, bincode::serialize(&CacheEntry {
-            resource,
-            updated: SystemTime::now().into(),
-            last_accessed: None,
-        }).map_err(Error::Serialization)?)?;
+    while let Some(resource) = resources.next().await {
+        store.insert(
+            view.serialize()?,
+            bincode::serialize(&CacheEntry {
+                resource,
+                updated: SystemTime::now().into(),
+                last_accessed: None,
+            })
+            .map_err(Error::Serialization)?,
+        )?;
     }
 
     Ok(())

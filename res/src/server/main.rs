@@ -1,10 +1,13 @@
+#![feature(box_patterns)]
+#![feature(async_closure)]
+
 extern crate canvas_lms as canvas;
 
 mod fetch;
 
 use async_bincode::AsyncBincodeStream;
-use futures::{Sink, SinkExt, Stream, StreamExt};
-use miette::{IntoDiagnostic, WrapErr, Result};
+use futures::{future, Sink, SinkExt, Stream, StreamExt};
+use miette::{IntoDiagnostic, Result, WrapErr};
 use pigment::rpc;
 
 #[tokio::main]
@@ -21,7 +24,16 @@ async fn main() -> Result<()> {
         tokio::spawn(async move {
             log::debug!("accepted connection from {}", remote);
 
-            let mut transport = AsyncBincodeStream::from(socket).for_async();
+            let mut transport = AsyncBincodeStream::from(socket)
+                .for_async()
+                .take_while(|e| {
+                    future::ready(match e {
+                        Err(box bincode::ErrorKind::Io(e)) => {
+                            e.kind() == std::io::ErrorKind::ConnectionReset
+                        }
+                        _ => true,
+                    })
+                });
 
             match handle(&mut transport).await {
                 Ok(()) => log::debug!("finished handling connection from {}", remote),

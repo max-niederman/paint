@@ -1,7 +1,8 @@
 #![feature(result_flattening)]
+#![feature(box_patterns)]
 
 use async_bincode::AsyncBincodeStream;
-use futures::StreamExt;
+use futures::{future, StreamExt};
 use miette::{Context, IntoDiagnostic};
 use pigment::{
     rpc::*,
@@ -61,7 +62,13 @@ async fn main() -> miette::Result<()> {
             .into_diagnostic()
             .wrap_err("while connecting to host")?,
     )
-    .for_async();
+    .for_async()
+    .take_while(|e| {
+        future::ready(match e {
+            Err(box bincode::ErrorKind::Io(e)) => e.kind() != std::io::ErrorKind::ConnectionReset,
+            _ => true,
+        })
+    });
 
     if let Some(req_opt) = opt.request {
         let rpc_req: Request = match req_opt {

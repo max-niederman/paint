@@ -33,12 +33,14 @@ impl Key for view::Canvas {
             .into());
         }
 
-        let mut bytes = heapless::Vec::<u8, { Self::SER_LEN }>::from_slice(self.base_url.as_bytes())
-            .map_err(|_| Error::IllegalCanvasBaseUrl {
-                base_url: self.base_url.clone(),
-                location: Some((MAX_CANVAS_LENGTH, self.base_url.len() - 1)),
-                problem: "exceeds maximum length",
-            })?;
+        let mut bytes = heapless::Vec::<u8, { Self::SER_LEN }>::from_slice(
+            self.base_url.as_bytes(),
+        )
+        .map_err(|_| Error::IllegalCanvasBaseUrl {
+            base_url: self.base_url.clone(),
+            location: Some((MAX_CANVAS_LENGTH, self.base_url.len() - 1)),
+            problem: "exceeds maximum length",
+        })?;
         bytes.resize(bytes.capacity(), b'\0').unwrap();
         Ok(bytes.to_vec())
     }
