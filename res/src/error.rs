@@ -10,4 +10,4 @@ pub enum Error {
     Rpc(#[from] crate::rpc::Error),
 }
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T, E = Error> = std::result::Result<T, E>;

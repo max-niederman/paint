@@ -27,3 +27,19 @@ pub struct Canvas {
 pub enum Viewer {
     User(canvas::Id),
 }
+
+impl std::fmt::Display for View {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{truth}/{vt}/{vc}",
+            truth = self.truth.base_url,
+            vt = match self.viewer {
+                Viewer::User(_) => "user",
+            },
+            vc = match self.viewer {
+                Viewer::User(id) => id.to_string(),
+            },
+        )
+    }
+}

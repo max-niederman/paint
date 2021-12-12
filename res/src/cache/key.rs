@@ -16,6 +16,27 @@ pub trait Key: Sized {
     fn deserialize<I: Iterator<Item = u8>>(bytes: &mut I) -> Result<Self>;
 }
 
+impl Key for canvas::Id {
+    const SER_LEN: usize = std::mem::size_of::<canvas::Id>();
+
+    fn serialize(&self) -> Result<Vec<u8>> {
+        Ok(self.to_be_bytes().to_vec())
+    }
+
+    fn deserialize<I: Iterator<Item = u8>>(bytes: &mut I) -> Result<Self> {
+        Ok(Self::from_be_bytes(
+            bytes
+                .take(Self::SER_LEN)
+                .collect::<heapless::Vec<_, { Self::SER_LEN }>>()
+                .into_array()
+                .map_err(|_| Error::UnexpectedStreamYield {
+                    expected: "byte of canvas id",
+                    actual: "end of stream",
+                })?,
+        ))
+    }
+}
+
 /// The maximum length of a Canvas instance.
 /// Instances shorter than this will be padded and instances longer will be fail.
 /// This is necessary to prevent accidental prefix overlaps.

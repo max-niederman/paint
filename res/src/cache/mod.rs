@@ -3,8 +3,9 @@
 pub mod error;
 pub mod key;
 pub mod store;
+mod resource;
 
-use std::time::SystemTime;
+use std::{ops::RangeBounds, time::SystemTime};
 
 pub use error::Error;
 pub use store::Store;
@@ -17,6 +18,7 @@ use futures::{Stream, StreamExt};
 
 pub trait Cache: Resource {
     type Key: Key;
+    fn key(&self) -> Self::Key;
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -26,31 +28,45 @@ pub struct CacheEntry<R> {
     last_accessed: Option<DateTime>,
 }
 
-/// Atomically replace all resources in the cache under a given view with the given resources.
-async fn replace_view<S: Store, R: Cache, RStream: Stream<Item = R> + Unpin>(
+/// Replace all resources in the cache under a given view with the given resources.
+pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R, E>> + Unpin>(
     store: &S,
     view: &View,
     resources: &mut RStream,
-) -> Result<()> {
-    store.destroy_prefix(view.serialize()?)?;
+) -> Result<Result<(), E>> {
+    // the start of the gap between the preceding resource and the current one
+    let mut gap_start: Vec<u8> = vec![];
+    while let Some(res) = resources.next().await {
+        match res {
+            Ok(resource) => {
+                let key = [view.serialize()?, resource.key().serialize()?].concat();
 
-    while let Some(resource) = resources.next().await {
-        store.insert(
-            view.serialize()?,
-            bincode::serialize(&CacheEntry {
-                resource,
-                updated: SystemTime::now().into(),
-                last_accessed: None,
-            })
-            .map_err(Error::Serialization)?,
-        )?;
+                // remove all keys inbetween the last key and this key
+                // we use multiple [`Store::remove_range`] calls so that key writes are well-ordered, improving performance
+                store.remove_range(gap_start.as_slice()..key.as_slice())?;
+
+                store.insert(
+                    &key,
+                    bincode::serialize(&CacheEntry {
+                        resource,
+                        updated: SystemTime::now().into(),
+                        last_accessed: None,
+                    })
+                    .map_err(Error::Serialization)?,
+                )?;
+
+                gap_start = key;
+                *gap_start.last_mut().unwrap() += 1; // move the key forward by one to get the start of the gap
+            }
+            Err(e) => return Ok(Err(e)),
+        }
     }
 
-    Ok(())
+    Ok(Ok(()))
 }
 
 /// Get a single resource from the cache.
-async fn get<S: Store, R: Cache>(
+pub async fn get<S: Store, R: Cache>(
     store: &S,
     view: &View,
     key: &R::Key,
@@ -66,7 +82,7 @@ async fn get<S: Store, R: Cache>(
 }
 
 /// Get all resources under the view from the cache.
-async fn get_all<'s, 'v, S: Store, R: Cache>(
+pub async fn get_all<'s, 'v, S: Store, R: Cache>(
     store: &'s S,
     view: &'v View,
 ) -> Result<impl 'v + Iterator<Item = Result<(R::Key, CacheEntry<R>)>>>
@@ -83,4 +99,14 @@ where
 
         Ok((key, entry))
     }))
+}
+
+pub fn prefix_to_range<P: AsRef<[u8]>>(prefix: P) -> Option<impl RangeBounds<P>>
+where
+    std::ops::Range<Vec<u8>>: RangeBounds<P>,
+{
+    let mut end = prefix.as_ref().to_vec();
+    *end.last_mut()? += 1;
+
+    Some(prefix.as_ref().to_vec()..end)
 }

@@ -26,13 +26,7 @@ pub enum Request {
 /// A response sent by the server to the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
-    UpdateResult {
-        downloaded: u32,
-        updated: u32,
-
-        canvas_time: f64,
-        canvas_cost: f64,
-    },
+    UpdateFinished,
     Resource(DResource),
 }
 
@@ -43,3 +37,17 @@ pub enum DResource {
     Course(resource::Course),
     Submission(resource::Submission),
 }
+
+macro_rules! impl_dresource_from_resource {
+    ($res:ident) => {
+        impl From<::canvas_lms::resource::$res> for DResource {
+            fn from(r: ::canvas_lms::resource::$res) -> Self {
+                Self::$res(r)
+            }
+        }
+    };
+    ($($res:ident),* $(,)?) => {
+        $(impl_dresource_from_resource!($res);)*
+    };
+}
+impl_dresource_from_resource!(Assignment, Course, Submission);

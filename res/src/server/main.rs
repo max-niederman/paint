@@ -1,14 +1,18 @@
 #![feature(box_patterns)]
 #![feature(async_closure)]
+#![feature(once_cell)]
 
 extern crate canvas_lms as canvas;
 
 mod fetch;
+mod handler;
 
 use async_bincode::AsyncBincodeStream;
-use futures::{future, Sink, SinkExt, Stream, StreamExt};
+use futures::{future, StreamExt};
+use handler::Handler;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use pigment::rpc;
+use std::lazy::SyncOnceCell;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -19,6 +23,15 @@ async fn main() -> Result<()> {
         .await
         .into_diagnostic()?;
 
+    static SERVER: SyncOnceCell<rpc::Server<Handler>> = SyncOnceCell::new();
+    SERVER
+        .set(rpc::Server::new(Handler {
+            db: sled::open(std::env::var("PIGMENT_DB").unwrap_or_else(|_| "db".into()))
+                .into_diagnostic()
+                .wrap_err("failed to open sled database")?,
+        }))
+        .expect("SERVER is already initialized");
+
     loop {
         let (socket, remote) = listener.accept().await.into_diagnostic()?;
         tokio::spawn(async move {
@@ -26,6 +39,7 @@ async fn main() -> Result<()> {
 
             let mut transport = AsyncBincodeStream::from(socket)
                 .for_async()
+                // gracefully handle reset connection
                 .take_while(|e| {
                     future::ready(match e {
                         Err(box bincode::ErrorKind::Io(e)) => {
@@ -35,31 +49,10 @@ async fn main() -> Result<()> {
                     })
                 });
 
-            match handle(&mut transport).await {
+            match SERVER.get().unwrap().handle(&mut transport).await {
                 Ok(()) => log::debug!("finished handling connection from {}", remote),
                 Err(e) => log::error!("fatal error handling connection from {}: {}", remote, e),
             }
         });
     }
-}
-
-async fn handle<T, E>(transport: &mut T) -> Result<()>
-where
-    T: Stream<Item = Result<rpc::Request, E>>
-        + Sink<Result<rpc::Response, String>, Error = E>
-        + Unpin,
-    E: std::error::Error + Send + Sync + 'static,
-{
-    transport
-        .send(Ok(rpc::Response::UpdateResult {
-            downloaded: 0,
-            updated: 0,
-            canvas_cost: 0.0,
-            canvas_time: 0.0,
-        }))
-        .await
-        .into_diagnostic()
-        .wrap_err("while sending test response")?;
-
-    Ok(())
 }

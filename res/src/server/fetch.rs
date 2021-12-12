@@ -9,14 +9,14 @@ use std::pin::Pin;
 
 /// Responsible for fetching a resource from the underlying Canvas API.
 pub trait Fetch: Sized {
-    type FetchAll: Stream<Item = Result<Self>>;
-    fn fetch_all(client: canvas::Client) -> Result<Self::FetchAll>;
+    type FetchAll: Stream<Item = Result<Self>> + Send + Sync;
+    fn fetch_all(client: canvas::Client) -> Self::FetchAll;
 }
 
 impl Fetch for resource::Course {
-    type FetchAll = Pin<Box<dyn Stream<Item = Result<Self>>>>;
-    fn fetch_all(client: canvas::Client) -> Result<Self::FetchAll> {
-        Ok(Box::pin(stream! {
+    type FetchAll = Pin<Box<dyn Stream<Item = Result<Self>> + Send + Sync>>;
+    fn fetch_all(client: canvas::Client) -> Self::FetchAll {
+        Box::pin(stream! {
             // we don't use [`RequestBuilder::query`] because it would add paramaters on each iteration
             let mut link = format!("{}/api/v1/courses?per_page=50?include[]=syllabus_body&include[]=total_scores&include[]=current_grading_period_scores", client.base_url());
             loop {
@@ -48,6 +48,6 @@ impl Fetch for resource::Course {
                     break;
                 }
             }
-        }))
+        })
     }
 }

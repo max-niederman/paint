@@ -1,5 +1,3 @@
-#![feature(specialization)]
-#![feature(generic_const_exprs)]
 #![feature(marker_trait_attr)]
 #![feature(never_type)]
 #![feature(associated_type_defaults)]

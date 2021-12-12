@@ -116,10 +116,10 @@ impl ClientBuilder {
 }
 
 pub mod pagination {
-    use std::collections::HashMap;
-
-    use miette::{Diagnostic, IntoDiagnostic, Result};
+    use crate::Result;
+    use miette::Diagnostic;
     use reqwest::header::HeaderMap;
+    use std::collections::HashMap;
     use thiserror::Error;
 
     #[derive(Debug, Clone, Copy, PartialEq)]
@@ -135,8 +135,7 @@ pub mod pagination {
         ($name:ident) => {
             pub fn $name(&self) -> Result<&str> {
                 self.$name
-                    .ok_or_else(|| Error::MissingLink(stringify!($name)))
-                    .into_diagnostic()
+                    .ok_or_else(|| Error::MissingLink(stringify!($name)).into())
             }
         };
     }
@@ -152,7 +151,7 @@ pub mod pagination {
                         message: "contained invalid characters",
                     })
                 })
-                .into_diagnostic()
+                .map_err(Into::into)
                 .and_then(Self::from_links_header)
         }
 

@@ -1,13 +1,53 @@
 pub mod error;
 pub mod message;
 
+use std::fmt::Display;
+
 pub use error::Error;
 pub use message::{Request, Response};
 
 use futures::{
+    io,
     stream::{Stream, TryStreamExt},
-    Sink, SinkExt,
+    Sink, SinkExt, StreamExt,
 };
+
+#[derive(Debug, Clone, Copy)]
+pub struct Server<H> {
+    handler: H,
+}
+
+impl<'h, H: Handler<'h>> Server<H> {
+    pub fn new(handler: H) -> Self {
+        Self { handler }
+    }
+
+    pub async fn handle<T, E>(&'h self, transport: &mut T) -> crate::Result<()>
+    where
+        T: Stream<Item = Result<Request, E>> + Sink<Result<Response, String>, Error = E> + Unpin,
+        E: 'static + std::error::Error + Send + Sync,
+    {
+        let request = transport
+            .next()
+            .await
+            .ok_or_else(|| {
+                Error::Transport(Box::new(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "unexpected EOF while waiting for request",
+                )))
+            })?
+            .map_err(Error::transport)?;
+
+        self.handler
+            .handle(request)
+            .map(|res| Ok(res.map_err(|e| e.to_string())))
+            .forward(transport)
+            .await
+            .map_err(Error::transport)?;
+
+        Ok(())
+    }
+}
 
 impl Request {
     pub async fn send<T, E>(
@@ -24,21 +64,21 @@ impl Request {
     }
 }
 
-pub trait Handler {
-    type Err: std::error::Error;
-    type ResponseStream: Stream<Item = Result<Response, Self::Err>> + Unpin;
-    fn handle(&self, request: Request) -> Self::ResponseStream;
+pub trait Handler<'h> {
+    type Err: Display;
+    type ResponseStream: Stream<Item = Result<Response, Self::Err>> + Unpin + 'h;
+    fn handle(&'h self, request: Request) -> Self::ResponseStream;
 }
 
-impl<Err, Ret, Func> Handler for Func
+impl<'h, Err, Ret, Func> Handler<'h> for Func
 where
-    Err: std::error::Error,
-    Ret: Stream<Item = Result<Response, Err>> + Unpin,
+    Err: Display,
+    Ret: Stream<Item = Result<Response, Err>> + Unpin + 'h,
     Func: Fn(Request) -> Ret,
 {
     type Err = Err;
     type ResponseStream = Ret;
-    fn handle(&self, request: Request) -> Self::ResponseStream {
+    fn handle(&'h self, request: Request) -> Self::ResponseStream {
         self(request)
     }
 }

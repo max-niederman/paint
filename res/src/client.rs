@@ -60,7 +60,7 @@ async fn main() -> miette::Result<()> {
         TcpStream::connect(opt.host)
             .await
             .into_diagnostic()
-            .wrap_err("while connecting to host")?,
+            .wrap_err("failed connecting to host")?,
     )
     .for_async()
     .take_while(|e| {
