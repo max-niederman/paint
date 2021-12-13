@@ -4,7 +4,23 @@ use thiserror::Error;
 #[derive(Debug, Error, Diagnostic)]
 pub enum Error {
     #[error(transparent)]
-    Pagination(#[from] crate::client::pagination::Error),
+    Hyper(#[from] hyper::Error),
+
+    #[error(transparent)]
+    Http(#[from] hyper::http::Error),
+
+    #[error("missing `Links` header")]
+    MissingLinksHeader,
+
+    #[error("failed to parse `Links` header: {message}")]
+    MalformedLinkHeader {
+        #[source_code]
+        src: String,
+        message: &'static str,
+    },
+
+    #[error("missing pagination link with relevance `{0}`")]
+    MissingPaginationLink(&'static str),
 
     #[error("while parsing JSON data from Canvas")]
     #[diagnostic(code(canvas_lms::malformed_json))]
@@ -37,3 +53,5 @@ impl Error {
         }
     }
 }
+
+pub type Result<T, E = Error> = std::result::Result<T, E>;

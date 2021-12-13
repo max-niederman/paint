@@ -3,13 +3,23 @@ name = "canvas-lms"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = ["client"]
+client = ["futures", "hyper"]
+
 [dependencies]
-reqwest = { version = "0.11", features = ["json"] }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 miette = "3.2"
 thiserror = "1.0"
+futures = { version = "0.3", optional = true }
+hyper = { version = "0.14", features = [
+    "client",
+    "http1",
+    "http2",
+    "tcp",
+], optional = true }
 
 [lib]
 path = "src/lib.rs"
