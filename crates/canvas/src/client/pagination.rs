@@ -9,7 +9,7 @@ use serde::de::DeserializeOwned;
 use std::{collections::HashMap, pin::Pin, task::Poll};
 
 #[derive(Debug)]
-#[must_use = "pagination does nothing unless polled"]
+#[must_use = "streams do nothing unless polled"]
 pub struct Pagination<'c, Conn: Clone> {
     client: &'c Client<Conn>,
     headers: HeaderMap,
@@ -26,7 +26,7 @@ where
         Ok(Pagination {
             client,
             headers: headers.clone(),
-            current_req: Some(client.hyper.request({
+            current_req: Some(client.http.request({
                 let mut builder = hyper::Request::builder().method(Method::GET).uri(uri);
                 *builder
                     .headers_mut()
@@ -34,6 +34,14 @@ where
                 builder.body(Body::empty())?
             })),
         })
+    }
+
+    pub fn items<T: DeserializeOwned>(self) -> Items<'c, Conn, T> {
+        Items {
+            pagination: self,
+            items: Vec::new(),
+            state: ItemsState::WaitingForNextPage,
+        }
     }
 }
 
@@ -47,7 +55,7 @@ where
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> Poll<Option<Self::Item>> {
-        let mut current_req = match self.current_req.take() {
+        let current_req = match self.current_req.as_mut() {
             Some(fut) => fut,
             None => return Poll::Ready(None),
         };
@@ -62,7 +70,9 @@ where
                 let links = response.pagination_links()?;
 
                 self.current_req = match links.next {
-                    Some(next) => Some(self.client.hyper.request({
+                    Some(next) => Some(self.client.http.request({
+                        log::trace!("requesting next page: {}", next);
+
                         let mut builder = hyper::Request::builder().method(Method::GET).uri(next);
                         *builder
                             .headers_mut()
@@ -80,11 +90,16 @@ where
     }
 }
 
-#[must_use = "item streams do nothing unless polled"]
+#[must_use = "streams do nothing unless polled"]
 pub struct Items<'c, Conn: Clone, T: DeserializeOwned> {
     pagination: Pagination<'c, Conn>,
-    deser_fut: Option<Pin<Box<dyn Future<Output = Result<Vec<T>>> + Send>>>,
     items: Vec<T>, // NOTE: this list is reversed so we don't have to pop items from the front
+    state: ItemsState<T>,
+}
+
+enum ItemsState<T> {
+    Deserializing(Pin<Box<dyn Future<Output = Result<Vec<T>>> + Send>>),
+    WaitingForNextPage,
 }
 
 impl<'c, Conn: Clone, T> Stream for Items<'c, Conn, T>
@@ -99,16 +114,38 @@ where
         cx: &mut std::task::Context<'_>,
     ) -> Poll<Option<Self::Item>> {
         if let Some(item) = self.items.pop() {
+            // if we have an item already deserialized, yield it immediately
+            log::trace!("yielding item immediately");
+
+            cx.waker().wake_by_ref();
             Poll::Ready(Some(Ok(item)))
         } else {
-            match ready!(self.pagination.poll_next_unpin(cx)) {
-                Some(Ok(page)) => {
-                    self.deser_fut = Some(Box::pin(page.deserialize()));
-                    self.items = ready!(self.deser_fut.as_mut().unwrap().poll_unpin(cx))?;
+            match &mut self.state {
+                ItemsState::Deserializing(deser_fut) => {
+                    self.items = ready!(deser_fut.poll_unpin(cx))?;
+                    self.items.reverse();
+
+                    // transition to waiting for next page
+                    self.state = ItemsState::WaitingForNextPage;
+
+                    cx.waker().wake_by_ref();
                     Poll::Ready(self.items.pop().map(Ok))
                 }
-                Some(Err(e)) => Poll::Ready(Some(Err(e))),
-                None => Poll::Ready(None),
+                ItemsState::WaitingForNextPage => {
+                    let page = ready!(self.pagination.poll_next_unpin(cx));
+
+                    match page {
+                        Some(Ok(response)) => {
+                            self.state = ItemsState::Deserializing(Box::pin(
+                                response.deserialize::<Vec<T>>(),
+                            ));
+                            cx.waker().wake_by_ref();
+                            Poll::Pending
+                        },
+                        Some(Err(e)) => Poll::Ready(Some(Err(e))),
+                        None => Poll::Ready(None),
+                    }
+                }
             }
         }
     }

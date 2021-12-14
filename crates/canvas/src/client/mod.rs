@@ -1,17 +1,18 @@
 pub mod error;
+pub mod pagination;
 pub mod request;
 pub mod response;
-pub mod pagination;
 
 pub use error::{Error, Result};
+pub use hyper;
 pub use request::RequestBuilder;
 pub use response::Response;
 
-use hyper::Method;
+use hyper::{client::HttpConnector, Method};
 
 #[derive(Debug, Clone)]
-pub struct Client<Conn: Clone> {
-    hyper: hyper::Client<Conn>,
+pub struct Client<Conn: Clone = HttpConnector> {
+    http: hyper::Client<Conn>,
 
     auth: Option<Auth>,
     base_uri: String,
@@ -22,8 +23,8 @@ impl<Conn: Clone> Client<Conn> {
         ClientBuilder::new()
     }
 
-    pub fn request<'p, P: ToString>(&self, method: Method, path: P) -> RequestBuilder<'_, Conn> {
-        RequestBuilder::new(self, method, path.to_string())
+    pub fn request(&self, method: Method, path: impl Into<String>) -> RequestBuilder<'_, Conn> {
+        RequestBuilder::new(self, method, path.into())
     }
 }
 
@@ -48,7 +49,7 @@ impl ClientBuilder {
 
     pub fn build<Conn: Clone>(self, http: hyper::Client<Conn>) -> Client<Conn> {
         Client {
-            hyper: http,
+            http,
             auth: self.auth,
             base_uri: self.base_url,
         }

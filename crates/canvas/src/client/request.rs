@@ -44,11 +44,12 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
     }
 
     fn build(self, body: Body) -> Result<(&'c Client<Conn>, Request<Body>)> {
+        let path_len = self.path.len();
         let mut path_and_query = self.path;
 
         macro_rules! append_query {
             ($($arg:tt)*) => {
-                if path_and_query.is_empty() {
+                if path_and_query.len() == path_len {
                     path_and_query.push('?');
                 } else {
                     path_and_query.push('&');
@@ -85,19 +86,42 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
         Conn: Connect + Send + Sync + 'static,
     {
         self.client
-            .hyper
+            .http
             .request(self.build(body)?.1)
             .await
             .map(Response::from)
             .map_err(Error::from)
     }
 
-    pub fn paginate(self) -> Result<Pagination<'c, Conn>>
+    pub fn paginate(self, per_page: usize) -> Result<Pagination<'c, Conn>>
     where
         Conn: Connect + Clone + Send + Sync + 'static,
     {
-        let (client, req) = self.build(Body::empty())?;
+        let (client, req) = self
+            .query("per_page", per_page.to_string())
+            .build(Body::empty())?;
         Pagination::new(client, req.headers().clone(), req.uri().clone())
+    }
+
+    pub fn query<K, V>(mut self, key: K, value: V) -> Self
+    where
+        K: Into<String>,
+        V: Into<String>,
+    {
+        self.query.push((key.into(), value.into()));
+        self
+    }
+
+    pub fn extend_query<K, V, I>(mut self, iter: I)
+    where
+        K: Into<String>,
+        V: Into<String>,
+        I: IntoIterator<Item = (K, V)>,
+    {
+        self.query.extend(
+            iter.into_iter()
+                .map(|(key, value)| (key.into(), value.into())),
+        );
     }
 }
 
