@@ -141,7 +141,7 @@ where
                             ));
                             cx.waker().wake_by_ref();
                             Poll::Pending
-                        },
+                        }
                         Some(Err(e)) => Poll::Ready(Some(Err(e))),
                         None => Poll::Ready(None),
                     }

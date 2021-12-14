@@ -1,8 +1,12 @@
 use std::pin::Pin;
 
 use crate::fetch::Fetch;
-use canvas::resource::*;
+use canvas::{
+    client::hyper::{self, client::HttpConnector},
+    resource::*,
+};
 use futures::{stream, Stream};
+use hyper_tls::HttpsConnector;
 use miette::{Diagnostic, IntoDiagnostic, WrapErr};
 use pigment::{
     cache,
@@ -11,7 +15,17 @@ use pigment::{
 
 #[derive(Clone, Debug)]
 pub struct Handler {
-    pub db: sled::Db,
+    db: sled::Db,
+    http_client: hyper::Client<HttpsConnector<HttpConnector>>,
+}
+
+impl Handler {
+    pub fn new(db: sled::Db) -> Self {
+        Self {
+            db,
+            http_client: hyper::Client::builder().build(HttpsConnector::new()),
+        }
+    }
 }
 
 impl<'h> rpc::Handler<'h> for Handler {
@@ -23,10 +37,10 @@ impl<'h> rpc::Handler<'h> for Handler {
             Request::Update { view, canvas_token } => {
                 log::debug!("updating {} with token {}", view, canvas_token);
 
-                let canvas_client = canvas::Client::builder()
-                    .with_auth(canvas::Auth::Bearer(canvas_token))
-                    .with_base_url(view.truth.base_url.clone())
-                    .build();
+                let canvas_client = canvas::Client::<HttpsConnector<HttpConnector>>::builder()
+                    .auth(canvas::Auth::Bearer(canvas_token))
+                    .base_url(view.truth.base_url.clone())
+                    .build(self.http_client.clone());
 
                 stream::once(async move {
                     cache::replace_view(
@@ -36,7 +50,7 @@ impl<'h> rpc::Handler<'h> for Handler {
                             .into_diagnostic()
                             .wrap_err("failed to open sled tree")?,
                         &view,
-                        &mut Course::fetch_all(canvas_client),
+                        &mut Course::fetch_all(&canvas_client)?,
                     )
                     .await??;
 

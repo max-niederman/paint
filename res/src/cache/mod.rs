@@ -2,8 +2,8 @@
 
 pub mod error;
 pub mod key;
-pub mod store;
 mod resource;
+pub mod store;
 
 use std::{ops::RangeBounds, time::SystemTime};
 
@@ -14,7 +14,7 @@ use crate::{Result, View};
 use key::Key;
 
 use canvas::{DateTime, Resource};
-use futures::{Stream, StreamExt};
+use futures::{future, Stream, StreamExt, TryStreamExt};
 
 pub trait Cache: Resource {
     type Key: Key;
@@ -34,15 +34,17 @@ pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R
     view: &View,
     resources: &mut RStream,
 ) -> Result<Result<(), E>> {
+    log::trace!("replacing view {}", view);
     // the start of the gap between the preceding resource and the current one
-    let mut gap_start: Vec<u8> = vec![];
+    let mut gap_start: Vec<u8> = Vec::with_capacity(R::Key::SER_LEN);
     while let Some(res) = resources.next().await {
         match res {
             Ok(resource) => {
                 let key = [view.serialize()?, resource.key().serialize()?].concat();
 
                 // remove all keys inbetween the last key and this key
-                // we use multiple [`Store::remove_range`] calls so that key writes are well-ordered, improving performance
+                // we use multiple [`Store::remove_range`] calls so that key writes are well-ordered,
+                // improving performance for LSMT-based stores
                 store.remove_range(gap_start.as_slice()..key.as_slice())?;
 
                 store.insert(

@@ -25,13 +25,14 @@ async fn main() -> Result<()> {
 
     static SERVER: SyncOnceCell<rpc::Server<Handler>> = SyncOnceCell::new();
     SERVER
-        .set(rpc::Server::new(Handler {
-            db: sled::open(std::env::var("PIGMENT_DB").unwrap_or_else(|_| "db".into()))
+        .set(rpc::Server::new(Handler::new(
+            sled::open(std::env::var("PIGMENT_DB").unwrap_or_else(|_| "db".into()))
                 .into_diagnostic()
                 .wrap_err("failed to open sled database")?,
-        }))
+        )))
         .expect("SERVER is already initialized");
 
+    log::info!("listening on {}", listen_addr);
     loop {
         let (socket, remote) = listener.accept().await.into_diagnostic()?;
         tokio::spawn(async move {

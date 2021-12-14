@@ -5,7 +5,7 @@ pub mod client;
 pub mod resource;
 
 #[cfg(feature = "client")]
-pub use client::{Client, Auth};
+pub use client::{Auth, Client};
 pub use resource::Resource;
 
 pub type Id = u64;

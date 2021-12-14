@@ -1,3 +1,4 @@
+#![feature(async_closure)]
 #![feature(marker_trait_attr)]
 #![feature(never_type)]
 #![feature(associated_type_defaults)]
