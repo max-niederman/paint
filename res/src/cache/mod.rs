@@ -46,18 +46,22 @@ pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R
                     // remove all keys inbetween the last key and this key
                     // we use multiple [`Store::remove_range`] calls so that key writes are in-order,
                     // thereby improving performance for LSMT-based stores
-                    store.remove_range(gap_start.as_slice()..key.as_slice())?;
+                    store
+                        .remove_range(gap_start.as_slice()..key.as_slice())
+                        .await?;
                 }
 
-                store.insert(
-                    &key,
-                    bincode::serialize(&CacheEntry {
-                        resource,
-                        updated: SystemTime::now().into(),
-                        last_accessed: None,
-                    })
-                    .map_err(Error::Serialization)?,
-                )?;
+                store
+                    .insert(
+                        &key,
+                        bincode::serialize(&CacheEntry {
+                            resource,
+                            updated: SystemTime::now().into(),
+                            last_accessed: None,
+                        })
+                        .map_err(Error::Serialization)?,
+                    )
+                    .await?;
 
                 // move the key forward by one to get the start of the gap
                 // this assumes that the keys will not increase in length
@@ -78,7 +82,7 @@ pub async fn get<S: Store, R: Cache>(
     key: &R::Key,
 ) -> Result<Option<CacheEntry<R>>> {
     let val = store
-        .get([view.serialize()?, key.serialize()?].concat())
+        .get(&[view.serialize()?, key.serialize()?].concat())
         .await?;
 
     val.map(|res| {

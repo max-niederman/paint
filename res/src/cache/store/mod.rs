@@ -24,7 +24,7 @@ pub trait Store {
     fn insert<K: AsRef<[u8]>, V: Into<Self::ByteVec>>(
         &self,
         key: &K,
-        value: Self::ByteVec,
+        value: V,
     ) -> Self::InsertFut;
 
     type RemoveFut: Future<Output = Result<Option<Self::ByteVec>>>;

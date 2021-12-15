@@ -17,11 +17,7 @@ impl Store for Tree {
     }
 
     type InsertFut = SledFuture<Option<Self::ByteVec>>;
-    fn insert<K: AsRef<[u8]>, V: Into<Self::ByteVec>>(
-        &self,
-        key: &K,
-        value: Self::ByteVec,
-    ) -> Self::InsertFut {
+    fn insert<K: AsRef<[u8]>, V: Into<Self::ByteVec>>(&self, key: &K, value: V) -> Self::InsertFut {
         SledFuture::new(|| self.insert(key, value))
     }
 
@@ -68,22 +64,30 @@ impl Store for Tree {
 //       the passed closure to be `'static + Send`, which doesn't really make sense to add
 //       to [`Store`].
 
-struct SledFuture<T>(Option<Result<T, Error>>);
+pub struct SledFuture<T>(Option<Result<T, Error>>);
 impl<T> SledFuture<T> {
-    pub fn new<F: FnOnce() -> sled::Result<T>>(f: F) -> Self {
+    fn new<F: FnOnce() -> sled::Result<T>>(f: F) -> Self {
         SledFuture(Some(f().map_err(Error::Sled)))
     }
 }
-impl<T> Future for SledFuture<T> {
+impl<T> Future for SledFuture<T>
+where
+    T: Unpin,
+{
     type Output = Result<T, Error>;
     fn poll(self: Pin<&mut Self>, _cx: &mut std::task::Context) -> std::task::Poll<Self::Output> {
-        Poll::Ready(self.0.take().expect("SledFuture polled after completion"))
+        Poll::Ready(
+            self.get_mut()
+                .0
+                .take()
+                .expect("SledFuture polled after completion"),
+        )
     }
 }
 
-struct SledStream(sled::Iter);
+pub struct SledStream(sled::Iter);
 impl SledStream {
-    pub fn new(iter: sled::Iter) -> Self {
+    fn new(iter: sled::Iter) -> Self {
         SledStream(iter)
     }
 }
@@ -93,6 +97,6 @@ impl Stream for SledStream {
         self: Pin<&mut Self>,
         _cx: &mut std::task::Context,
     ) -> std::task::Poll<Option<Self::Item>> {
-        Poll::Ready(self.0.next().map(|r| r.map_err(Error::Sled)))
+        Poll::Ready(self.get_mut().0.next().map(|r| r.map_err(Error::Sled)))
     }
 }

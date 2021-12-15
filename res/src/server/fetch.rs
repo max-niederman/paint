@@ -1,4 +1,3 @@
-use async_stream::stream;
 use canvas::{
     client::hyper::{client::connect::Connect, Method},
     resource::{self, Resource},

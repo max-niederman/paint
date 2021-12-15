@@ -28,11 +28,11 @@ impl Handler {
     }
 }
 
-impl rpc::Handler for Handler {
+impl<'h> rpc::Handler<'h> for Handler {
     type Err = Box<dyn Diagnostic + Send + Sync + 'static>;
-    type ResponseStream<'h> = Pin<Box<dyn Stream<Item = Result<Response, Self::Err>> + Send + 'h>>;
+    type ResponseStream = Pin<Box<dyn Stream<Item = Result<Response, Self::Err>> + Send + 'h>>;
 
-    fn handle(&'h self, request: Request) -> Self::ResponseStream<'h> {
+    fn handle(&'h self, request: Request) -> Self::ResponseStream {
         match request {
             Request::Update { view, canvas_token } => {
                 log::debug!("updating {} with token {}", view, canvas_token);
