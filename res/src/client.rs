@@ -6,7 +6,9 @@ use futures::{future, StreamExt};
 use miette::{Context, IntoDiagnostic};
 use pigment::{
     rpc::*,
+    selector,
     view::{self, View},
+    DSelector,
 };
 use structopt::StructOpt;
 use tokio::net::TcpStream;
@@ -37,7 +39,13 @@ enum Verb {
         #[structopt(short, long, env = "CANVAS_USER")]
         user: canvas_lms::Id,
     },
-    Query {},
+    Query {
+        #[structopt(short, long, env = "CANVAS_BASE_URL")]
+        canvas: String,
+
+        #[structopt(short, long, env = "CANVAS_USER")]
+        user: canvas_lms::Id,
+    },
 }
 
 #[tokio::main]
@@ -83,9 +91,13 @@ async fn main() -> miette::Result<()> {
                     viewer: view::Viewer::User(user),
                 },
             },
-            Verb::Query {} => {
-                todo!()
-            }
+            Verb::Query { canvas, user } => Request::Query {
+                view: View {
+                    truth: view::Canvas { base_url: canvas },
+                    viewer: view::Viewer::User(user),
+                },
+                selector: DSelector::All(selector::All),
+            },
         };
 
         log::debug!("sending request...");

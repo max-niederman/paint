@@ -42,10 +42,12 @@ pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R
             Ok(resource) => {
                 let key = [view.serialize()?, resource.key().serialize()?].concat();
 
-                // remove all keys inbetween the last key and this key
-                // we use multiple [`Store::remove_range`] calls so that key writes are well-ordered,
-                // improving performance for LSMT-based stores
-                store.remove_range(gap_start.as_slice()..key.as_slice())?;
+                if key > gap_start {
+                    // remove all keys inbetween the last key and this key
+                    // we use multiple [`Store::remove_range`] calls so that key writes are in-order,
+                    // thereby improving performance for LSMT-based stores
+                    store.remove_range(gap_start.as_slice()..key.as_slice())?;
+                }
 
                 store.insert(
                     &key,
@@ -57,8 +59,10 @@ pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R
                     .map_err(Error::Serialization)?,
                 )?;
 
+                // move the key forward by one to get the start of the gap
+                // this assumes that the keys will not increase in length
                 gap_start = key;
-                *gap_start.last_mut().unwrap() += 1; // move the key forward by one to get the start of the gap
+                *gap_start.last_mut().unwrap() += 1;
             }
             Err(e) => return Ok(Err(e)),
         }
@@ -73,7 +77,9 @@ pub async fn get<S: Store, R: Cache>(
     view: &View,
     key: &R::Key,
 ) -> Result<Option<CacheEntry<R>>> {
-    let val = store.get([view.serialize()?, key.serialize()?].concat())?;
+    let val = store
+        .get([view.serialize()?, key.serialize()?].concat())
+        .await?;
 
     val.map(|res| {
         bincode::deserialize(&res)
@@ -83,25 +89,25 @@ pub async fn get<S: Store, R: Cache>(
     .transpose()
 }
 
-/// Get all resources under the view from the cache.
-pub async fn get_all<'s, 'v, S: Store, R: Cache>(
-    store: &'s S,
-    view: &'v View,
-) -> Result<impl 'v + Iterator<Item = Result<(R::Key, CacheEntry<R>)>>>
-where
-    S::ScanPrefixIter: 'v,
-{
-    Ok(store.scan_prefix(view.serialize()?).map(|res| {
-        let (key, val) = res?;
+// /// Get all resources under the view from the cache.
+// pub fn get_all<'s, 'v, S: Store, R: Cache>(
+//     store: &'s S,
+//     view: &'v View,
+// ) -> impl Stream<Item = Result<(R::Key, CacheEntry<R>)>> + 'v
+// where
+//     S::ScanPrefixStream: 'v,
+// {
+//     Ok(store.scan_prefix(view.serialize()?).map(|res| {
+//         let (key, val) = res?;
 
-        let key = R::Key::deserialize(&mut key.iter().skip(View::SER_LEN).copied())?;
+//         let key = R::Key::deserialize(&mut key.iter().skip(View::SER_LEN).copied())?;
 
-        let entry: CacheEntry<R> =
-            bincode::deserialize(val.as_ref()).map_err(Error::Deserialization)?;
+//         let entry: CacheEntry<R> =
+//             bincode::deserialize(val.as_ref()).map_err(Error::Deserialization)?;
 
-        Ok((key, entry))
-    }))
-}
+//         Ok((key, entry))
+//     }))
+// }
 
 pub fn prefix_to_range<P: AsRef<[u8]>>(prefix: P) -> Option<impl RangeBounds<P>>
 where

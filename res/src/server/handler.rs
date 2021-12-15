@@ -28,12 +28,12 @@ impl Handler {
     }
 }
 
-impl<'h> rpc::Handler<'h> for Handler {
+impl rpc::Handler for Handler {
     type Err = Box<dyn Diagnostic + Send + Sync + 'static>;
-    type ResponseStream = Pin<Box<dyn Stream<Item = Result<Response, Self::Err>> + Send + 'h>>;
+    type ResponseStream<'h> = Pin<Box<dyn Stream<Item = Result<Response, Self::Err>> + Send + 'h>>;
 
-    fn handle(&'h self, request: Request) -> Self::ResponseStream {
-        Box::pin(match request {
+    fn handle(&'h self, request: Request) -> Self::ResponseStream<'h> {
+        match request {
             Request::Update { view, canvas_token } => {
                 log::debug!("updating {} with token {}", view, canvas_token);
 
@@ -42,7 +42,7 @@ impl<'h> rpc::Handler<'h> for Handler {
                     .base_url(view.truth.base_url.clone())
                     .build(self.http_client.clone());
 
-                stream::once(async move {
+                Box::pin(stream::once(async move {
                     cache::replace_view(
                         &self
                             .db
@@ -55,9 +55,13 @@ impl<'h> rpc::Handler<'h> for Handler {
                     .await??;
 
                     Ok(Response::UpdateFinished)
-                })
+                }))
             }
-            _ => todo!(),
-        })
+            Request::Query { view, selector } => {
+                log::debug!("querying {}", view);
+
+                unimplemented!()
+            }
+        }
     }
 }

@@ -3,9 +3,6 @@ use thiserror::Error;
 
 #[derive(Debug, Error, Diagnostic)]
 pub enum Error {
-    #[error(transparent)]
-    Sled(#[from] sled::Error),
-
     #[error("while deserializing cache entry")]
     Deserialization(#[source] bincode::Error),
 
@@ -29,4 +26,11 @@ pub enum Error {
 
     #[error("illegal Viewer discriminant: {discriminant}")]
     IllegalViewerDiscriminant { discriminant: u8 },
+
+    #[error("task failed to complete")]
+    JoinError(#[from] tokio::task::JoinError),
+
+    #[cfg(feature = "sled")]
+    #[error(transparent)]
+    Sled(#[from] sled::Error),
 }
