@@ -5,16 +5,15 @@ pub mod key;
 mod resource;
 pub mod store;
 
-use std::{ops::RangeBounds, time::SystemTime};
+use crate::{Result, View};
+use key::Key;
 
 pub use error::Error;
 pub use store::Store;
 
-use crate::{Result, View};
-use key::Key;
-
 use canvas::{DateTime, Resource};
-use futures::{future, Stream, StreamExt, TryStreamExt};
+use futures::{Stream, StreamExt};
+use std::{ops::RangeBounds, time::SystemTime};
 
 pub trait Cache: Resource {
     type Key: Key;

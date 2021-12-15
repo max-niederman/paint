@@ -64,3 +64,9 @@ impl ClientBuilder {
         self
     }
 }
+
+impl Default for ClientBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}

@@ -66,7 +66,7 @@ where
 
         match res {
             Ok(http_resp) => {
-                let response: Response = http_resp.into();
+                let response: Response = http_resp;
                 let links = response.pagination_links()?;
 
                 self.current_req = match links.next {

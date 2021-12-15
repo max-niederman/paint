@@ -1,9 +1,9 @@
 use canvas::{
     client::hyper::{client::connect::Connect, Method},
-    resource::{self, Resource},
+    resource,
 };
 use futures::{Stream, StreamExt};
-use miette::{IntoDiagnostic, Result, WrapErr};
+use miette::{IntoDiagnostic, Result};
 use std::pin::Pin;
 
 /// Responsible for fetching a resource from the underlying Canvas API.
