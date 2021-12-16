@@ -2,14 +2,14 @@
 #![feature(box_patterns)]
 
 use async_bincode::AsyncBincodeStream;
-use futures::{future, StreamExt};
-use miette::{Context, IntoDiagnostic};
-use pigment::{
-    rpc::*,
+use ebauche::{
     selector,
     view::{self, View},
     DSelector,
 };
+use futures::{future, StreamExt};
+use miette::{Context, IntoDiagnostic};
+use pigment::rpc::*;
 use structopt::StructOpt;
 use tokio::net::TcpStream;
 

@@ -274,6 +274,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "ebauche"
+version = "0.1.0"
+dependencies = [
+ "async-bincode",
+ "bincode",
+ "canvas-lms",
+ "futures",
+ "heapless",
+ "log",
+ "miette",
+ "pin-project",
+ "serde",
+ "serde_json",
+ "structopt",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "embedded-hal"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -885,6 +904,7 @@ dependencies = [
  "async-bincode",
  "bincode",
  "canvas-lms",
+ "ebauche",
  "futures",
  "heapless",
  "hyper-tls",

@@ -1,8 +1,5 @@
 //! Common behavior on backing stores for Pigment caches.
 
-#[cfg(feature = "sled")]
-pub mod sled;
-
 use super::Error;
 use futures::{Future, Stream};
 use std::ops::{Deref, RangeBounds};

@@ -1,11 +1,35 @@
-use std::{pin::Pin, task::Poll};
-
-use super::super::Error;
-use super::Store;
+use ebauche::cache::{Error, Store};
 use futures::{Future, Stream};
 use sled::{IVec, Tree};
+use std::{
+    ops::{Deref, DerefMut},
+    pin::Pin,
+    task::Poll,
+};
 
-impl Store for Tree {
+pub struct SledStore {
+    tree: Tree,
+}
+
+impl From<Tree> for SledStore {
+    fn from(tree: Tree) -> Self {
+        Self { tree }
+    }
+}
+
+impl Deref for SledStore {
+    type Target = Tree;
+    fn deref(&self) -> &Self::Target {
+        &self.tree
+    }
+}
+impl DerefMut for SledStore {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.tree
+    }
+}
+
+impl Store for SledStore {
     type ByteVec = IVec;
 
     // using [`future::Ready`] like this is particularly bad,
@@ -13,17 +37,17 @@ impl Store for Tree {
     // those calls to block for significant periods of time.
     type GetFut = SledFuture<Option<Self::ByteVec>>;
     fn get<K: AsRef<[u8]>>(&self, key: &K) -> Self::GetFut {
-        SledFuture::new(|| self.get(key))
+        SledFuture::new(|| self.tree.get(key))
     }
 
     type InsertFut = SledFuture<Option<Self::ByteVec>>;
     fn insert<K: AsRef<[u8]>, V: Into<Self::ByteVec>>(&self, key: &K, value: V) -> Self::InsertFut {
-        SledFuture::new(|| self.insert(key, value))
+        SledFuture::new(|| self.tree.insert(key, value))
     }
 
     type RemoveFut = SledFuture<Option<Self::ByteVec>>;
     fn remove<K: AsRef<[u8]>>(&self, key: &K) -> Self::RemoveFut {
-        SledFuture::new(|| self.remove(key))
+        SledFuture::new(|| self.tree.remove(key))
     }
 
     type ScanRangeStream = SledStream;
@@ -41,20 +65,21 @@ impl Store for Tree {
     ) -> Self::RemoveRangeFut {
         SledFuture::new(|| {
             self.range(range)
-                .try_for_each(|item| self.remove(&item?.0).map(|_| ()))
+                .try_for_each(|item| self.tree.remove(&item?.0).map(|_| ()))
         })
     }
 
     type ScanPrefixStream = SledStream;
     fn scan_prefix<P: AsRef<[u8]>>(&self, prefix: &P) -> Self::ScanPrefixStream {
-        SledStream::new(self.scan_prefix(prefix))
+        SledStream::new(self.tree.scan_prefix(prefix))
     }
 
     type RemovePrefixFut = SledFuture<()>;
     fn remove_prefix<P: AsRef<[u8]>>(&self, prefix: &P) -> Self::RemovePrefixFut {
         SledFuture::new(|| {
-            self.scan_prefix(prefix)
-                .try_for_each(|item| self.remove(&item?.0).map(|_| ()))
+            self.tree
+                .scan_prefix(prefix)
+                .try_for_each(|item| self.tree.remove(&item?.0).map(|_| ()))
         })
     }
 }
@@ -67,7 +92,7 @@ impl Store for Tree {
 pub struct SledFuture<T>(Option<Result<T, Error>>);
 impl<T> SledFuture<T> {
     fn new<F: FnOnce() -> sled::Result<T>>(f: F) -> Self {
-        SledFuture(Some(f().map_err(Error::Sled)))
+        SledFuture(Some(f().map_err(Error::store)))
     }
 }
 impl<T> Future for SledFuture<T>
@@ -97,6 +122,6 @@ impl Stream for SledStream {
         self: Pin<&mut Self>,
         _cx: &mut std::task::Context,
     ) -> std::task::Poll<Option<Self::Item>> {
-        Poll::Ready(self.get_mut().0.next().map(|r| r.map_err(Error::Sled)))
+        Poll::Ready(self.get_mut().0.next().map(|r| r.map_err(Error::store)))
     }
 }

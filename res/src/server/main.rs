@@ -6,6 +6,7 @@ extern crate canvas_lms as canvas;
 
 mod fetch;
 mod handler;
+mod store;
 
 use async_bincode::AsyncBincodeStream;
 use futures::{future, StreamExt};

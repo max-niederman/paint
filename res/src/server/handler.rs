@@ -1,17 +1,15 @@
 use std::pin::Pin;
 
-use crate::fetch::Fetch;
+use crate::{fetch::Fetch, store::SledStore};
 use canvas::{
     client::hyper::{self, client::HttpConnector},
     resource::*,
 };
+use ebauche::{cache, Selector};
 use futures::{stream, Stream};
 use hyper_tls::HttpsConnector;
 use miette::{Diagnostic, IntoDiagnostic, WrapErr};
-use pigment::{
-    cache,
-    rpc::{self, *},
-};
+use pigment::rpc::{self, *};
 
 #[derive(Clone, Debug)]
 pub struct Handler {
@@ -43,16 +41,15 @@ impl<'h> rpc::Handler<'h> for Handler {
                     .build(self.http_client.clone());
 
                 Box::pin(stream::once(async move {
-                    cache::replace_view(
-                        &self
-                            .db
-                            .open_tree("courses")
-                            .into_diagnostic()
-                            .wrap_err("failed to open sled tree")?,
-                        &view,
-                        &mut Course::fetch_all(&canvas_client)?,
-                    )
-                    .await??;
+                    let store: SledStore = self
+                        .db
+                        .open_tree("courses")
+                        .into_diagnostic()
+                        .wrap_err("failed to open sled tree")?
+                        .into();
+
+                    cache::replace_view(&store, &view, &mut Course::fetch_all(&canvas_client)?)
+                        .await??;
 
                     Ok(Response::UpdateFinished)
                 }))
@@ -60,8 +57,15 @@ impl<'h> rpc::Handler<'h> for Handler {
             Request::Query { view, selector } => {
                 log::debug!("querying {}", view);
 
-                unimplemented!()
+                todo!()
             }
         }
     }
+}
+
+fn get_all<R: Resource, S: Selector<R>>(
+    store_name: &str,
+    selector: S,
+) -> impl Stream<Item = Result<Response, Box<dyn Diagnostic + Send + Sync + 'static>>> {
+    unimplemented!()
 }

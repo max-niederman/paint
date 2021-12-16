@@ -92,25 +92,25 @@ pub async fn get<S: Store, R: Cache>(
     .transpose()
 }
 
-// /// Get all resources under the view from the cache.
-// pub fn get_all<'s, 'v, S: Store, R: Cache>(
-//     store: &'s S,
-//     view: &'v View,
-// ) -> impl Stream<Item = Result<(R::Key, CacheEntry<R>)>> + 'v
-// where
-//     S::ScanPrefixStream: 'v,
-// {
-//     Ok(store.scan_prefix(view.serialize()?).map(|res| {
-//         let (key, val) = res?;
+/// Get all resources under the view from the cache.
+pub fn get_all<'s, 'v, S: Store, R: Cache>(
+    store: &'s S,
+    view: &'v View,
+) -> Result<impl Stream<Item = Result<(R::Key, CacheEntry<R>)>> + 'v>
+where
+    S::ScanPrefixStream: 'v,
+{
+    Ok(store.scan_prefix(&view.serialize()?).map(|res| {
+        let (key, val) = res?;
 
-//         let key = R::Key::deserialize(&mut key.iter().skip(View::SER_LEN).copied())?;
+        let key = R::Key::deserialize(&mut key.iter().skip(View::SER_LEN).copied())?;
 
-//         let entry: CacheEntry<R> =
-//             bincode::deserialize(val.as_ref()).map_err(Error::Deserialization)?;
+        let entry: CacheEntry<R> =
+            bincode::deserialize(val.as_ref()).map_err(Error::Deserialization)?;
 
-//         Ok((key, entry))
-//     }))
-// }
+        Ok((key, entry))
+    }))
+}
 
 pub fn prefix_to_range<P: AsRef<[u8]>>(prefix: P) -> Option<impl RangeBounds<P>>
 where

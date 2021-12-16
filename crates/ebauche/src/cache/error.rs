@@ -27,10 +27,15 @@ pub enum Error {
     #[error("illegal Viewer discriminant: {discriminant}")]
     IllegalViewerDiscriminant { discriminant: u8 },
 
-    #[error("task failed to complete")]
-    JoinError(#[from] tokio::task::JoinError),
+    #[error("failed accessing backing datastore")]
+    Store(#[source] Box<dyn std::error::Error + Send + Sync>),
+}
 
-    #[cfg(feature = "sled")]
-    #[error(transparent)]
-    Sled(#[from] sled::Error),
+impl Error {
+    pub fn store<E>(err: E) -> Self
+    where
+        E: std::error::Error + Send + Sync + 'static,
+    {
+        Error::Store(Box::new(err))
+    }
 }
