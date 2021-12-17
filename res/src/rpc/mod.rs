@@ -40,7 +40,12 @@ impl<'h, H: Handler<'h>> Server<H> {
 
         self.handler
             .handle(request)
-            .map(|res| Ok(res.map_err(|e| e.to_string())))
+            .map(|res| {
+                Ok(res.map_err(|e| {
+                    log::error!("handler failed: {}", e);
+                    e.to_string()
+                }))
+            })
             .forward(transport)
             .await
             .map_err(Error::transport)?;

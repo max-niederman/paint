@@ -18,11 +18,7 @@ pub trait Store {
     type InsertFut: Future<Output = Result<Option<Self::ByteVec>>>;
 
     /// Insert a key-value pair into the store.
-    fn insert<K: AsRef<[u8]>, V: Into<Self::ByteVec>>(
-        &self,
-        key: &K,
-        value: V,
-    ) -> Self::InsertFut;
+    fn insert<K: AsRef<[u8]>, V: Into<Self::ByteVec>>(&self, key: &K, value: V) -> Self::InsertFut;
 
     type RemoveFut: Future<Output = Result<Option<Self::ByteVec>>>;
 

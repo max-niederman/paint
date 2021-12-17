@@ -5,7 +5,10 @@ use canvas::{
     client::hyper::{self, client::HttpConnector},
     resource::*,
 };
-use ebauche::{cache, Selector};
+use ebauche::{
+    cache::{self, Cache},
+    Selector, View,
+};
 use futures::{stream, Stream};
 use hyper_tls::HttpsConnector;
 use miette::{Diagnostic, IntoDiagnostic, WrapErr};
@@ -26,8 +29,10 @@ impl Handler {
     }
 }
 
+type BoxedDiagnostic = Box<dyn Diagnostic + Send + Sync + 'static>;
+
 impl<'h> rpc::Handler<'h> for Handler {
-    type Err = Box<dyn Diagnostic + Send + Sync + 'static>;
+    type Err = BoxedDiagnostic;
     type ResponseStream = Pin<Box<dyn Stream<Item = Result<Response, Self::Err>> + Send + 'h>>;
 
     fn handle(&'h self, request: Request) -> Self::ResponseStream {
@@ -63,9 +68,35 @@ impl<'h> rpc::Handler<'h> for Handler {
     }
 }
 
-fn get_all<R: Resource, S: Selector<R>>(
-    store_name: &str,
-    selector: S,
-) -> impl Stream<Item = Result<Response, Box<dyn Diagnostic + Send + Sync + 'static>>> {
-    unimplemented!()
+struct PigmentCache<'db> {
+    db: &'db sled::Db,
+}
+
+impl<'db> SledCache<'db> {
+    pub fn new(db: &'db sled::Db) -> Self {
+        Self { db }
+    }
+
+    pub fn update_view<
+        R: Cache,
+        RStream: Stream<Item = Result<R, BoxedDiagnostic>> + Unpin + Send + 'static,
+    >(
+        &self,
+        view: &View,
+        resources: &mut RStream,
+    ) -> impl Stream<Item = Result<Response, BoxedDiagnostic>> {
+        let view = view.clone();
+        stream::once(async move {
+            let store: SledStore = self
+                .db
+                .open_tree("courses")
+                .into_diagnostic()
+                .wrap_err("failed to open sled tree")?
+                .into();
+
+            cache::replace_view(&store, &view, resources).await??;
+
+            Ok(Response::UpdateFinished)
+        })
+    }
 }
