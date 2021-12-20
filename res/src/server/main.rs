@@ -11,10 +11,11 @@ use futures::{future, StreamExt};
 use handler::Handler;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use pigment::rpc;
+use tracing::Instrument;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    pretty_env_logger::init();
+    console_subscriber::init();
 
     let listen_addr = std::env::var("PIGMENT_ADDR").unwrap_or_else(|_| "0.0.0.0:4211".into());
     let listener = tokio::net::TcpListener::bind(&listen_addr)
@@ -27,28 +28,36 @@ async fn main() -> Result<()> {
             .wrap_err("failed to open sled database")?,
     ))));
 
-    log::info!("listening on {}", listen_addr);
+    tracing::info!("started listening on {}", listen_addr);
     loop {
-        let (socket, remote) = listener.accept().await.into_diagnostic()?;
-        tokio::spawn(async move {
-            log::debug!("accepted connection from {}", remote);
+        let (socket, peer_addr) = listener.accept().await.into_diagnostic()?;
+        tokio::spawn(
+            async move {
+                tracing::debug!("accepted connection");
 
-            let mut transport = AsyncBincodeStream::from(socket)
-                .for_async()
-                // gracefully handle reset connection
-                .take_while(|e| {
-                    future::ready(match e {
-                        Err(box bincode::ErrorKind::Io(e)) => {
-                            e.kind() == std::io::ErrorKind::ConnectionReset
-                        }
-                        _ => true,
-                    })
-                });
+                let mut transport = AsyncBincodeStream::from(socket)
+                    .for_async()
+                    // gracefully handle reset connection
+                    .take_while(|e| {
+                        future::ready(match e {
+                            Err(box bincode::ErrorKind::Io(e)) => {
+                                e.kind() == std::io::ErrorKind::ConnectionReset
+                            }
+                            _ => true,
+                        })
+                    });
 
-            match server.handle(&mut transport).await {
-                Ok(()) => log::debug!("finished handling connection from {}", remote),
-                Err(e) => log::error!("fatal error handling connection from {}: {}", remote, e),
+                match server.handle(&mut transport).await {
+                    Ok(()) => tracing::debug!("finished handling connection"),
+                    Err(ref error) => {
+                        tracing::error!(message = "fatal error handling connection", %error)
+                    }
+                }
             }
-        });
+            .instrument(tracing::info_span!(
+                "connection",
+                %peer_addr,
+            )),
+        );
     }
 }

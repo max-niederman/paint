@@ -50,7 +50,7 @@ enum Verb {
 
 #[tokio::main]
 async fn main() -> miette::Result<()> {
-    pretty_env_logger::init();
+    console_subscriber::init();
 
     let opt = Opt::from_args();
 
@@ -63,7 +63,7 @@ async fn main() -> miette::Result<()> {
         return Ok(());
     }
 
-    log::debug!("initiating transport...");
+    tracing::debug!("initiating transport...");
     let transport: &'static mut _ = Box::leak(Box::new(
         AsyncBincodeStream::<_, Result<Response, String>, Request, _>::from(
             TcpStream::connect(opt.host)
@@ -104,19 +104,19 @@ async fn main() -> miette::Result<()> {
             },
         };
 
-        log::debug!("sending request...");
+        tracing::debug!("sending request...");
         let mut resps = rpc_req
             .send(transport)
             .await
             .into_diagnostic()
             .wrap_err("while sending request")?;
 
-        log::debug!("awaiting responses...");
+        tracing::debug!("awaiting responses...");
         while let Some(resp) = resps.next().await {
             match resp? {
                 Ok(r) => println!("{:#?}", r),
                 Err(e) => {
-                    log::error!("got error from host: {}", e);
+                    tracing::error!("got error from host: {}", e);
                     break;
                 }
             }

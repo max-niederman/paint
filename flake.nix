@@ -25,6 +25,9 @@
             cargo-watch
             cargo-edit
 
+            # Tokio
+            protobuf
+
             # JavaScript
             nodejs-16_x
             nodePackages.pnpm

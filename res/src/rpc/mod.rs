@@ -41,9 +41,9 @@ impl<'h, H: Handler<'h>> Server<H> {
         self.handler
             .handle(request)
             .map(|res| {
-                Ok(res.map_err(|e| {
-                    log::error!("handler failed: {}", e);
-                    e.to_string()
+                Ok(res.map_err(|error| {
+                    tracing::error!("handler failed: {}", error);
+                    error.to_string()
                 }))
             })
             .forward(transport)

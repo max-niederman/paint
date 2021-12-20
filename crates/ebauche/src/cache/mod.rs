@@ -33,7 +33,7 @@ pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R
     view: &View,
     resources: &mut RStream,
 ) -> Result<Result<(), E>> {
-    log::trace!("replacing view {}", view);
+    tracing::trace!("replacing view {}", view);
     // the start of the gap between the preceding resource and the current one
     let mut gap_start: Vec<u8> = Vec::with_capacity(R::Key::SER_LEN);
     while let Some(res) = resources.next().await {

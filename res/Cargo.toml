@@ -16,8 +16,8 @@ bincode = "1.0"
 async-bincode = "0.6"
 hyper-tls = "0.5"
 sled = { version = "0.34" }
-log = "0.4"
-pretty_env_logger = "0.4"
+tracing = "0.1.29"
+console-subscriber = "0.1"
 miette = { version = "3.2", features = ["fancy"] }
 thiserror = "1.0"
 structopt = "0.3"

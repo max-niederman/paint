@@ -1,11 +1,10 @@
 use std::pin::Pin;
 
 use crate::store::SledStore;
-use canvas::{
-    client::hyper::{self, client::HttpConnector},
-};
+use canvas::client::hyper::{self, client::HttpConnector};
 use ebauche::{
-    cache::{self, Cache}, View,
+    cache::{self, Cache},
+    View,
 };
 use futures::{future, stream, Stream, StreamExt};
 use hyper_tls::HttpsConnector;
@@ -39,7 +38,7 @@ impl<'h> rpc::Handler<'h> for Handler {
     fn handle(&'h self, request: Request) -> Self::ResponseStream {
         match request {
             Request::Update { view, canvas_token } => {
-                log::debug!("updating {} with token {}", view, canvas_token);
+                tracing::info!(message = "handling update request", %view, %canvas_token);
 
                 let canvas_client = canvas::Client::<HttpsConnector<HttpConnector>>::builder()
                     .auth(canvas::Auth::Bearer(canvas_token))
@@ -56,7 +55,7 @@ impl<'h> rpc::Handler<'h> for Handler {
                 )
             }
             Request::Query { view, selector: _ } => {
-                log::debug!("querying {}", view);
+                tracing::info!(message = "handling query request", %view);
 
                 todo!()
             }

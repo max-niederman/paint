@@ -71,7 +71,7 @@ where
 
                 self.current_req = match links.next {
                     Some(next) => Some(self.client.http.request({
-                        log::trace!("requesting next page: {}", next);
+                        tracing::trace!("requesting next page: {}", next);
 
                         let mut builder = hyper::Request::builder().method(Method::GET).uri(next);
                         *builder
@@ -115,8 +115,6 @@ where
     ) -> Poll<Option<Self::Item>> {
         if let Some(item) = self.items.pop() {
             // if we have an item already deserialized, yield it immediately
-            log::trace!("yielding item immediately");
-
             cx.waker().wake_by_ref();
             Poll::Ready(Some(Ok(item)))
         } else {
