@@ -6,12 +6,12 @@ use hyper::{
     Body, Method, Uri,
 };
 use serde::de::DeserializeOwned;
-use std::{collections::HashMap, pin::Pin, task::Poll};
+use std::{borrow::Cow, collections::HashMap, pin::Pin, task::Poll};
 
 #[derive(Debug)]
 #[must_use = "streams do nothing unless polled"]
 pub struct Pagination<'c, Conn: Clone> {
-    client: &'c Client<Conn>,
+    client: Cow<'c, Client<Conn>>,
     headers: HeaderMap,
 
     // current future request to be polled; if None, then the pagination is finished
@@ -22,9 +22,8 @@ impl<'c, Conn> Pagination<'c, Conn>
 where
     Conn: Connect + Clone + Send + Sync + 'static,
 {
-    pub(super) fn new(client: &'c Client<Conn>, headers: HeaderMap, uri: Uri) -> Result<Self> {
+    pub(super) fn new(client: Cow<'c, Client<Conn>>, headers: HeaderMap, uri: Uri) -> Result<Self> {
         Ok(Pagination {
-            client,
             headers: headers.clone(),
             current_req: Some(client.http.request({
                 let mut builder = hyper::Request::builder().method(Method::GET).uri(uri);
@@ -33,6 +32,7 @@ where
                     .expect("pagination request builder must not error") = headers;
                 builder.body(Body::empty())?
             })),
+            client,
         })
     }
 
@@ -47,7 +47,7 @@ where
 
 impl<'c, Conn> Stream for Pagination<'c, Conn>
 where
-    Conn: Connect + Clone + Send + Sync + 'static,
+    Conn: Connect + Clone + Send + Sync + Unpin + 'static,
 {
     type Item = Result<Response>;
 
@@ -105,7 +105,7 @@ enum ItemsState<T> {
 impl<'c, Conn: Clone, T> Stream for Items<'c, Conn, T>
 where
     T: DeserializeOwned + Unpin + 'static,
-    Conn: Connect + Clone + Send + Sync + 'static,
+    Conn: Connect + Clone + Send + Sync + Unpin + 'static,
 {
     type Item = Result<T>;
 

@@ -3,7 +3,7 @@ pub mod message;
 
 use std::fmt::Display;
 
-pub use error::Error;
+pub use error::{Error, Result};
 pub use message::{Request, Response};
 
 use futures::{
@@ -22,7 +22,7 @@ impl<'h, H: Handler<'h>> Server<H> {
         Self { handler }
     }
 
-    pub async fn handle<T, E>(&'h self, transport: &mut T) -> crate::Result<()>
+    pub async fn handle<T, E>(&'h self, transport: &mut T) -> Result<()>
     where
         T: Stream<Item = Result<Request, E>> + Sink<Result<Response, String>, Error = E> + Unpin,
         E: 'static + std::error::Error + Send + Sync,
@@ -58,7 +58,7 @@ impl Request {
     pub async fn send<T, E>(
         self,
         transport: &mut T,
-    ) -> crate::Result<impl Stream<Item = Result<Result<Response, String>, Error>> + '_>
+    ) -> Result<impl Stream<Item = Result<Result<Response, String>, Error>> + '_>
     where
         T: Stream<Item = Result<Result<Response, String>, E>> + Sink<Request, Error = E> + Unpin,
         E: 'static + std::error::Error + Send + Sync,

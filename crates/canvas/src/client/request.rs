@@ -3,7 +3,7 @@ use hyper::{
     client::connect::Connect, header, http::request::Builder as HyperRequestBuilder, Body, Method,
     Request,
 };
-use std::fmt::Write;
+use std::{borrow::Cow, fmt::Write};
 
 #[derive(Debug)]
 pub struct RequestBuilder<'c, Conn: Clone> {
@@ -100,7 +100,25 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
         let (client, req) = self
             .query("per_page", per_page.to_string())
             .build(Body::empty())?;
-        Pagination::new(client, req.headers().clone(), req.uri().clone())
+        Pagination::new(
+            Cow::Borrowed(client),
+            req.headers().clone(),
+            req.uri().clone(),
+        )
+    }
+
+    pub fn paginate_owned<'a>(self, per_page: usize) -> Result<Pagination<'a, Conn>>
+    where
+        Conn: Connect + Clone + Send + Sync + 'static,
+    {
+        let (client, req) = self
+            .query("per_page", per_page.to_string())
+            .build(Body::empty())?;
+        Pagination::new(
+            Cow::Owned(client.clone()),
+            req.headers().clone(),
+            req.uri().clone(),
+        )
     }
 
     pub fn query<K, V>(mut self, key: K, value: V) -> Self

@@ -14,6 +14,8 @@ pub enum Error {
     Transport(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
+pub type Result<T, E = Error> = std::result::Result<T, E>;
+
 macro_rules! boxed_source_constructor {
     ($name:ident -> Self::$var:ident) => {
         #[inline]

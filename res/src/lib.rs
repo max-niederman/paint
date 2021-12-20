@@ -1,4 +1,4 @@
-pub mod error;
-pub mod rpc;
+extern crate canvas_lms as canvas;
 
-pub use error::{Error, Result};
+pub mod fetch;
+pub mod rpc;

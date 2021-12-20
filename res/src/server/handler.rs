@@ -1,29 +1,30 @@
 use std::pin::Pin;
 
-use crate::{fetch::Fetch, store::SledStore};
+use crate::store::SledStore;
 use canvas::{
     client::hyper::{self, client::HttpConnector},
-    resource::*,
 };
 use ebauche::{
-    cache::{self, Cache},
-    Selector, View,
+    cache::{self, Cache}, View,
 };
-use futures::{stream, Stream};
+use futures::{future, stream, Stream, StreamExt};
 use hyper_tls::HttpsConnector;
 use miette::{Diagnostic, IntoDiagnostic, WrapErr};
-use pigment::rpc::{self, *};
+use pigment::{
+    fetch::{self, Fetch},
+    rpc::{self, *},
+};
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Handler {
-    db: sled::Db,
+    cache: PigmentCache,
     http_client: hyper::Client<HttpsConnector<HttpConnector>>,
 }
 
 impl Handler {
     pub fn new(db: sled::Db) -> Self {
         Self {
-            db,
+            cache: PigmentCache::new(db),
             http_client: hyper::Client::builder().build(HttpsConnector::new()),
         }
     }
@@ -45,21 +46,16 @@ impl<'h> rpc::Handler<'h> for Handler {
                     .base_url(view.truth.base_url.clone())
                     .build(self.http_client.clone());
 
-                Box::pin(stream::once(async move {
-                    let store: SledStore = self
-                        .db
-                        .open_tree("courses")
-                        .into_diagnostic()
-                        .wrap_err("failed to open sled tree")?
-                        .into();
-
-                    cache::replace_view(&store, &view, &mut Course::fetch_all(&canvas_client)?)
-                        .await??;
-
-                    Ok(Response::UpdateFinished)
-                }))
+                Box::pin(
+                    stream::select_all([Box::pin(self.cache.update_view(
+                        "courses",
+                        view,
+                        canvas_client.fetch_all(),
+                    ))])
+                    .chain(stream::once(future::ready(Ok(Response::UpdateFinished)))),
+                )
             }
-            Request::Query { view, selector } => {
+            Request::Query { view, selector: _ } => {
                 log::debug!("querying {}", view);
 
                 todo!()
@@ -68,35 +64,39 @@ impl<'h> rpc::Handler<'h> for Handler {
     }
 }
 
-struct PigmentCache<'db> {
-    db: &'db sled::Db,
+#[derive(Debug)]
+struct PigmentCache {
+    db: sled::Db,
 }
 
-impl<'db> SledCache<'db> {
-    pub fn new(db: &'db sled::Db) -> Self {
+impl PigmentCache {
+    pub fn new(db: sled::Db) -> Self {
         Self { db }
     }
 
     pub fn update_view<
+        's,
         R: Cache,
-        RStream: Stream<Item = Result<R, BoxedDiagnostic>> + Unpin + Send + 'static,
+        RStream: Stream<Item = fetch::Result<R>> + Unpin + Send + 'static,
     >(
-        &self,
-        view: &View,
-        resources: &mut RStream,
-    ) -> impl Stream<Item = Result<Response, BoxedDiagnostic>> {
-        let view = view.clone();
+        &'s self,
+        tree_name: &'s str,
+        view: View,
+        resources: fetch::Result<RStream>,
+    ) -> impl Stream<Item = Result<Response, BoxedDiagnostic>> + '_ {
         stream::once(async move {
             let store: SledStore = self
                 .db
-                .open_tree("courses")
+                .open_tree(tree_name)
                 .into_diagnostic()
                 .wrap_err("failed to open sled tree")?
                 .into();
 
-            cache::replace_view(&store, &view, resources).await??;
+            cache::replace_view(&store, &view, &mut resources?).await??;
 
-            Ok(Response::UpdateFinished)
+            Ok(Response::UpdateProgress {
+                resource: tree_name.to_string(),
+            })
         })
     }
 }

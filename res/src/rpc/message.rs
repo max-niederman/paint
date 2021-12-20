@@ -26,6 +26,8 @@ pub enum Request {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
     UpdateFinished,
+    UpdateProgress { resource: String },
+
     Resource(DResource),
 }
 

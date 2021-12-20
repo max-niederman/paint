@@ -1,10 +1,8 @@
 #![feature(box_patterns)]
 #![feature(async_closure)]
-#![feature(once_cell)]
 
 extern crate canvas_lms as canvas;
 
-mod fetch;
 mod handler;
 mod store;
 
@@ -13,7 +11,6 @@ use futures::{future, StreamExt};
 use handler::Handler;
 use miette::{IntoDiagnostic, Result, WrapErr};
 use pigment::rpc;
-use std::lazy::SyncOnceCell;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -24,14 +21,11 @@ async fn main() -> Result<()> {
         .await
         .into_diagnostic()?;
 
-    static SERVER: SyncOnceCell<rpc::Server<Handler>> = SyncOnceCell::new();
-    SERVER
-        .set(rpc::Server::new(Handler::new(
-            sled::open(std::env::var("PIGMENT_DB").unwrap_or_else(|_| "db".into()))
-                .into_diagnostic()
-                .wrap_err("failed to open sled database")?,
-        )))
-        .expect("SERVER is already initialized");
+    let server: &'static _ = Box::leak(Box::new(rpc::Server::new(Handler::new(
+        sled::open(std::env::var("PIGMENT_DB").unwrap_or_else(|_| "db".into()))
+            .into_diagnostic()
+            .wrap_err("failed to open sled database")?,
+    ))));
 
     log::info!("listening on {}", listen_addr);
     loop {
@@ -51,7 +45,7 @@ async fn main() -> Result<()> {
                     })
                 });
 
-            match SERVER.get().unwrap().handle(&mut transport).await {
+            match server.handle(&mut transport).await {
                 Ok(()) => log::debug!("finished handling connection from {}", remote),
                 Err(e) => log::error!("fatal error handling connection from {}: {}", remote, e),
             }

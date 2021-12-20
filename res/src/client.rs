@@ -64,19 +64,23 @@ async fn main() -> miette::Result<()> {
     }
 
     log::debug!("initiating transport...");
-    let mut transport = AsyncBincodeStream::<_, Result<Response, String>, Request, _>::from(
-        TcpStream::connect(opt.host)
-            .await
-            .into_diagnostic()
-            .wrap_err("failed connecting to host")?,
-    )
-    .for_async()
-    .take_while(|e| {
-        future::ready(match e {
-            Err(box bincode::ErrorKind::Io(e)) => e.kind() != std::io::ErrorKind::ConnectionReset,
-            _ => true,
-        })
-    });
+    let transport: &'static mut _ = Box::leak(Box::new(
+        AsyncBincodeStream::<_, Result<Response, String>, Request, _>::from(
+            TcpStream::connect(opt.host)
+                .await
+                .into_diagnostic()
+                .wrap_err("failed connecting to host")?,
+        )
+        .for_async()
+        .take_while(|e| {
+            future::ready(match e {
+                Err(box bincode::ErrorKind::Io(e)) => {
+                    e.kind() != std::io::ErrorKind::ConnectionReset
+                }
+                _ => true,
+            })
+        }),
+    ));
 
     if let Some(req_opt) = opt.request {
         let rpc_req: Request = match req_opt {
@@ -102,7 +106,7 @@ async fn main() -> miette::Result<()> {
 
         log::debug!("sending request...");
         let mut resps = rpc_req
-            .send(&mut transport)
+            .send(transport)
             .await
             .into_diagnostic()
             .wrap_err("while sending request")?;
