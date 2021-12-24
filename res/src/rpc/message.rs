@@ -2,7 +2,7 @@
 #![allow(clippy::large_enum_variant)]
 
 use canvas_lms::resource;
-use ebauche::{DSelector, View};
+use pigment::{DSelector, View};
 use serde::{Deserialize, Serialize};
 
 /// A request sent to the server by the client.

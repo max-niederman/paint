@@ -1,4 +1,4 @@
-use ebauche::cache::{Error, Store};
+use pigment::cache::{Error, Store};
 use futures::{Future, Stream};
 use sled::{IVec, Tree};
 use std::{

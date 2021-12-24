@@ -1,7 +1,7 @@
 use crate::store::SledStore;
 use canvas::client::hyper::{self, client::HttpConnector};
 use canvas_lms::resource::Course;
-use ebauche::{
+use pigment::{
     cache::{self, Cache, CacheEntry},
     DSelector, Selector, View,
 };
@@ -10,7 +10,7 @@ use hyper_tls::HttpsConnector;
 use miette::miette;
 use miette::{Diagnostic, IntoDiagnostic, WrapErr};
 use ouroboros::self_referencing;
-use pigment::{
+use ebauche::{
     fetch::{self, Fetch},
     rpc::{self, message::DResource, *},
 };
@@ -22,14 +22,14 @@ use std::{
 
 #[derive(Debug)]
 pub struct Handler {
-    cache: PigmentCache,
+    cache: EbaucheCache,
     http_client: hyper::Client<HttpsConnector<HttpConnector>>,
 }
 
 impl Handler {
     pub fn new(db: sled::Db) -> Self {
         Self {
-            cache: PigmentCache::new(db),
+            cache: EbaucheCache::new(db),
             http_client: hyper::Client::builder().build(HttpsConnector::new()),
         }
     }
@@ -73,11 +73,11 @@ impl<'h> rpc::Handler<'h> for Handler {
 }
 
 #[derive(Debug)]
-struct PigmentCache {
+struct EbaucheCache {
     db: sled::Db,
 }
 
-impl PigmentCache {
+impl EbaucheCache {
     pub fn new(db: sled::Db) -> Self {
         Self { db }
     }
@@ -139,7 +139,7 @@ impl PigmentCache {
 #[pin_project(project = QueryViewProj)]
 enum QueryView<St, R, Se>
 where
-    St: Stream<Item = ebauche::Result<(R::Key, CacheEntry<R>)>>,
+    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
     R: Cache,
     Se: Selector<R>,
 {
@@ -152,7 +152,7 @@ where
 #[self_referencing]
 struct QueryViewInner<St, R, Se>
 where
-    St: Stream<Item = ebauche::Result<(R::Key, CacheEntry<R>)>>,
+    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
     R: Cache,
     Se: Selector<R>,
 {
@@ -166,7 +166,7 @@ where
 
 impl<St, R, Se> QueryViewInner<St, R, Se>
 where
-    St: Stream<Item = ebauche::Result<(R::Key, CacheEntry<R>)>>,
+    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
     R: Cache,
     Se: Selector<R>,
 {
@@ -183,7 +183,7 @@ where
 
 impl<St, R, Se> Stream for QueryView<St, R, Se>
 where
-    St: Stream<Item = ebauche::Result<(R::Key, CacheEntry<R>)>>,
+    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
     R: Cache + Into<DResource>,
     Se: Selector<R>,
 {

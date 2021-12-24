@@ -10,7 +10,7 @@ use async_bincode::AsyncBincodeStream;
 use futures::{future, StreamExt};
 use handler::Handler;
 use miette::{IntoDiagnostic, Result, WrapErr};
-use pigment::rpc;
+use ebauche::rpc;
 use tracing::Instrument;
 
 #[tokio::main]

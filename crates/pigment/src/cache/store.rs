@@ -1,4 +1,4 @@
-//! Common behavior on backing stores for Pigment caches.
+//! Common behavior on backing stores for Ebuache caches.
 
 use super::Error;
 use futures::{Future, Stream};

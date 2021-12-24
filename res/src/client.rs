@@ -2,20 +2,20 @@
 #![feature(box_patterns)]
 
 use async_bincode::AsyncBincodeStream;
-use ebauche::{
+use pigment::{
     selector,
     view::{self, View},
     DSelector,
 };
 use futures::{future, StreamExt};
 use miette::{Context, IntoDiagnostic};
-use pigment::rpc::*;
+use ebauche::rpc::*;
 use structopt::StructOpt;
 use tokio::net::TcpStream;
 
 #[derive(Debug, StructOpt)]
 struct Opt {
-    /// Address of the Pigment server.
+    /// Address of the Ebauche server.
     #[structopt(short, long, default_value = "127.0.0.1:4211")]
     host: std::net::SocketAddr,
 

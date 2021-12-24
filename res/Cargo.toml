@@ -1,11 +1,11 @@
 [package]
-name = "pigment"
+name = "ebauche"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 canvas-lms = { path = "../crates/canvas" }
-ebauche = { path = "../crates/ebauche" }
+pigment = { path = "../crates/pigment" }
 heapless = "0.7"
 futures = "0.3"
 pin-project = "1.0"
@@ -24,9 +24,9 @@ thiserror = "1.0"
 structopt = "0.3"
 
 [[bin]]
-name = "pigment"
+name = "ebauche"
 path = "src/server/main.rs"
 
 [[bin]]
-name = "cpig"
+name = "ebac"
 path = "src/client.rs"

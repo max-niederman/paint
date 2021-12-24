@@ -5,12 +5,12 @@ use thiserror::Error;
 pub enum Error {
     /// An error returned by a handler.
     #[error("request handler failed")]
-    #[diagnostic(code(pigment::rpc::request_handler))]
+    #[diagnostic(code(ebauche::rpc::request_handler))]
     Handler(#[source] Box<dyn std::error::Error + Send + Sync>),
 
     /// A transport error.
     #[error("rpc transport failed")]
-    #[diagnostic(code(pigment::rpc::transport))]
+    #[diagnostic(code(ebauche::rpc::transport))]
     Transport(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
