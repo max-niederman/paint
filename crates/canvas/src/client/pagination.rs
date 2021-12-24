@@ -71,7 +71,7 @@ where
 
                 self.current_req = match links.next {
                     Some(next) => Some(self.client.http.request({
-                        tracing::trace!("requesting next page: {}", next);
+                        tracing::trace!(message = "requesting next page", uri = next);
 
                         let mut builder = hyper::Request::builder().method(Method::GET).uri(next);
                         *builder

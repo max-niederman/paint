@@ -15,7 +15,10 @@ use tracing::Instrument;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    console_subscriber::init();
+    #[cfg(not(debug_assertions))]
+    tracing_subscriber::fmt().json().init();
+    #[cfg(debug_assertions)]
+    tracing_subscriber::fmt().pretty().init();
 
     let listen_addr = std::env::var("PIGMENT_ADDR").unwrap_or_else(|_| "0.0.0.0:4211".into());
     let listener = tokio::net::TcpListener::bind(&listen_addr)
@@ -28,7 +31,7 @@ async fn main() -> Result<()> {
             .wrap_err("failed to open sled database")?,
     ))));
 
-    tracing::info!("started listening on {}", listen_addr);
+    tracing::info!(message = "started listening", %listen_addr);
     loop {
         let (socket, peer_addr) = listener.accept().await.into_diagnostic()?;
         tokio::spawn(

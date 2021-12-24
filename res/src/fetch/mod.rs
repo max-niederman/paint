@@ -4,7 +4,7 @@ use canvas::{
     client::hyper::{client::connect::Connect, Method},
     resource,
 };
-use futures::{task::Poll, Stream, StreamExt};
+use futures::{task::Poll, Stream};
 use pin_project::pin_project;
 use std::pin::Pin;
 

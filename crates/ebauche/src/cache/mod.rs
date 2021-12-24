@@ -22,9 +22,9 @@ pub trait Cache: Resource {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CacheEntry<R> {
-    resource: R,
-    updated: DateTime,
-    last_accessed: Option<DateTime>,
+    pub resource: R,
+    pub updated: DateTime,
+    pub last_accessed: Option<DateTime>,
 }
 
 /// Replace all resources in the cache under a given view with the given resources.
@@ -93,13 +93,10 @@ pub async fn get<S: Store, R: Cache>(
 }
 
 /// Get all resources under the view from the cache.
-pub fn get_all<'s, 'v, S: Store, R: Cache>(
-    store: &'s S,
-    view: &'v View,
-) -> Result<impl Stream<Item = Result<(R::Key, CacheEntry<R>)>> + 'v>
-where
-    S::ScanPrefixStream: 'v,
-{
+pub fn get_all<S: Store, R: Cache>(
+    store: &S,
+    view: &View,
+) -> Result<impl Stream<Item = Result<(R::Key, CacheEntry<R>)>>> {
     Ok(store.scan_prefix(&view.serialize()?).map(|res| {
         let (key, val) = res?;
 

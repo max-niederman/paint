@@ -42,7 +42,7 @@ impl<'h, H: Handler<'h>> Server<H> {
             .handle(request)
             .map(|res| {
                 Ok(res.map_err(|error| {
-                    tracing::error!("handler failed: {}", error);
+                    tracing::error!(message = "handler failed", %error);
                     error.to_string()
                 }))
             })

@@ -19,6 +19,10 @@ struct Opt {
     #[structopt(short, long, default_value = "127.0.0.1:4211")]
     host: std::net::SocketAddr,
 
+    /// Hide responses.
+    #[structopt(long)]
+    hide: bool,
+
     #[structopt(subcommand)]
     request: Option<Verb>,
 
@@ -50,7 +54,7 @@ enum Verb {
 
 #[tokio::main]
 async fn main() -> miette::Result<()> {
-    console_subscriber::init();
+    tracing_subscriber::fmt().pretty().init();
 
     let opt = Opt::from_args();
 
@@ -63,7 +67,7 @@ async fn main() -> miette::Result<()> {
         return Ok(());
     }
 
-    tracing::debug!("initiating transport...");
+    tracing::info!("initiating transport...");
     let transport: &'static mut _ = Box::leak(Box::new(
         AsyncBincodeStream::<_, Result<Response, String>, Request, _>::from(
             TcpStream::connect(opt.host)
@@ -104,23 +108,25 @@ async fn main() -> miette::Result<()> {
             },
         };
 
-        tracing::debug!("sending request...");
+        tracing::info!("sending request...");
         let mut resps = rpc_req
             .send(transport)
             .await
             .into_diagnostic()
             .wrap_err("while sending request")?;
 
-        tracing::debug!("awaiting responses...");
+        tracing::info!("awaiting responses...");
         while let Some(resp) = resps.next().await {
             match resp? {
-                Ok(r) => println!("{:#?}", r),
+                Ok(r) if !opt.hide => println!("{:#?}", r),
                 Err(e) => {
                     tracing::error!("got error from host: {}", e);
                     break;
                 }
+                _ => {}
             }
         }
+        tracing::info!("finished recieving responses");
     }
 
     Ok(())
