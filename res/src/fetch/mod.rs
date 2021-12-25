@@ -25,7 +25,7 @@ where
     fn fetch_all(self) -> Result<Self::FetchAll> {
         Ok(self
             .request(Method::GET, "/api/v1/courses")
-            .paginate_owned(1)?
+            .paginate_owned(50)? // TODO: adjust this per Canvas instance?
             .items::<resource::Course>()
             .into())
     }

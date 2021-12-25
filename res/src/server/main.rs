@@ -7,18 +7,25 @@ mod handler;
 mod store;
 
 use async_bincode::AsyncBincodeStream;
+use ebauche::rpc;
 use futures::{future, StreamExt};
 use handler::Handler;
 use miette::{IntoDiagnostic, Result, WrapErr};
-use ebauche::rpc;
 use tracing::Instrument;
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     #[cfg(not(debug_assertions))]
-    tracing_subscriber::fmt().json().init();
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .json()
+        .init();
     #[cfg(debug_assertions)]
-    tracing_subscriber::fmt().pretty().init();
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .pretty()
+        .init();
 
     let listen_addr = std::env::var("PIGMENT_ADDR").unwrap_or_else(|_| "0.0.0.0:4211".into());
     let listener = tokio::net::TcpListener::bind(&listen_addr)
@@ -26,7 +33,7 @@ async fn main() -> Result<()> {
         .into_diagnostic()?;
 
     let server: &'static _ = Box::leak(Box::new(rpc::Server::new(Handler::new(
-        sled::open(std::env::var("PIGMENT_DB").unwrap_or_else(|_| "db".into()))
+        sled::open(std::env::var("EBAUCHE_DB").unwrap_or_else(|_| "db".into()))
             .into_diagnostic()
             .wrap_err("failed to open sled database")?,
     ))));

@@ -2,14 +2,11 @@
 #![feature(box_patterns)]
 
 use async_bincode::AsyncBincodeStream;
-use pigment::{
-    selector,
-    view::{self, View},
-    DSelector,
-};
+use canvas_lms::DateTime;
+use ebauche::rpc::*;
 use futures::{future, StreamExt};
 use miette::{Context, IntoDiagnostic};
-use ebauche::rpc::*;
+use pigment::view::{self, View};
 use structopt::StructOpt;
 use tokio::net::TcpStream;
 
@@ -33,7 +30,7 @@ struct Opt {
 
 #[derive(Debug, StructOpt)]
 enum Verb {
-    Update {
+    Fetch {
         #[structopt(short, long, env = "CANVAS_TOKEN")]
         token: String,
 
@@ -43,12 +40,15 @@ enum Verb {
         #[structopt(short, long, env = "CANVAS_USER")]
         user: canvas_lms::Id,
     },
-    Query {
+    Update {
         #[structopt(short, long, env = "CANVAS_BASE_URL")]
         canvas: String,
 
         #[structopt(short, long, env = "CANVAS_USER")]
         user: canvas_lms::Id,
+
+        #[structopt(short, long)]
+        since: DateTime,
     },
 }
 
@@ -88,23 +88,27 @@ async fn main() -> miette::Result<()> {
 
     if let Some(req_opt) = opt.request {
         let rpc_req: Request = match req_opt {
-            Verb::Update {
+            Verb::Fetch {
                 token,
                 canvas,
                 user,
-            } => Request::Update {
+            } => Request::Fetch {
                 canvas_token: token,
                 view: View {
                     truth: view::Canvas { base_url: canvas },
                     viewer: view::Viewer::User(user),
                 },
             },
-            Verb::Query { canvas, user } => Request::Query {
+            Verb::Update {
+                canvas,
+                user,
+                since,
+            } => Request::Update {
                 view: View {
                     truth: view::Canvas { base_url: canvas },
                     viewer: view::Viewer::User(user),
                 },
-                selector: DSelector::All(selector::All),
+                since,
             },
         };
 

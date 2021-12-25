@@ -18,7 +18,7 @@ async-bincode = "0.6"
 hyper-tls = "0.5"
 sled = { version = "0.34" }
 tracing = "0.1.29"
-tracing-subscriber = { version = "0.3", features = ["json"] }
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 miette = { version = "3.2", features = ["fancy"] }
 thiserror = "1.0"
 structopt = "0.3"

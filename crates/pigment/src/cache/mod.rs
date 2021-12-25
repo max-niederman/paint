@@ -24,7 +24,6 @@ pub trait Cache: Resource {
 pub struct CacheEntry<R> {
     pub resource: R,
     pub updated: DateTime,
-    pub last_accessed: Option<DateTime>,
 }
 
 /// Replace all resources in the cache under a given view with the given resources.
@@ -50,13 +49,13 @@ pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R
                         .await?;
                 }
 
+                // FIXME: only replace if more updated than existing
                 store
                     .insert(
                         &key,
                         bincode::serialize(&CacheEntry {
                             resource,
                             updated: SystemTime::now().into(),
-                            last_accessed: None,
                         })
                         .map_err(Error::Serialization)?,
                     )

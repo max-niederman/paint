@@ -1,34 +1,47 @@
 // memory usage doesn't really matter, so wasting a bit of the stack is alright
 #![allow(clippy::large_enum_variant)]
 
-use canvas_lms::resource;
-use pigment::{DSelector, View};
+use canvas::{resource, DateTime};
+use pigment::View;
 use serde::{Deserialize, Serialize};
 
 /// A request sent to the server by the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Request {
-    Update {
+    Fetch {
         /// The view to update.
         view: View,
         /// The Canvas token to use.
         canvas_token: String,
     },
-    Query {
+    Update {
         /// The viewer being queried.
         view: View,
-        /// The resource selector.
-        selector: DSelector,
+        /// Date of last update.
+        since: DateTime,
     },
 }
 
-/// A response sent by the server to the client.
+/// A response sent to the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Response {
-    UpdateFinished,
-    UpdateProgress { resource: String },
+    Fetch(FetchResponse),
+    Update(UpdateResponse),
+}
 
+/// A fetch response sent to the client.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum FetchResponse {
+    Progress { resource: String },
+}
+
+/// An update response sent to the client.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum UpdateResponse {
+    /// A resource which the client does not have.
     Resource(DResource),
+    /// A stub standing in for a resource the client has an updated copy of already.
+    Stub(Vec<u8>),
 }
 
 /// A discriminated resource.

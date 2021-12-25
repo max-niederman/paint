@@ -20,6 +20,17 @@ impl Response {
 
 impl From<hyper::Response<hyper::Body>> for Response {
     fn from(hyper: hyper::Response<hyper::Body>) -> Self {
+        tracing::debug!(
+            message = "recieved response",
+            cost = hyper
+                .headers()
+                .get("x-request-cost")
+                .map(|hv| hv.to_str().unwrap()),
+            ratelimit_remaining = hyper
+                .headers()
+                .get("x-ratelimit-remaining")
+                .map(|hv| hv.to_str().unwrap()),
+        );
         Response { hyper }
     }
 }
