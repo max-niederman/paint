@@ -27,6 +27,7 @@ pub struct CacheEntry<R> {
 }
 
 /// Replace all resources in the cache under a given view with the given resources.
+#[inline]
 pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R, E>> + Unpin>(
     store: &S,
     view: &View,
@@ -74,6 +75,7 @@ pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R
 }
 
 /// Get a single resource from the cache.
+#[inline]
 pub async fn get<S: Store, R: Cache>(
     store: &S,
     view: &View,
@@ -92,6 +94,7 @@ pub async fn get<S: Store, R: Cache>(
 }
 
 /// Get all resources under the view from the cache.
+#[inline]
 pub fn get_all<S: Store, R: Cache>(
     store: &S,
     view: &View,
@@ -108,6 +111,7 @@ pub fn get_all<S: Store, R: Cache>(
     }))
 }
 
+#[inline]
 pub fn prefix_to_range<P: AsRef<[u8]>>(prefix: P) -> Option<impl RangeBounds<P>>
 where
     std::ops::Range<Vec<u8>>: RangeBounds<P>,

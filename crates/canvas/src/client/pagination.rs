@@ -22,6 +22,7 @@ impl<'c, Conn> Pagination<'c, Conn>
 where
     Conn: Connect + Clone + Send + Sync + 'static,
 {
+    #[inline]
     pub(super) fn new(client: Cow<'c, Client<Conn>>, headers: HeaderMap, uri: Uri) -> Result<Self> {
         Ok(Pagination {
             headers: headers.clone(),
@@ -36,6 +37,7 @@ where
         })
     }
 
+    #[inline]
     pub fn items<T: DeserializeOwned>(self) -> Items<'c, Conn, T> {
         Items {
             pagination: self,
@@ -51,6 +53,7 @@ where
 {
     type Item = Result<Response>;
 
+    #[inline]
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
@@ -109,6 +112,7 @@ where
 {
     type Item = Result<T>;
 
+    #[inline]
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
@@ -160,6 +164,7 @@ pub struct PaginationLinks<'h> {
 
 macro_rules! pagination_links_getter {
     ($name:ident) => {
+        #[inline]
         pub fn $name(&self) -> Result<&str> {
             self.$name
                 .ok_or_else(|| Error::MissingPaginationLink(stringify!($name)).into())
@@ -168,6 +173,7 @@ macro_rules! pagination_links_getter {
 }
 
 impl<'h> PaginationLinks<'h> {
+    #[inline]
     pub fn from_headers(headers: &'h HeaderMap) -> Result<Self> {
         headers
             .get(header::LINK)
@@ -183,6 +189,7 @@ impl<'h> PaginationLinks<'h> {
     }
 
     /// Parse pagination links from a response header as per W3C 9707.
+    #[inline]
     pub fn from_links_header<H: AsRef<str> + ?Sized>(header: &'h H) -> Result<Self> {
         let mut links = HashMap::<&str, &str>::with_capacity(5);
         for link in header.as_ref().split(',') {

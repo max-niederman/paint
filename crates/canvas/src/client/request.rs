@@ -17,6 +17,7 @@ pub struct RequestBuilder<'c, Conn: Clone> {
 }
 
 impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
+    #[inline]
     pub fn new(client: &'c Client<Conn>, method: Method, path: String) -> Self {
         Self {
             hyper: {
@@ -43,6 +44,7 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
         }
     }
 
+    #[inline]
     fn build(self, body: Body) -> Result<(&'c Client<Conn>, Request<Body>)> {
         let path_len = self.path.len();
         let mut path_and_query = self.path;
@@ -81,6 +83,7 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
             .map_err(Into::into)
     }
 
+    #[inline]
     pub async fn send(self, body: Body) -> Result<Response>
     where
         Conn: Connect + Send + Sync + 'static,
@@ -93,6 +96,7 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
             .map_err(Error::from)
     }
 
+    #[inline]
     pub fn paginate(self, per_page: usize) -> Result<Pagination<'c, Conn>>
     where
         Conn: Connect + Clone + Send + Sync + 'static,
@@ -107,6 +111,7 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
         )
     }
 
+    #[inline]
     pub fn paginate_owned<'a>(self, per_page: usize) -> Result<Pagination<'a, Conn>>
     where
         Conn: Connect + Clone + Send + Sync + 'static,
@@ -121,6 +126,7 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
         )
     }
 
+    #[inline]
     pub fn query<K, V>(mut self, key: K, value: V) -> Self
     where
         K: Into<String>,
@@ -130,6 +136,7 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
         self
     }
 
+    #[inline]
     pub fn extend_query<K, V, I>(mut self, iter: I)
     where
         K: Into<String>,
@@ -144,12 +151,14 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
 }
 
 impl AsRef<HyperRequestBuilder> for RequestBuilder<'_, ()> {
+    #[inline]
     fn as_ref(&self) -> &HyperRequestBuilder {
         &self.hyper
     }
 }
 
 impl AsMut<HyperRequestBuilder> for RequestBuilder<'_, ()> {
+    #[inline]
     fn as_mut(&mut self) -> &mut HyperRequestBuilder {
         &mut self.hyper
     }

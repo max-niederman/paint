@@ -36,6 +36,7 @@ pub enum Error {
 
 impl Error {
     // ATTRIBUTION: from Kat Marchán's `turron` project, which is licensed under Apache 2.0
+    #[inline]
     pub fn from_json_err(err: serde_json::Error, json: String) -> Self {
         // These json strings can get VERY LONG and miette doesn't (yet?)
         // support any "windowing" mechanism for displaying stuff, so we have

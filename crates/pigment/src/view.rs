@@ -29,6 +29,7 @@ pub enum Viewer {
 }
 
 impl std::fmt::Display for View {
+    #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,

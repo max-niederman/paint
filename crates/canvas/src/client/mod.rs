@@ -40,6 +40,7 @@ pub struct ClientBuilder {
 }
 
 impl ClientBuilder {
+    #[inline]
     pub fn new() -> Self {
         Self {
             auth: None,
@@ -47,6 +48,7 @@ impl ClientBuilder {
         }
     }
 
+    #[inline]
     pub fn build<Conn: Clone>(self, http: hyper::Client<Conn>) -> Client<Conn> {
         Client {
             http,
@@ -55,10 +57,12 @@ impl ClientBuilder {
         }
     }
 
+    #[inline]
     pub fn auth(mut self, auth: Auth) -> Self {
         self.auth = Some(auth);
         self
     }
+    #[inline]
     pub fn base_url<U: Into<String>>(mut self, base_url: U) -> Self {
         self.base_url = base_url.into();
         self
@@ -66,6 +70,7 @@ impl ClientBuilder {
 }
 
 impl Default for ClientBuilder {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

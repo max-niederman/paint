@@ -23,6 +23,7 @@ macro_rules! impl_selector {
         special = [ $( $var:ident, )* ];
     ) => {
         impl Selector<$resource> for DSelector {
+            #[inline]
             fn matches(&self, resource: &$resource) -> bool {
                 #![allow(unreachable_patterns)]
                 match self {

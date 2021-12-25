@@ -19,10 +19,12 @@ pub trait Key: Sized {
 impl Key for canvas::Id {
     const SER_LEN: usize = std::mem::size_of::<canvas::Id>();
 
+    #[inline]
     fn serialize(&self) -> Result<Vec<u8>> {
         Ok(self.to_be_bytes().to_vec())
     }
 
+    #[inline]
     fn deserialize<I: Iterator<Item = u8>>(bytes: &mut I) -> Result<Self> {
         Ok(Self::from_be_bytes(
             bytes
@@ -45,6 +47,7 @@ pub const MAX_CANVAS_LENGTH: usize = 64;
 impl Key for view::Canvas {
     const SER_LEN: usize = MAX_CANVAS_LENGTH;
 
+    #[inline]
     fn serialize(&self) -> Result<Vec<u8>> {
         if !self.base_url.as_bytes().iter().all(|&b| b != b'\0') {
             return Err(Error::UnexpectedStreamYield {
@@ -66,6 +69,7 @@ impl Key for view::Canvas {
         Ok(bytes.to_vec())
     }
 
+    #[inline]
     fn deserialize<I: Iterator<Item = u8>>(bytes: &mut I) -> Result<Self> {
         let mut base_url_bytes = Vec::with_capacity(Self::SER_LEN);
         base_url_bytes.extend(bytes.take(Self::SER_LEN).take_while(|&b| b != b'\0'));
@@ -91,6 +95,7 @@ impl Key for view::Viewer {
     // one byte for the discriminant and eight for the union
     const SER_LEN: usize = 1 + 8;
 
+    #[inline]
     fn serialize(&self) -> Result<Vec<u8>> {
         let mut bytes = heapless::Vec::<u8, { Self::SER_LEN }>::new();
 
@@ -105,6 +110,7 @@ impl Key for view::Viewer {
         Ok(bytes.to_vec())
     }
 
+    #[inline]
     fn deserialize<I: Iterator<Item = u8>>(bytes: &mut I) -> Result<Self> {
         let discriminant = bytes.next().ok_or(Error::UnexpectedStreamYield {
             expected: "discriminant",
@@ -129,6 +135,7 @@ impl Key for view::Viewer {
 impl Key for view::View {
     const SER_LEN: usize = view::Canvas::SER_LEN + view::Viewer::SER_LEN;
 
+    #[inline]
     fn serialize(&self) -> Result<Vec<u8>> {
         let mut bytes = heapless::Vec::<u8, { Self::SER_LEN }>::new();
 

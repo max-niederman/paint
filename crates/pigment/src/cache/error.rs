@@ -32,6 +32,7 @@ pub enum Error {
 }
 
 impl Error {
+    #[inline]
     pub fn store<E>(err: E) -> Self
     where
         E: std::error::Error + Send + Sync + 'static,
