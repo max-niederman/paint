@@ -87,7 +87,7 @@ impl Store for SledStore {
 // TODO: possible to rewrite these to prevent starving other tasks while sled is blocking?
 //       my first thought was to use [`tokio::task::spawn_blocking`], but that requires
 //       the passed closure to be `'static + Send`, which doesn't really make sense to add
-//       to [`Store`].
+//       a bound for to [`Store`].
 
 pub struct SledFuture<T>(Option<Result<T, Error>>);
 impl<T> SledFuture<T> {

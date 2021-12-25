@@ -6,10 +6,10 @@ mod resource;
 pub mod store;
 
 use crate::{Result, View};
-use key::Key;
 
 pub use error::Error;
 pub use store::Store;
+pub use key::Key;
 
 use canvas::{DateTime, Resource};
 use futures::{Stream, StreamExt};
