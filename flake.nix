@@ -39,6 +39,7 @@
           # needed for rust-openssl
           OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
           OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
+          LD_LIBRARY_PATH = nixpkgs.lib.strings.makeLibraryPath [ pkgs.openssl ];
 
           # redirect ld calls to mold
           MOLD_PATH = "${pkgs.mold}/bin/mold";

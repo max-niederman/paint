@@ -58,7 +58,7 @@ impl Request {
     pub async fn send<T, E>(
         self,
         transport: &mut T,
-    ) -> Result<impl Stream<Item = Result<Result<Response, String>, Error>> + '_>
+    ) -> Result<impl Stream<Item = Result<Result<Response, String>>> + '_>
     where
         T: Stream<Item = Result<Result<Response, String>, E>> + Sink<Request, Error = E> + Unpin,
         E: 'static + std::error::Error + Send + Sync,

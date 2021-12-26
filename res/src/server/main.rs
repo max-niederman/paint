@@ -1,11 +1,12 @@
 #![feature(box_patterns)]
 #![feature(async_closure)]
+#![feature(try_trait_v2)]
 
 extern crate canvas_lms as canvas;
 
+mod cache;
 mod handler;
 mod store;
-mod cache;
 
 use async_bincode::AsyncBincodeStream;
 use ebauche::rpc;
@@ -31,7 +32,8 @@ async fn main() -> Result<()> {
     let listen_addr = std::env::var("PIGMENT_ADDR").unwrap_or_else(|_| "0.0.0.0:4211".into());
     let listener = tokio::net::TcpListener::bind(&listen_addr)
         .await
-        .into_diagnostic()?;
+        .into_diagnostic()
+        .wrap_err("failed to listen")?;
 
     let server: &'static _ = Box::leak(Box::new(rpc::Server::new(Handler::new(
         sled::open(std::env::var("EBAUCHE_DB").unwrap_or_else(|_| "db".into()))

@@ -292,6 +292,7 @@ dependencies = [
  "async-bincode",
  "bincode",
  "canvas-lms",
+ "fallible-stream",
  "futures",
  "heapless",
  "hyper-tls",
@@ -317,6 +318,14 @@ checksum = "e36cfb62ff156596c892272f3015ef952fe1525e85261fa3a7f327bd6b384ab9"
 dependencies = [
  "nb 0.1.3",
  "void",
+]
+
+[[package]]
+name = "fallible-stream"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "pin-project",
 ]
 
 [[package]]

@@ -1,33 +1,42 @@
 pub mod error;
 
 use canvas::{
-    client::hyper::{client::connect::Connect, Method},
+    client::{
+        hyper::{client::connect::Connect, Method},
+        pagination,
+    },
     resource,
 };
-use futures::{channel::oneshot::Canceled, future, stream, task::Poll, Stream, StreamExt};
+use fallible_stream::YieldError;
+use futures::Stream;
 use pin_project::pin_project;
-use std::pin::Pin;
+use std::{pin::Pin, task::Poll};
 
 pub use error::{Error, Result};
 
 /// Responsible for fetching a resource from the underlying Canvas API.
 pub trait Fetch<R>: Sized {
     type FetchAll: Stream<Item = Result<R>> + Send;
-    fn fetch_all(self) -> Result<Self::FetchAll>;
+    fn fetch_all(self) -> Self::FetchAll;
 }
 
 impl<Conn> Fetch<resource::Course> for &canvas::Client<Conn>
 where
     Conn: Clone + Connect + Send + Sync + Unpin + 'static,
 {
-    type FetchAll =
-        CanvasItemStream<canvas::client::pagination::Items<'static, Conn, resource::Course>>;
-    fn fetch_all(self) -> Result<Self::FetchAll> {
-        Ok(self
-            .request(Method::GET, "/api/v1/courses")
-            .paginate_owned(50)? // TODO: adjust this per Canvas instance?
-            .items::<resource::Course>()
-            .into())
+    type FetchAll = YieldError<
+        resource::Course,
+        Error,
+        CanvasItemStream<pagination::Items<'static, Conn, resource::Course>>,
+    >;
+    fn fetch_all(self) -> Self::FetchAll {
+        YieldError::Ok(
+            self.request(Method::GET, "/api/v1/courses")
+                .paginate_owned(50)
+                .map_err(Error::Canvas)? // TODO: adjust this per Canvas instance?
+                .items::<resource::Course>()
+                .into(),
+        )
     }
 }
 

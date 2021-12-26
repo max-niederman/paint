@@ -4,14 +4,14 @@ use ebauche::{
     fetch,
     rpc::{message::*, Response},
 };
+use fallible_stream::YieldError;
 use futures::{stream, Stream};
-use miette::{miette, Diagnostic, IntoDiagnostic, WrapErr};
+use miette::{Diagnostic, IntoDiagnostic, WrapErr};
 use ouroboros::self_referencing;
 use pigment::{
     cache::{Cache, CacheEntry},
     View,
 };
-use pin_project::pin_project;
 use std::{
     pin::Pin,
     task::{self, Poll},
@@ -33,7 +33,7 @@ impl EbaucheCache {
         &'s self,
         tree_name: &'s str,
         view: View,
-        resources: fetch::Result<RStream>,
+        mut resources: RStream,
     ) -> impl Stream<Item = Result<Response, BoxedDiagnostic>> + 's
     where
         R: Cache,
@@ -47,7 +47,7 @@ impl EbaucheCache {
                 .wrap_err("failed to open sled tree")?
                 .into();
 
-            pigment::cache::replace_view(&store, &view, &mut resources?).await??;
+            pigment::cache::replace_view(&store, &view, &mut resources).await??;
 
             Ok(Response::Fetch(FetchResponse::Progress {
                 resource: tree_name.to_string(),
@@ -60,44 +60,34 @@ impl EbaucheCache {
         tree_name: &'s str,
         view: View,
         since: DateTime,
-    ) -> impl Stream<Item = Result<Response, BoxedDiagnostic>> + 's
+    ) -> YieldError<
+        Response,
+        BoxedDiagnostic,
+        impl Stream<Item = Result<Response, BoxedDiagnostic>> + 's,
+    >
     where
         R: Cache + Into<DResource> + 's,
     {
-        let store = match self
+        let store = self
             .db
             .open_tree(tree_name)
             .map(SledStore::from)
             .into_diagnostic()
             .wrap_err("failed to open sled tree")
-        {
-            Ok(store) => store,
-            Err(err) => return ViewUpdate::<_, R>::Error(err.into()),
-        };
+            .map_err(BoxedDiagnostic::from)?;
 
-        match ViewUpdateInner::try_new(view, since, store, pigment::cache::get_all) {
-            Ok(inner) => ViewUpdate::Ok(inner),
-            Err(err) => ViewUpdate::Error(err.into()),
-        }
+        YieldError::Ok(
+            ViewUpdate::<R, _>::try_new(view, since, store, pigment::cache::get_all)
+                .map_err(BoxedDiagnostic::from)?,
+        )
     }
 }
 
-#[pin_project(project = ViewUpdateProj)]
-enum ViewUpdate<St, R>
-where
-    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
-    R: Cache,
-{
-    Ok(#[pin] ViewUpdateInner<St, R>),
-    Error(BoxedDiagnostic),
-    Finished,
-}
-
 #[self_referencing]
-struct ViewUpdateInner<St, R>
+struct ViewUpdate<R, St>
 where
-    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
     R: Cache,
+    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
 {
     view: View,
     since: DateTime,
@@ -107,10 +97,10 @@ where
     stream: St,
 }
 
-impl<St, R> ViewUpdateInner<St, R>
+impl<R, St> ViewUpdate<R, St>
 where
-    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
     R: Cache,
+    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
 {
     fn with_stream_mut_pinned<Ret, F: FnOnce(Pin<&mut St>) -> Ret>(
         self: Pin<&mut Self>,
@@ -123,47 +113,25 @@ where
     }
 }
 
-impl<St, R> Stream for ViewUpdate<St, R>
+impl<R, St> Stream for ViewUpdate<R, St>
 where
-    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
     R: Cache + Into<DResource>,
+    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
 {
     type Item = Result<Response, BoxedDiagnostic>;
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Option<Self::Item>> {
-        // the return value
-        let ret = match self.as_mut().project() {
-            ViewUpdateProj::Ok(inner) => {
-                let since = inner.borrow_since().clone();
-                inner
-                    .with_stream_mut_pinned(|stream| stream.poll_next(cx))
-                    .map(|item| {
-                        item.map(|item| match item {
-                            Ok((_, entry)) if entry.updated > since => Ok(Response::Update(
-                                UpdateResponse::Resource(entry.resource.into()),
-                            )),
-                            Ok((key, _)) => Ok(Response::Update(UpdateResponse::Stub(
-                                pigment::cache::Key::serialize(&key)?,
-                            ))),
-                            Err(err) => Err(err.into()),
-                        })
-                    })
-            }
-            ViewUpdateProj::Error(err) => Poll::Ready(Some(Err(std::mem::replace(
-                err,
-                miette!("error already consumed").into(),
-            )))),
-            ViewUpdateProj::Finished => Poll::Ready(None),
-        };
-
-        // transition state
-        match *self {
-            ViewUpdate::Error(_) => {
-                self.set(ViewUpdate::Finished);
-                cx.waker().wake_by_ref();
-            }
-            _ => {}
-        }
-
-        ret
+    fn poll_next(self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Option<Self::Item>> {
+        let since = self.borrow_since().timestamp_millis();
+        self.with_stream_mut_pinned(|stream| stream.poll_next(cx))
+            .map(|item| {
+                item.map(|item| match item {
+                    Ok((_, entry)) if entry.updated.timestamp_millis() > since => Ok(
+                        Response::Update(UpdateResponse::Resource(entry.resource.into())),
+                    ),
+                    Ok((key, _)) => Ok(Response::Update(UpdateResponse::Stub(
+                        pigment::cache::Key::serialize(&key)?,
+                    ))),
+                    Err(err) => Err(err.into()),
+                })
+            })
     }
 }
