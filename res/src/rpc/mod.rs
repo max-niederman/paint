@@ -2,15 +2,10 @@ pub mod error;
 pub mod message;
 
 use std::fmt::Display;
+use futures::{io, prelude::*};
 
 pub use error::{Error, Result};
 pub use message::{Request, Response};
-
-use futures::{
-    io,
-    stream::{Stream, TryStreamExt},
-    Sink, SinkExt, StreamExt,
-};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Server<H> {

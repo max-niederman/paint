@@ -1,7 +1,7 @@
 //! Common behavior on backing stores for Ebuache caches.
 
 use super::Error;
-use futures::{Future, Stream};
+use futures::prelude::*;
 use std::ops::{Deref, RangeBounds};
 
 type Result<T> = std::result::Result<T, Error>;

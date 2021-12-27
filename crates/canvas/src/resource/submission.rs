@@ -55,6 +55,7 @@ pub enum SubmissionType {
     OnlineUpload,
     MediaRecording,
     StudentAnnotation,
+    NotGraded,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

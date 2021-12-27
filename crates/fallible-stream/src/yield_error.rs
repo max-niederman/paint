@@ -1,4 +1,4 @@
-use futures::{stream::Empty, Stream};
+use futures::{prelude::*, stream::Empty};
 use pin_project::pin_project;
 use std::{
     convert::Infallible,
@@ -8,25 +8,25 @@ use std::{
 };
 
 #[pin_project(project = YieldErrorProj)]
-pub enum YieldError<T, E, S: Stream<Item = Result<T, E>>> {
+pub enum YieldError<S: TryStream> {
     Ok(#[pin] S),
-    Err(Option<E>),
+    Err(Option<S::Error>),
 }
 
-impl<T, E, S: Stream<Item = Result<T, E>>> Stream for YieldError<T, E, S> {
-    type Item = Result<T, E>;
+impl<S: TryStream> Stream for YieldError<S> {
+    type Item = Result<S::Ok, S::Error>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Option<Self::Item>> {
         match self.project() {
-            YieldErrorProj::Ok(s) => s.poll_next(cx),
+            YieldErrorProj::Ok(s) => s.try_poll_next(cx),
             YieldErrorProj::Err(e) => Poll::Ready(e.take().map(Err)),
         }
     }
 }
 
-impl<T, E, S: Stream<Item = Result<T, E>>> From<Result<S, E>> for YieldError<T, E, S> {
+impl<S: TryStream> From<Result<S, S::Error>> for YieldError<S> {
     #[inline]
-    fn from(res: Result<S, E>) -> Self {
+    fn from(res: Result<S, S::Error>) -> Self {
         match res {
             Ok(s) => Self::Ok(s),
             Err(e) => Self::Err(Some(e)),
@@ -34,9 +34,9 @@ impl<T, E, S: Stream<Item = Result<T, E>>> From<Result<S, E>> for YieldError<T, 
     }
 }
 
-impl<T, E, S: Stream<Item = Result<T, E>>> Try for YieldError<T, E, S> {
+impl<S: TryStream> Try for YieldError<S> {
     type Output = S;
-    type Residual = YieldError<Infallible, E, Empty<Result<Infallible, E>>>;
+    type Residual = YieldError<Empty<Result<Infallible, S::Error>>>;
 
     fn from_output(output: Self::Output) -> Self {
         YieldError::Ok(output)
@@ -50,7 +50,7 @@ impl<T, E, S: Stream<Item = Result<T, E>>> Try for YieldError<T, E, S> {
     }
 }
 
-impl<T, E, S: Stream<Item = Result<T, E>>> FromResidual for YieldError<T, E, S> {
+impl<S: TryStream> FromResidual for YieldError<S> {
     #[inline]
     fn from_residual(residual: <Self as Try>::Residual) -> Self {
         match residual {
@@ -60,11 +60,9 @@ impl<T, E, S: Stream<Item = Result<T, E>>> FromResidual for YieldError<T, E, S> 
     }
 }
 
-impl<T, E, S: Stream<Item = Result<T, E>>> FromResidual<Result<Infallible, E>>
-    for YieldError<T, E, S>
-{
+impl<S: TryStream> FromResidual<Result<Infallible, S::Error>> for YieldError<S> {
     #[inline]
-    fn from_residual(residual: Result<Infallible, E>) -> Self {
+    fn from_residual(residual: Result<Infallible, S::Error>) -> Self {
         match residual {
             Err(e) => YieldError::Err(Some(e)),
             _ => unreachable!(),

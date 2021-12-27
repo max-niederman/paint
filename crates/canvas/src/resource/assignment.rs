@@ -10,16 +10,16 @@ pub struct Assignment {
     pub id: Id,
 
     pub name: String,
-    pub description: String,
+    pub description: Option<String>,
 
     pub course_id: Id,
     pub html_url: String,
 
     pub created_at: DateTime,
     pub updated_at: DateTime,
-    pub due_at: DateTime,
-    pub lock_at: DateTime,
-    pub unlock_at: DateTime,
+    pub due_at: Option<DateTime>,
+    pub lock_at: Option<DateTime>,
+    pub unlock_at: Option<DateTime>,
 
     pub submission_types: Vec<SubmissionType>,
     pub has_submitted_submissions: bool,
@@ -69,6 +69,7 @@ pub enum GradingType {
     LetterGrade,
     GpaScale,
     Points,
+    NotGraded,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -83,6 +84,4 @@ pub struct LockInfo {
     pub asset_string: String,
     pub unlock_at: Option<DateTime>,
     pub lock_at: Option<DateTime>,
-    pub context_module: String,
-    pub manually_locked: bool,
 }

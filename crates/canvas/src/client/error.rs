@@ -47,6 +47,9 @@ impl Error {
         let local_offset = err_offset.offset().saturating_sub(40);
         let local_len = std::cmp::min(40, json_len - err_offset.offset());
         let snipped_json = json[local_offset..err_offset.offset() + local_len].to_string();
+
+        tracing::debug!(message = "creating json error...", %err, %snipped_json);
+
         Self::MalformedJson {
             source: err,
             json: snipped_json,

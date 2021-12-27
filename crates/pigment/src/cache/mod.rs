@@ -8,11 +8,11 @@ pub mod store;
 use crate::{Result, View};
 
 pub use error::Error;
-pub use store::Store;
 pub use key::Key;
+pub use store::Store;
 
 use canvas::{DateTime, Resource};
-use futures::{Stream, StreamExt};
+use futures::prelude::*;
 use std::{ops::RangeBounds, time::SystemTime};
 
 pub trait Cache: Resource {
@@ -62,10 +62,20 @@ pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R
                     )
                     .await?;
 
+                fn increment_key(key: &mut [u8]) {
+                    if let Some((last, rest)) = key.split_last_mut() {
+                        let (new, overflowed) = last.overflowing_add(1);
+                        *last = new;
+                        if overflowed {
+                            increment_key(rest)
+                        }
+                    }
+                }
+
                 // move the key forward by one to get the start of the gap
                 // this assumes that the keys will not increase in length
                 gap_start = key;
-                *gap_start.last_mut().unwrap() += 1;
+                increment_key(&mut gap_start)
             }
             Err(e) => return Ok(Err(e)),
         }

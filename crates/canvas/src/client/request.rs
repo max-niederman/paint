@@ -137,7 +137,7 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
     }
 
     #[inline]
-    pub fn extend_query<K, V, I>(mut self, iter: I)
+    pub fn extend_query<K, V, I>(mut self, iter: I) -> Self
     where
         K: Into<String>,
         V: Into<String>,
@@ -147,6 +147,22 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
             iter.into_iter()
                 .map(|(key, value)| (key.into(), value.into())),
         );
+        self
+    }
+
+    #[inline]
+    pub fn include(mut self, val: &'static str) -> Self {
+        self.include.push(val);
+        self
+    }
+
+    #[inline]
+    pub fn extend_include<I>(mut self, iter: I) -> Self
+    where
+        I: IntoIterator<Item = &'static str>,
+    {
+        self.include.extend(iter.into_iter());
+        self
     }
 }
 

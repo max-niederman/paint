@@ -29,6 +29,7 @@ impl EbaucheCache {
         Self { db }
     }
 
+    /// Fetch a view and write it into the cache.
     pub fn fetch_view<'s, R, RStream>(
         &'s self,
         tree_name: &'s str,
@@ -55,16 +56,13 @@ impl EbaucheCache {
         })
     }
 
-    pub fn view_update<'s, R, S>(
+    /// Get the difference between a view and its past state. 
+    pub fn view_diff<'s, R, S>(
         &'s self,
         tree_name: &'s str,
         view: View,
         since: DateTime,
-    ) -> YieldError<
-        Response,
-        BoxedDiagnostic,
-        impl Stream<Item = Result<Response, BoxedDiagnostic>> + 's,
-    >
+    ) -> YieldError<impl Stream<Item = Result<Response, BoxedDiagnostic>> + 's>
     where
         R: Cache + Into<DResource> + 's,
     {

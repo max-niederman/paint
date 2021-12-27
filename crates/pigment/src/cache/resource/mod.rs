@@ -4,3 +4,4 @@ pub mod prelude {
 }
 
 mod course;
+mod assignment;

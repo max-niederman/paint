@@ -25,14 +25,16 @@ impl From<hyper::Response<hyper::Body>> for Response {
     fn from(hyper: hyper::Response<hyper::Body>) -> Self {
         tracing::debug!(
             message = "recieved response",
-            cost = hyper
-                .headers()
-                .get("x-request-cost")
-                .map(|hv| hv.to_str().unwrap()),
-            ratelimit_remaining = hyper
-                .headers()
-                .get("x-ratelimit-remaining")
-                .map(|hv| hv.to_str().unwrap()),
+            cost = hyper.headers().get("X-Request-Cost").map(|hv| hv
+                .to_str()
+                .unwrap()
+                .parse::<f64>()
+                .unwrap()),
+            ratelimit_remaining = hyper.headers().get("X-Rate-Limit-Remaining").map(|hv| hv
+                .to_str()
+                .unwrap()
+                .parse::<f64>()
+                .unwrap()),
         );
         Response { hyper }
     }

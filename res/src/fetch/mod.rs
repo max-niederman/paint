@@ -1,4 +1,5 @@
 pub mod error;
+pub mod tiered;
 
 use canvas::{
     client::{
@@ -8,7 +9,7 @@ use canvas::{
     resource,
 };
 use fallible_stream::YieldError;
-use futures::Stream;
+use futures::prelude::*;
 use pin_project::pin_project;
 use std::{pin::Pin, task::Poll};
 
@@ -16,20 +17,28 @@ pub use error::{Error, Result};
 
 /// Responsible for fetching a resource from the underlying Canvas API.
 pub trait Fetch<R>: Sized {
-    type FetchAll: Stream<Item = Result<R>> + Send;
-    fn fetch_all(self) -> Self::FetchAll;
+    type Dependency;
+
+    type FetchStream: Stream<Item = Result<R>>;
+    fn fetch(&self, dependency: &Self::Dependency) -> Self::FetchStream;
+
+    fn fetch_independent(&self) -> Self::FetchStream
+    where
+        Self::Dependency: Default,
+    {
+        self.fetch(&Default::default())
+    }
 }
 
-impl<Conn> Fetch<resource::Course> for &canvas::Client<Conn>
+impl<Conn> Fetch<resource::Course> for canvas::Client<Conn>
 where
     Conn: Clone + Connect + Send + Sync + Unpin + 'static,
 {
-    type FetchAll = YieldError<
-        resource::Course,
-        Error,
-        CanvasItemStream<pagination::Items<'static, Conn, resource::Course>>,
-    >;
-    fn fetch_all(self) -> Self::FetchAll {
+    type Dependency = ();
+
+    type FetchStream =
+        YieldError<CanvasItemStream<pagination::Items<'static, Conn, resource::Course>>>;
+    fn fetch(&self, _: &Self::Dependency) -> Self::FetchStream {
         YieldError::Ok(
             self.request(Method::GET, "/api/v1/courses")
                 .paginate_owned(50)
@@ -40,6 +49,27 @@ where
     }
 }
 
+impl<Conn> Fetch<resource::Assignment> for canvas::Client<Conn>
+where
+    Conn: Clone + Connect + Send + Sync + Unpin + 'static,
+{
+    type Dependency = resource::Course;
+
+    type FetchStream =
+        YieldError<CanvasItemStream<pagination::Items<'static, Conn, resource::Assignment>>>;
+    fn fetch(&self, dependency: &Self::Dependency) -> Self::FetchStream {
+        YieldError::Ok(
+            self.request(
+                Method::GET,
+                format!("/api/v1/courses/{}/assignments", dependency.id),
+            )
+            .paginate_owned(50)
+            .map_err(Error::Canvas)?
+            .items::<resource::Assignment>()
+            .into(),
+        )
+    }
+}
 #[pin_project]
 pub struct CanvasItemStream<S>(#[pin] S);
 
