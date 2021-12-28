@@ -63,9 +63,33 @@ where
                 Method::GET,
                 format!("/api/v1/courses/{}/assignments", dependency.id),
             )
+            .extend_include(["submission", "overrides", "score_statistics"])
             .paginate_owned(50)
             .map_err(Error::Canvas)?
             .items::<resource::Assignment>()
+            .into(),
+        )
+    }
+}
+
+impl<Conn> Fetch<resource::Submission> for canvas::Client<Conn>
+where
+    Conn: Clone + Connect + Send + Sync + Unpin + 'static,
+{
+    type Dependency = resource::Course;
+
+    type FetchStream =
+        YieldError<CanvasItemStream<pagination::Items<'static, Conn, resource::Submission>>>;
+    fn fetch(&self, dependency: &Self::Dependency) -> Self::FetchStream {
+        YieldError::Ok(
+            self.request(
+                Method::GET,
+                format!("/api/v1/courses/{}/students/submissions", dependency.id),
+            )
+            .extend_include(["submission_comments", "submission_history", "course"])
+            .paginate_owned(50)
+            .map_err(Error::Canvas)?
+            .items::<resource::Submission>()
             .into(),
         )
     }

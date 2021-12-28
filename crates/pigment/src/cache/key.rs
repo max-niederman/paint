@@ -39,9 +39,9 @@ impl Key for canvas::Id {
     }
 }
 
-/// The maximum length of a Canvas instance.
-/// Instances shorter than this will be padded and instances longer will be fail.
-/// This is necessary to prevent accidental prefix overlaps.
+/// the maximum length of a Canvas instance.
+/// instances shorter than this will be padded and instances longer will fail
+/// to serialize. this is necessary to prevent accidental prefix overlaps.
 pub const MAX_CANVAS_LENGTH: usize = 64;
 
 impl Key for view::Canvas {

@@ -123,10 +123,7 @@ async fn main() -> miette::Result<()> {
         while let Some(resp) = resps.next().await {
             match resp? {
                 Ok(r) if !opt.hide => println!("{:#?}", r),
-                Err(e) => {
-                    tracing::error!("got error from host: {}", e);
-                    break;
-                }
+                Err(e) => tracing::error!("got error from host: {}", e),
                 _ => {}
             }
         }

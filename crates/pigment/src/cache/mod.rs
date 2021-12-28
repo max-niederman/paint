@@ -20,6 +20,8 @@ pub trait Cache: Resource {
     fn key(&self) -> Self::Key;
 }
 
+// TODO: add `tracing` spans
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CacheEntry<R> {
     pub resource: R,
@@ -33,7 +35,6 @@ pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R
     view: &View,
     resources: &mut RStream,
 ) -> Result<Result<(), E>> {
-    tracing::trace!("replacing view {}", view);
     // the start of the gap between the preceding resource and the current one
     let mut gap_start: Vec<u8> = Vec::with_capacity(R::Key::SER_LEN);
     while let Some(res) = resources.next().await {

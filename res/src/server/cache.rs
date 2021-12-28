@@ -5,7 +5,7 @@ use ebauche::{
     rpc::{message::*, Response},
 };
 use fallible_stream::YieldError;
-use futures::{stream, Stream};
+use futures::prelude::*;
 use miette::{Diagnostic, IntoDiagnostic, WrapErr};
 use ouroboros::self_referencing;
 use pigment::{
@@ -16,6 +16,7 @@ use std::{
     pin::Pin,
     task::{self, Poll},
 };
+use tracing::Instrument;
 
 #[derive(Debug)]
 pub struct EbaucheCache {
@@ -32,7 +33,7 @@ impl EbaucheCache {
     /// Fetch a view and write it into the cache.
     pub fn fetch_view<'s, R, RStream>(
         &'s self,
-        tree_name: &'s str,
+        tree_name: &'static str,
         view: View,
         mut resources: RStream,
     ) -> impl Stream<Item = Result<Response, BoxedDiagnostic>> + 's
@@ -40,23 +41,27 @@ impl EbaucheCache {
         R: Cache,
         RStream: Stream<Item = fetch::Result<R>> + Unpin + Send + 'static,
     {
-        stream::once(async move {
-            let store: SledStore = self
-                .db
-                .open_tree(tree_name)
-                .into_diagnostic()
-                .wrap_err("failed to open sled tree")?
-                .into();
+        let view_display = view.clone();
+        stream::once(
+            async move {
+                let store: SledStore = self
+                    .db
+                    .open_tree(tree_name)
+                    .into_diagnostic()
+                    .wrap_err("failed to open sled tree")?
+                    .into();
 
-            pigment::cache::replace_view(&store, &view, &mut resources).await??;
+                pigment::cache::replace_view(&store, &view, &mut resources).await??;
 
-            Ok(Response::Fetch(FetchResponse::Progress {
-                resource: tree_name.to_string(),
-            }))
-        })
+                Ok(Response::Fetch(FetchResponse::Progress {
+                    resource: tree_name.to_string(),
+                }))
+            }
+            .instrument(tracing::info_span!("fetch_view", tree_name, view = %view_display)),
+        )
     }
 
-    /// Get the difference between a view and its past state. 
+    /// Get the difference between a view and its past state.
     pub fn view_diff<'s, R, S>(
         &'s self,
         tree_name: &'s str,

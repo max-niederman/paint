@@ -11,32 +11,33 @@ pub struct Submission {
     pub assignment_id: Id,
     pub assignment: Option<Assignment>,
     pub user_id: Id,
-    pub attempt: u32,
+    pub attempt: Option<u32>,
 
-    pub html_url: String,
-    pub preview: String,
+    #[serde(default)]
+    pub html_url: Option<String>,
+    #[serde(default)]
+    pub preview: Option<String>,
 
-    pub posted_at: DateTime,
-    pub submitted_at: DateTime,
+    pub posted_at: Option<DateTime>,
+    pub submitted_at: Option<DateTime>,
     pub graded_at: Option<DateTime>,
 
     pub late: bool,
-    pub excused: bool,
+    pub excused: Option<bool>,
     pub missing: bool,
 
     pub late_policy_status: Option<LatePolicyStatus>,
-    pub points_deducted: f64,
-    pub seconds_late: f64,
+    pub points_deducted: Option<f64>,
+    pub seconds_late: Option<f64>,
 
     pub workflow_state: WorkflowState,
-    pub extra_attempts: u32,
+    pub extra_attempts: Option<u32>,
 
-    pub submission_type: SubmissionType,
+    pub submission_type: Option<SubmissionType>,
     pub body: Option<String>,
     pub url: Option<String>,
 
-    pub grade: String,
-    pub grade_matches_current_submission: bool,
+    pub grade: Option<String>,
     pub score: Option<f64>,
 }
 
@@ -55,6 +56,7 @@ pub enum SubmissionType {
     OnlineUpload,
     MediaRecording,
     StudentAnnotation,
+    BasicLtiLaunch,
     NotGraded,
 }
 

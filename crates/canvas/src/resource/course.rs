@@ -25,6 +25,7 @@ pub struct Course {
     pub start_at: DateTime,
     pub end_at: Option<DateTime>,
 
+    #[serde(default)]
     pub enrollments: Vec<InlineEnrollment>, // enrollment grades present on include[]=total_scores
     pub total_students: Option<u32>,
 

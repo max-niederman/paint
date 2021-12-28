@@ -63,6 +63,15 @@ impl<'h> rpc::Handler<'h> for Handler {
                             )),
                         )
                         .boxed(),
+                    self.cache
+                        .fetch_view(
+                            "submissions",
+                            view.clone(),
+                            Fetch::<resource::Submission>::fetch_independent(&TieredFetcher(
+                                &canvas_client,
+                            )),
+                        )
+                        .boxed(),
                 ])
                 .map_err(PrettyBoxedDiagnostic::from)
                 .boxed()
