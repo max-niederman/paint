@@ -120,14 +120,16 @@ async fn main() -> miette::Result<()> {
             .wrap_err("while sending request")?;
 
         tracing::info!("awaiting responses...");
+        let mut count = 0;
         while let Some(resp) = resps.next().await {
+            count += 1;
             match resp? {
                 Ok(r) if !opt.hide => println!("{:#?}", r),
                 Err(e) => tracing::error!("got error from host: {}", e),
                 _ => {}
             }
         }
-        tracing::info!("finished recieving responses");
+        tracing::info!(message = "finished recieving responses", count);
     }
 
     Ok(())

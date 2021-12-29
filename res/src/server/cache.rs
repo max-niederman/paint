@@ -51,7 +51,12 @@ impl EbaucheCache {
                     .wrap_err("failed to open sled tree")?
                     .into();
 
-                pigment::cache::replace_view(&store, &view, &mut resources).await??;
+                pigment::cache::replace_view(
+                    &store,
+                    &view,
+                    &mut resources.map_ok(|r| (r.key(), Some(r))),
+                )
+                .await??;
 
                 Ok(Response::Fetch(FetchResponse::Progress {
                     resource: tree_name.to_string(),
@@ -61,8 +66,8 @@ impl EbaucheCache {
         )
     }
 
-    /// Get the difference between a view and its past state.
-    pub fn view_diff<'s, R, S>(
+    /// Get an update for a view.
+    pub fn view_update<'s, R>(
         &'s self,
         tree_name: &'s str,
         view: View,
@@ -90,7 +95,7 @@ impl EbaucheCache {
 struct ViewUpdate<R, St>
 where
     R: Cache,
-    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
+    St: Stream<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>>,
 {
     view: View,
     since: DateTime,
@@ -103,7 +108,7 @@ where
 impl<R, St> ViewUpdate<R, St>
 where
     R: Cache,
-    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
+    St: Stream<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>>,
 {
     fn with_stream_mut_pinned<Ret, F: FnOnce(Pin<&mut St>) -> Ret>(
         self: Pin<&mut Self>,
@@ -119,7 +124,7 @@ where
 impl<R, St> Stream for ViewUpdate<R, St>
 where
     R: Cache + Into<DResource>,
-    St: Stream<Item = pigment::Result<(R::Key, CacheEntry<R>)>>,
+    St: Stream<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>>,
 {
     type Item = Result<Response, BoxedDiagnostic>;
     fn poll_next(self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Option<Self::Item>> {
@@ -127,7 +132,7 @@ where
         self.with_stream_mut_pinned(|stream| stream.poll_next(cx))
             .map(|item| {
                 item.map(|item| match item {
-                    Ok((_, entry)) if entry.updated.timestamp_millis() > since => Ok(
+                    Ok((_, entry)) if entry.written.timestamp_millis() > since => Ok(
                         Response::Update(UpdateResponse::Resource(entry.resource.into())),
                     ),
                     Ok((key, _)) => Ok(Response::Update(UpdateResponse::Stub(

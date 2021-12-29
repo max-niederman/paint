@@ -5,17 +5,16 @@ pub mod key;
 mod resource;
 pub mod store;
 
-use crate::{Result, View};
-
-pub use error::Error;
+pub use error::{Error, Result};
 pub use key::Key;
 pub use store::Store;
 
+use crate::View;
 use canvas::{DateTime, Resource};
 use futures::prelude::*;
 use std::{ops::RangeBounds, time::SystemTime};
 
-pub trait Cache: Resource {
+pub trait Cache: Resource + PartialEq {
     type Key: Key;
     fn key(&self) -> Self::Key;
 }
@@ -26,42 +25,78 @@ pub trait Cache: Resource {
 pub struct CacheEntry<R> {
     pub resource: R,
     pub updated: DateTime,
+    pub written: DateTime,
 }
 
 /// Replace all resources in the cache under a given view with the given resources.
 #[inline]
-pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R, E>> + Unpin>(
+pub async fn replace_view<S, R, RStream, E>(
     store: &S,
     view: &View,
     resources: &mut RStream,
-) -> Result<Result<(), E>> {
+) -> Result<Result<(), E>>
+where
+    S: Store,
+    R: Cache,
+    RStream: Stream<Item = Result<(R::Key, Option<R>), E>> + Unpin,
+{
     // the start of the gap between the preceding resource and the current one
-    let mut gap_start: Vec<u8> = Vec::with_capacity(R::Key::SER_LEN);
+    let mut gap_start: Vec<u8> = Vec::with_capacity(View::SER_LEN + R::Key::SER_LEN);
     while let Some(res) = resources.next().await {
         match res {
-            Ok(resource) => {
-                let key = [view.serialize()?, resource.key().serialize()?].concat();
+            Ok((key, resource)) => {
+                let key_bytes = [view.serialize()?, key.serialize()?].concat();
 
-                if key > gap_start {
+                if key_bytes > gap_start {
                     // remove all keys inbetween the last key and this key
                     // we use multiple [`Store::remove_range`] calls so that key writes are in-order,
                     // thereby improving performance for LSMT-based stores
                     store
-                        .remove_range(gap_start.as_slice()..key.as_slice())
+                        .remove_range(gap_start.as_slice()..key_bytes.as_slice())
                         .await?;
                 }
 
-                // FIXME: only replace if more updated than existing
-                store
-                    .insert(
-                        &key,
-                        bincode::serialize(&CacheEntry {
-                            resource,
-                            updated: SystemTime::now().into(),
-                        })
-                        .map_err(Error::Serialization)?,
-                    )
-                    .await?;
+                let old = store
+                    .get(&key_bytes)
+                    .await?
+                    .map(|bytes| {
+                        bincode::deserialize::<CacheEntry<R>>(&bytes)
+                            .map_err(Error::Deserialization)
+                    })
+                    .transpose()?;
+
+                if let Some(resource) = resource {
+                    let now: DateTime = SystemTime::now().into();
+                    store
+                        .insert(
+                            &key_bytes,
+                            bincode::serialize(&CacheEntry {
+                                updated: now,
+                                written: match old {
+                                    Some(CacheEntry {
+                                        written,
+                                        resource: old_resource,
+                                        ..
+                                    }) if old_resource == resource => written,
+                                    _ => SystemTime::now().into(),
+                                },
+                                resource,
+                            })
+                            .map_err(Error::Serialization)?,
+                        )
+                        .await?;
+                } else if let Some(old) = old {
+                    store
+                        .insert(
+                            &key_bytes,
+                            bincode::serialize(&CacheEntry {
+                                updated: SystemTime::now().into(),
+                                ..old
+                            })
+                            .map_err(Error::Serialization)?,
+                        )
+                        .await?;
+                }
 
                 fn increment_key(key: &mut [u8]) {
                     if let Some((last, rest)) = key.split_last_mut() {
@@ -75,7 +110,7 @@ pub async fn replace_view<S: Store, R: Cache, E, RStream: Stream<Item = Result<R
 
                 // move the key forward by one to get the start of the gap
                 // this assumes that the keys will not increase in length
-                gap_start = key;
+                gap_start = key_bytes;
                 increment_key(&mut gap_start)
             }
             Err(e) => return Ok(Err(e)),
@@ -96,12 +131,8 @@ pub async fn get<S: Store, R: Cache>(
         .get(&[view.serialize()?, key.serialize()?].concat())
         .await?;
 
-    val.map(|res| {
-        bincode::deserialize(&res)
-            .map_err(Error::Deserialization)
-            .map_err(Into::into)
-    })
-    .transpose()
+    val.map(|bytes| bincode::deserialize::<CacheEntry<R>>(&bytes).map_err(Error::Deserialization))
+        .transpose()
 }
 
 /// Get all resources under the view from the cache.

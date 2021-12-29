@@ -8,6 +8,8 @@ use std::{
 };
 
 #[pin_project(project = YieldErrorProj)]
+#[derive(Debug)]
+#[must_use = "streams do nothing unless polled"]
 pub enum YieldError<S: TryStream> {
     Ok(#[pin] S),
     Err(Option<S::Error>),

@@ -11,7 +11,10 @@ impl Response {
     pub async fn deserialize<T: DeserializeOwned>(self) -> Result<T> {
         let body = hyper::body::to_bytes(self.hyper.into_body()).await?;
         serde_json::from_slice(&body)
-            .map_err(|je| Error::from_json_err(je, std::str::from_utf8(&body).unwrap().to_string()))
+            .map_err(|je| {
+                tracing::warn!(message = "deserialization error", target = std::any::type_name::<T>(), error = %je);
+                Error::from_json_err(je, std::str::from_utf8(&body).unwrap().to_string())
+            })
     }
 
     #[inline]

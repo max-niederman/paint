@@ -1,5 +1,5 @@
-use super::Error;
-use crate::{view, Result};
+use super::{Error, Result};
+use crate::view;
 
 pub trait Key: Sized {
     /// The length in bytes of the serialized key.

@@ -31,6 +31,8 @@ pub enum Error {
     Store(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
+pub type Result<T, E = Error> = std::result::Result<T, E>;
+
 impl Error {
     #[inline]
     pub fn store<E>(err: E) -> Self

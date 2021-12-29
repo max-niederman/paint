@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use super::*;
-use fallible_stream::{FallibleStreamExt, TryFlatMap};
+use fallible_stream::{FallibleStreamExt, TryFlatMap, TryFlatMapSelect};
 
 pub struct TieredFetcher<'f, F>(pub &'f F);
 
@@ -15,13 +15,13 @@ where
 {
     type Dependency = <F as Fetch<D>>::Dependency;
 
-    type FetchStream = TryFlatMap<
+    type FetchStream = TryFlatMapSelect<
         <F as Fetch<D>>::FetchStream,
-        <F as Fetch<T>>::FetchStream,
+        Pin<Box<<F as Fetch<T>>::FetchStream>>,
         TierMap<F, T, D>,
     >;
     fn fetch(&self, dependency: &Self::Dependency) -> Self::FetchStream {
-        <F as Fetch<D>>::fetch(self.0, dependency).try_flat_map(TierMap::new(self.0.clone()))
+        <F as Fetch<D>>::fetch(self.0, dependency).try_flat_map_select(TierMap::new(self.0.clone()))
     }
 }
 
@@ -49,10 +49,10 @@ impl<F, T, D> FnOnce<(D,)> for TierMap<F, T, D>
 where
     F: Fetch<T, Dependency = D>,
 {
-    type Output = <F as Fetch<T>>::FetchStream;
+    type Output = Pin<Box<<F as Fetch<T>>::FetchStream>>;
 
     extern "rust-call" fn call_once(self, args: (D,)) -> Self::Output {
-        self.fetcher.fetch(&args.0)
+        Box::pin(self.fetcher.fetch(&args.0))
     }
 }
 
@@ -61,7 +61,7 @@ where
     F: Fetch<T, Dependency = D>,
 {
     extern "rust-call" fn call_mut(&mut self, args: (D,)) -> Self::Output {
-        self.fetcher.fetch(&args.0)
+        Box::pin(self.fetcher.fetch(&args.0))
     }
 }
 
@@ -70,6 +70,6 @@ where
     F: Fetch<T, Dependency = D>,
 {
     extern "rust-call" fn call(&self, args: (D,)) -> Self::Output {
-        self.fetcher.fetch(&args.0)
+        Box::pin(self.fetcher.fetch(&args.0))
     }
 }
