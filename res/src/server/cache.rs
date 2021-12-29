@@ -35,7 +35,7 @@ impl EbaucheCache {
         &'s self,
         tree_name: &'static str,
         view: View,
-        mut resources: RStream,
+        resources: RStream,
     ) -> impl Stream<Item = Result<Response, BoxedDiagnostic>> + 's
     where
         R: Cache,

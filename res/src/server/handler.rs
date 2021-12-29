@@ -11,7 +11,7 @@ use futures::prelude::*;
 use hyper_tls::HttpsConnector;
 use miette::GraphicalReportHandler;
 use miette::{Diagnostic, ReportHandler};
-use pigment::DSelector;
+
 use std::{fmt, pin::Pin};
 
 #[derive(Debug)]
@@ -66,7 +66,7 @@ impl<'h> rpc::Handler<'h> for Handler {
                     self.cache
                         .fetch_view(
                             "submissions",
-                            view.clone(),
+                            view,
                             Fetch::<resource::Submission>::fetch_independent(&TieredFetcher(
                                 &canvas_client,
                             )),
@@ -87,7 +87,7 @@ impl<'h> rpc::Handler<'h> for Handler {
                         .view_update::<resource::Assignment>("assignments", view.clone(), since)
                         .boxed(),
                     self.cache
-                        .view_update::<resource::Submission>("submissions", view.clone(), since)
+                        .view_update::<resource::Submission>("submissions", view, since)
                         .boxed(),
                 ])
                 .map_err(PrettyBoxedDiagnostic::from)

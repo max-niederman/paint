@@ -1,4 +1,4 @@
-use futures::{prelude::*, ready, stream::Fuse};
+use futures::{prelude::*, ready};
 use pin_project::pin_project;
 use std::{
     pin::Pin,
@@ -48,7 +48,7 @@ where
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Option<Self::Item>> {
         if let Some(current) = self.as_mut().project().current.as_pin_mut() {
             match ready!(current.try_poll_next(cx)) {
-                Some(item) => return Poll::Ready(Some(item)),
+                Some(item) => Poll::Ready(Some(item)),
                 None => {
                     self.as_mut().project().current.set(None);
                     self.poll_next(cx)

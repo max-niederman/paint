@@ -1,8 +1,8 @@
 pub mod error;
 pub mod message;
 
-use std::fmt::Display;
 use futures::{io, prelude::*};
+use std::fmt::Display;
 
 pub use error::{Error, Result};
 pub use message::{Request, Response};

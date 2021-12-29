@@ -53,8 +53,7 @@ impl Key for view::Canvas {
             return Err(Error::UnexpectedStreamYield {
                 expected: "non-null byte",
                 actual: "null byte",
-            }
-            .into());
+            });
         }
 
         let mut bytes = heapless::Vec::<u8, { Self::SER_LEN }>::from_slice(
@@ -127,7 +126,7 @@ impl Key for view::Viewer {
                         actual: "end of stream",
                     })?,
             ))),
-            _ => Err(Error::IllegalViewerDiscriminant { discriminant }.into()),
+            _ => Err(Error::IllegalViewerDiscriminant { discriminant }),
         }
     }
 }

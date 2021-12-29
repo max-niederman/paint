@@ -1,5 +1,5 @@
-use pigment::cache::{Error, Store};
 use futures::{Future, Stream};
+use pigment::cache::{Error, Store};
 use sled::{IVec, Tree};
 use std::{
     ops::{Deref, DerefMut},

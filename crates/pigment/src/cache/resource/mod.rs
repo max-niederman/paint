@@ -3,6 +3,6 @@ pub mod prelude {
     pub use canvas::resource;
 }
 
-mod course;
 mod assignment;
+mod course;
 mod submission;

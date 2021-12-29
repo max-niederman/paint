@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use super::*;
-use fallible_stream::{FallibleStreamExt, TryFlatMap, TryFlatMapSelect};
+use fallible_stream::{FallibleStreamExt, TryFlatMapSelect};
 
 pub struct TieredFetcher<'f, F>(pub &'f F);
 
