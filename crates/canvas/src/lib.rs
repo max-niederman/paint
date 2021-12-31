@@ -5,10 +5,11 @@
 #[cfg(feature = "client")]
 pub mod client;
 pub mod resource;
+pub mod id;
 
 #[cfg(feature = "client")]
 pub use client::{Auth, Client};
 pub use resource::Resource;
+pub use id::Id;
 
-pub type Id = u64;
 pub type DateTime = chrono::DateTime<chrono::Utc>;

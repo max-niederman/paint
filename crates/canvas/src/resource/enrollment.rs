@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Enrollment {
     #[serde(default)]
-    pub id: Id,
+    pub id: Option<Id>,
     pub course_id: Id,
     pub course_section_id: Id,
 

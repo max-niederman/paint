@@ -152,3 +152,23 @@ impl Key for view::View {
         })
     }
 }
+
+#[test]
+fn key_deserialize_inverts_serialize() {
+    fn test<K: Key + std::fmt::Debug + std::cmp::PartialEq>(key: &K) {
+        let serialized = key.serialize().unwrap();
+        let deserialized = K::deserialize(&mut serialized.iter().copied()).unwrap();
+        assert_eq!(*key, deserialized);
+    }
+
+    test(&canvas::Id::new(0));
+    test(&view::Canvas {
+        base_url: "https://example.com/".to_string(),
+    });
+    test(&view::View {
+        truth: view::Canvas {
+            base_url: "https://example.com/".to_string(),
+        },
+        viewer: view::Viewer::User(canvas::Id::new(0)),
+    });
+}

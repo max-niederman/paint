@@ -48,7 +48,6 @@ macro_rules! id_selector {
 
 id_selector!(Assignment);
 id_selector!(Course);
-id_selector!(Enrollment);
 id_selector!(GradingPeriod);
 id_selector!(User);
 
