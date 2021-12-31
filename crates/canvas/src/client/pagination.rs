@@ -1,21 +1,42 @@
 use super::{Client, Error, Response, Result};
 use futures::{ready, Future, FutureExt, Stream, StreamExt};
+use futures_timer::Delay;
 use hyper::{
     client::connect::Connect,
     header::{self, HeaderMap},
-    Body, Method, Uri,
+    Body, Method, StatusCode, Uri,
 };
 use serde::de::DeserializeOwned;
-use std::{borrow::Cow, collections::HashMap, pin::Pin, task::Poll};
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    convert::Infallible,
+    mem::MaybeUninit,
+    ops::FromResidual,
+    pin::Pin,
+    task::{self, Poll},
+    time::Duration,
+};
 
 #[derive(Debug)]
 #[must_use = "streams do nothing unless polled"]
 pub struct Pagination<'c, Conn: Clone> {
     client: Cow<'c, Client<Conn>>,
     headers: HeaderMap,
+    state: PaginationState,
+}
 
-    // current future request to be polled; if None, then the pagination is finished
-    current_req: Option<hyper::client::ResponseFuture>,
+#[derive(Debug)]
+enum PaginationState {
+    Throttled {
+        timer: Delay,
+        uri: Uri,
+    },
+    AwaitingResponse {
+        resp_fut: hyper::client::ResponseFuture,
+        uri: Uri,
+    },
+    Finished,
 }
 
 impl<'c, Conn> Pagination<'c, Conn>
@@ -24,16 +45,10 @@ where
 {
     #[inline]
     pub(super) fn new(client: Cow<'c, Client<Conn>>, headers: HeaderMap, uri: Uri) -> Result<Self> {
-        Ok(Pagination {
-            headers: headers.clone(),
-            current_req: Some(client.http.request({
-                let mut builder = hyper::Request::builder().method(Method::GET).uri(uri);
-                *builder
-                    .headers_mut()
-                    .expect("pagination request builder must not error") = headers;
-                builder.body(Body::empty())?
-            })),
+        Ok(Self {
+            state: PaginationState::awaiting_response(&client, uri, headers.clone())?,
             client,
+            headers,
         })
     }
 
@@ -42,10 +57,73 @@ where
         Items {
             pagination: self,
             items: Vec::new(),
-            state: ItemsState::WaitingForNextPage,
+            state: ItemsState::AwaitingPage,
         }
     }
 }
+
+struct PaginationStateTransition<T> {
+    new: PaginationState,
+    ret: T,
+}
+
+impl<T> FromResidual<Result<Infallible>> for PaginationStateTransition<T>
+where
+    T: FromResidual<Result<Infallible>>,
+{
+    fn from_residual(residual: Result<Infallible>) -> Self {
+        Self {
+            new: PaginationState::Finished,
+            ret: T::from_residual(residual),
+        }
+    }
+}
+
+impl PaginationState {
+    #[inline(always)]
+    fn transition<Ret, F: FnOnce(Self) -> PaginationStateTransition<Ret>>(&mut self, f: F) -> Ret {
+        unsafe {
+            //   EXPL: first, we reinterpret `self` as a `&mut MaybeUninit<Self>` and bind it to `this`
+            //         this is completely safe on its own, so I'm not really sure why there's no safe function for it in `std`
+            let this = std::mem::transmute::<&mut Self, &mut MaybeUninit<Self>>(self);
+
+            //   EXPL: then, we _bitwise_ copy the [`Self`] out of `this`, call `f` with it and immediately overwrite `this`
+            //         with the new state returned. this has the effect of moving out of and then into `this`
+            // SAFETY: assuming `this` to be initialized inbetween the call to [`MaybeUninit::assume_init_read`] and the
+            //         call to [`MaybeUninit::write`] is unsafe
+            let PaginationStateTransition { new, ret } = f(this.assume_init_read());
+            this.write(new);
+
+            ret
+        }
+    }
+
+    #[inline(always)]
+    fn awaiting_response<Conn>(client: &Client<Conn>, uri: Uri, headers: HeaderMap) -> Result<Self>
+    where
+        Conn: Connect + Clone + Send + Sync + 'static,
+    {
+        let mut builder = hyper::Request::builder()
+            .method(Method::GET)
+            .uri(uri.clone());
+
+        // `builder` will not error because [`<Uri as TryFrom<Uri>>::try_from`] is infallible,
+        // so unwrapping the result will never panic
+        *builder.headers_mut().unwrap() = headers;
+
+        Ok(Self::AwaitingResponse {
+            resp_fut: client.hyper.request(builder.body(Body::empty())?),
+            uri,
+        })
+    }
+}
+
+// TODO: should we write a version of [`Pagination`] which requests all pages
+//       simultaneously, destroying the order but improving performance if ordering
+//       is unnecessary? this may not be useful because we don't want to stress the
+//       underlying Canvas instances more than necessary
+// ----: the Canvas API documentation dicatates that pagination links should be treated as
+//       opaque, so we may not want to do this regardless
 
 impl<'c, Conn> Stream for Pagination<'c, Conn>
 where
@@ -54,55 +132,112 @@ where
     type Item = Result<Response>;
 
     #[inline]
-    fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> Poll<Option<Self::Item>> {
-        let current_req = match self.current_req.as_mut() {
-            Some(fut) => fut,
-            None => return Poll::Ready(None),
-        };
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Option<Self::Item>> {
+        let client = self.client.clone();
+        let req_headers = self.headers.clone();
+        self.state.transition(|mut state| match state {
+            PaginationState::AwaitingResponse {
+                ref mut resp_fut,
+                ref uri,
+            } => match resp_fut.poll_unpin(cx) {
+                Poll::Ready(Ok(response)) => tracing::debug_span!("handling pagination response", 
+                %uri,
+                cost = response.headers().get("X-Request-Cost").and_then(|hv| Some(hv.to_str().ok()?.parse::<f32>().ok())),
+                ratelimit_remaining = response.headers().get("X-Rate-Limit-Remaining").and_then(|hv| Some(hv.to_str().ok()?.parse::<f32>().ok()))
+            ).in_scope(|| match response.status() {
+                    StatusCode::OK => {
+                        tracing::trace!("recieved page");
 
-        let res = ready!(current_req.poll_unpin(cx))
-            .map(Response::from)
-            .map_err(Error::from);
+                        PaginationStateTransition {
+                            new: match PaginationLinks::from_headers(&response.headers())?.next() {
+                                Ok(next) => PaginationState::awaiting_response(
+                                    &client,
+                                    next.clone(),
+                                    req_headers,
+                                )?,
+                                Err(_) => PaginationState::Finished,
+                            },
+                            ret: Poll::Ready(Some(Ok(response.into()))),
+                        }
+                    }
 
-        match res {
-            Ok(http_resp) => {
-                let response: Response = http_resp;
-                let links = response.pagination_links()?;
+                    StatusCode::FORBIDDEN => {
+                        tracing::warn!("request throttled");
 
-                self.current_req = match links.next {
-                    Some(next) => Some(self.client.http.request({
-                        tracing::trace!(message = "requesting next page", uri = next);
+                        PaginationStateTransition {
+                            new: PaginationState::Throttled {
+                                timer: Delay::new(Duration::from_secs_f32(2.0)), // TODO: adjust by ratelimit remaining and per Canvas instance
+                                uri: uri.clone(),
+                            },
+                            ret: {
+                                cx.waker().wake_by_ref();
+                                Poll::Pending
+                            },
+                        }
+                    }
 
-                        let mut builder = hyper::Request::builder().method(Method::GET).uri(next);
-                        *builder
-                            .headers_mut()
-                            .expect("pagination request builder must not error") =
-                            self.headers.clone();
-                        builder.body(Body::empty())?
-                    })),
-                    None => None,
-                };
+                    StatusCode::UNAUTHORIZED => {
+                        tracing::error!(message = "incorrect authorization", auth_header = ?response.headers().get(header::AUTHORIZATION));
 
-                Poll::Ready(Some(Ok(response)))
-            }
-            Err(e) => Poll::Ready(Some(Err(e))),
-        }
+                        PaginationStateTransition {
+                            new: PaginationState::Finished,
+                            ret: Poll::Ready(Some(Err(Error::Unauthorized)))
+                        }
+                    }
+
+                    code => {
+                        tracing::warn!(message = "recieved response with unknown status code", %code);
+
+                        PaginationStateTransition {
+                            new: PaginationState::Finished,
+                            ret: Poll::Ready(Some(Err(Error::UnknownHttpStatus {
+                                code,
+                                headers: response.headers().clone(),
+                                response: response.into(),
+                            })))
+                        }
+                    },
+                }),
+                Poll::Ready(Err(err)) => PaginationStateTransition::from_residual(Err(err.into())),
+                Poll::Pending => PaginationStateTransition {
+                    new: state,
+                    ret: Poll::Pending,
+                },
+            },
+            PaginationState::Throttled {
+                ref mut timer,
+                ref uri,
+            } => match timer.poll_unpin(cx) {
+                Poll::Ready(()) => PaginationStateTransition {
+                    new: PaginationState::awaiting_response(&client, uri.clone(), req_headers)?,
+                    ret: {
+                        cx.waker().wake_by_ref();
+                        Poll::Pending
+                    },
+                },
+                Poll::Pending => PaginationStateTransition {
+                    new: state,
+                    ret: Poll::Pending,
+                },
+            },
+            PaginationState::Finished => PaginationStateTransition {
+                new: PaginationState::Finished,
+                ret: Poll::Ready(None),
+            },
+        })
     }
 }
 
 #[must_use = "streams do nothing unless polled"]
 pub struct Items<'c, Conn: Clone, T: DeserializeOwned> {
     pagination: Pagination<'c, Conn>,
-    items: Vec<T>, // NOTE: this list is reversed so we don't have to pop items from the front
+    items: Vec<T>, // this list is reversed so we don't have to pop items from the front
     state: ItemsState<T>,
 }
 
 enum ItemsState<T> {
     Deserializing(Pin<Box<dyn Future<Output = Result<Vec<T>>> + Send>>),
-    WaitingForNextPage,
+    AwaitingPage,
 }
 
 impl<'c, Conn: Clone, T> Stream for Items<'c, Conn, T>
@@ -122,18 +257,18 @@ where
             cx.waker().wake_by_ref();
             Poll::Ready(Some(Ok(item)))
         } else {
-            match &mut self.state {
-                ItemsState::Deserializing(deser_fut) => {
+            match self.state {
+                ItemsState::Deserializing(ref mut deser_fut) => {
                     self.items = ready!(deser_fut.poll_unpin(cx))?;
                     self.items.reverse();
 
                     // transition to waiting for next page
-                    self.state = ItemsState::WaitingForNextPage;
+                    self.state = ItemsState::AwaitingPage;
 
                     cx.waker().wake_by_ref();
                     Poll::Ready(self.items.pop().map(Ok))
                 }
-                ItemsState::WaitingForNextPage => {
+                ItemsState::AwaitingPage => {
                     let page = ready!(self.pagination.poll_next_unpin(cx));
 
                     match page {
@@ -153,28 +288,29 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PaginationLinks<'h> {
-    current: Option<&'h str>,
-    next: Option<&'h str>,
-    previous: Option<&'h str>,
-    first: Option<&'h str>,
-    last: Option<&'h str>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PaginationLinks {
+    current: Option<Uri>,
+    next: Option<Uri>,
+    previous: Option<Uri>,
+    first: Option<Uri>,
+    last: Option<Uri>,
 }
 
 macro_rules! pagination_links_getter {
     ($name:ident) => {
         #[inline]
-        pub fn $name(&self) -> Result<&str> {
+        pub fn $name(&self) -> Result<&Uri> {
             self.$name
+                .as_ref()
                 .ok_or_else(|| Error::MissingPaginationLink(stringify!($name)).into())
         }
     };
 }
 
-impl<'h> PaginationLinks<'h> {
+impl PaginationLinks {
     #[inline]
-    pub fn from_headers(headers: &'h HeaderMap) -> Result<Self> {
+    pub fn from_headers(headers: &HeaderMap) -> Result<Self> {
         headers
             .get(header::LINK)
             .ok_or(Error::MissingLinksHeader)
@@ -190,8 +326,8 @@ impl<'h> PaginationLinks<'h> {
 
     /// Parse pagination links from a response header as per W3C 9707.
     #[inline]
-    pub fn from_links_header<H: AsRef<str> + ?Sized>(header: &'h H) -> Result<Self> {
-        let mut links = HashMap::<&str, &str>::with_capacity(5);
+    pub fn from_links_header<H: AsRef<str> + ?Sized>(header: &H) -> Result<Self> {
+        let mut links = HashMap::<&str, Uri>::with_capacity(5);
         for link in header.as_ref().split(',') {
             let (url, rel) =
                 link.trim()
@@ -213,15 +349,15 @@ impl<'h> PaginationLinks<'h> {
                 .1;
             let rel = &rel[1..rel.len() - 1];
 
-            links.insert(rel, url);
+            links.insert(rel, url.try_into().map_err(hyper::http::Error::from)?);
         }
 
         Ok(Self {
-            current: links.get("current").copied(),
-            next: links.get("next").copied(),
-            previous: links.get("prev").copied(),
-            first: links.get("first").copied(),
-            last: links.get("last").copied(),
+            current: links.remove("current"),
+            next: links.remove("next"),
+            previous: links.remove("prev"),
+            first: links.remove("first"),
+            last: links.remove("last"),
         })
     }
 
@@ -238,11 +374,11 @@ fn parse_from_header() {
     assert_eq!(
         PaginationLinks::from_links_header(&"<https://canvas.instructure.com/api/v1/courses?page=2>; rel=\"current\", <https://canvas.instructure.com/api/v1/courses?page=3>; rel=\"next\", <https://canvas.instructure.com/api/v1/courses?page=1>; rel=\"prev\", <https://canvas.instructure.com/api/v1/courses?page=1>; rel=\"first\", <https://canvas.instructure.com/api/v1/courses?page=3>; rel=\"last\"").unwrap(),
         PaginationLinks {
-            current: Some("https://canvas.instructure.com/api/v1/courses?page=2"),
-            next: Some("https://canvas.instructure.com/api/v1/courses?page=3"),
-            previous: Some("https://canvas.instructure.com/api/v1/courses?page=1"),
-            first: Some("https://canvas.instructure.com/api/v1/courses?page=1"),
-            last: Some("https://canvas.instructure.com/api/v1/courses?page=3"),
+            current: Some("https://canvas.instructure.com/api/v1/courses?page=2".try_into().unwrap()),
+            next: Some("https://canvas.instructure.com/api/v1/courses?page=3".try_into().unwrap()),
+            previous: Some("https://canvas.instructure.com/api/v1/courses?page=1".try_into().unwrap()),
+            first: Some("https://canvas.instructure.com/api/v1/courses?page=1".try_into().unwrap()),
+            last: Some("https://canvas.instructure.com/api/v1/courses?page=3".try_into().unwrap()),
         }
     )
 }

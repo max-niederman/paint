@@ -65,7 +65,8 @@ impl Store for SledStore {
     ) -> Self::RemoveRangeFut {
         SledFuture::new(|| {
             self.range(range)
-                .try_for_each(|item| self.tree.remove(&item?.0).map(|_| ()))
+                .keys()
+                .try_for_each(|key| self.tree.remove(&key?).map(|_| ()))
         })
     }
 
@@ -79,7 +80,8 @@ impl Store for SledStore {
         SledFuture::new(|| {
             self.tree
                 .scan_prefix(prefix)
-                .try_for_each(|item| self.tree.remove(&item?.0).map(|_| ()))
+                .keys()
+                .try_for_each(|key| self.tree.remove(&key?).map(|_| ()))
         })
     }
 }

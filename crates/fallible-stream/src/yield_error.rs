@@ -2,6 +2,7 @@ use futures::{prelude::*, stream::Empty};
 use pin_project::pin_project;
 use std::{
     convert::Infallible,
+    hint::unreachable_unchecked,
     ops::{ControlFlow, FromResidual, Try},
     pin::Pin,
     task::{self, Poll},
@@ -67,7 +68,7 @@ impl<S: TryStream> FromResidual<Result<Infallible, S::Error>> for YieldError<S> 
     fn from_residual(residual: Result<Infallible, S::Error>) -> Self {
         match residual {
             Err(e) => YieldError::Err(Some(e)),
-            _ => unreachable!(),
+            _ => unsafe { unreachable_unchecked() },
         }
     }
 }

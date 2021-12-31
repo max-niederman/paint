@@ -29,8 +29,9 @@ pub struct CacheEntry<R> {
 }
 
 /// Replace all resources in the cache under a given view with the given resources.
+/// The resource stream must yield resources in key-lexicographical order, so that we can efficiently write to the store.
 #[inline]
-pub async fn replace_view<S, R, RStream, E>(
+pub async fn replace_view_ordered<S, R, RStream, E>(
     store: &S,
     view: &View,
     resources: &mut RStream,
@@ -41,19 +42,23 @@ where
     RStream: Stream<Item = Result<(R::Key, Option<R>), E>> + Unpin,
 {
     // the start of the gap between the preceding resource and the current one
-    let mut gap_start: Vec<u8> = Vec::with_capacity(View::SER_LEN + R::Key::SER_LEN);
+    let mut gap_start = view.serialize()?;
+
     while let Some(res) = resources.next().await {
         match res {
             Ok((key, resource)) => {
                 let key_bytes = [view.serialize()?, key.serialize()?].concat();
 
-                if key_bytes > gap_start {
+                if key_bytes >= gap_start {
                     // remove all keys inbetween the last key and this key
-                    // we use multiple [`Store::remove_range`] calls so that key writes are in-order,
-                    // thereby improving performance for LSMT-based stores
                     store
                         .remove_range(gap_start.as_slice()..key_bytes.as_slice())
                         .await?;
+                } else {
+                    return Err(Error::UnexpectedStreamYield {
+                        expected: "key lexicographically greater than the last",
+                        actual: "key lexicographically less than the last",
+                    });
                 }
 
                 let old = store
@@ -98,24 +103,18 @@ where
                         .await?;
                 }
 
-                fn increment_key(key: &mut [u8]) {
-                    if let Some((last, rest)) = key.split_last_mut() {
-                        let (new, overflowed) = last.overflowing_add(1);
-                        *last = new;
-                        if overflowed {
-                            increment_key(rest)
-                        }
-                    }
-                }
-
                 // move the key forward by one to get the start of the gap
                 // this assumes that the keys will not increase in length
                 gap_start = key_bytes;
-                increment_key(&mut gap_start)
+                increment_key(&mut gap_start);
             }
             Err(e) => return Ok(Err(e)),
         }
     }
+
+    let mut end = view.serialize()?;
+    end.extend(std::iter::repeat(0xFF).take(R::Key::SER_LEN));
+    store.remove_range(gap_start.as_slice()..end.as_slice()).await?;
 
     Ok(Ok(()))
 }
@@ -162,4 +161,36 @@ where
     *end.last_mut()? += 1;
 
     Some(prefix.as_ref().to_vec()..end)
+}
+
+#[inline]
+pub fn increment_key(key: &mut [u8]) {
+    if let Some((last, rest)) = key.split_last_mut() {
+        let (new, overflowed) = last.overflowing_add(1);
+        *last = new;
+        if overflowed {
+            increment_key(rest)
+        }
+    }
+}
+
+#[test]
+fn increments_key() {
+    macro_rules! test {
+        ($($key:expr => $expected:expr),*,) => {
+            $({
+                let mut key = $key.to_vec();
+                increment_key(&mut key);
+                assert_eq!(&key, &$expected);
+            })*
+        }
+    }
+
+    test!(
+        [0u8; 0] => [0u8; 0],
+        [0x0] => [0x1],
+        [0x0, 0x0] => [0x0, 0x1],
+        [0x0, 0xFF] => [0x1, 0x0],
+        [0x0, 0xFF, 0xFF] => [0x1, 0x0, 0x0],
+    );
 }

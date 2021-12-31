@@ -8,9 +8,9 @@ pub trait Key: Sized {
     /// Serialize the key into a byte vector.
     ///
     /// Unfortunately, because Rust does not have full-blown dependent typing (yet),
-    /// we cannot just return a [`[u8; Self::LEN]`] here because we would then not be
+    /// we cannot just return a [`[u8; Self::SER_LEN]`] here because we would then not be
     /// able to implement [`Key`] for some composite keys. Nevertheless, the returned
-    /// [`heapless::Vec`] must always be at capacity.
+    /// [`Vec`] must always be have length [`SER_LEN`].
     fn serialize(&self) -> Result<Vec<u8>>;
     /// Deserialize the key from a byte iterator.
     fn deserialize<I: Iterator<Item = u8>>(bytes: &mut I) -> Result<Self>;
@@ -39,9 +39,9 @@ impl Key for canvas::Id {
     }
 }
 
-/// the maximum length of a Canvas instance.
-/// instances shorter than this will be padded and instances longer will fail
-/// to serialize. this is necessary to prevent accidental prefix overlaps.
+/// The maximum length of a Canvas instance.
+/// Instances shorter than this will be padded and instances longer will fail
+/// to serialize. This is necessary to prevent accidental prefix overlaps.
 pub const MAX_CANVAS_LENGTH: usize = 64;
 
 impl Key for view::Canvas {

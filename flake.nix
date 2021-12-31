@@ -15,7 +15,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         rust = with fenix.packages.${system}; rec {
           wasm = targets.wasm32-unknown-unknown.latest;
-          native = latest;
+          native = complete;
           dev.toolchain = combine [ wasm.toolchain native.toolchain rust-analyzer ];
         };
       in
@@ -26,16 +26,11 @@
             rust.dev.toolchain
             cargo-flamegraph
             cargo-watch
-            cargo-edit
-
-            # Tokio
-            protobuf
 
             # Mold
             mold
 
             # Varnish
-            wasm-pack
             (rustPlatform.buildRustPackage rec {
               # pasted until NixOS/nixpkgs#152595 is merged
               pname = "perseus-cli";
@@ -47,6 +42,13 @@
               };
 
               cargoSha256 = "sha256-SKxPsltXFH+ENexn/KDD43hGLSTgvtU9hv9Vdi2oeFA=";
+
+              nativeBuildInputs = [ makeWrapper ];
+
+              postInstall = ''
+                wrapProgram $out/bin/perseus \
+                  --prefix PATH : "${lib.makeBinPath [ wasm-pack ]}"
+              '';
 
               meta = with lib; {
                 homepage = "https://arctic-hen7.github.io/perseus";

@@ -12,7 +12,7 @@ use hyper::{client::HttpConnector, Method};
 
 #[derive(Debug, Clone)]
 pub struct Client<Conn: Clone = HttpConnector> {
-    http: hyper::Client<Conn>,
+    hyper: hyper::Client<Conn>,
 
     auth: Option<Auth>,
     base_uri: String,
@@ -51,7 +51,7 @@ impl ClientBuilder {
     #[inline]
     pub fn build<Conn: Clone>(self, http: hyper::Client<Conn>) -> Client<Conn> {
         Client {
-            http,
+            hyper: http,
             auth: self.auth,
             base_uri: self.base_url,
         }

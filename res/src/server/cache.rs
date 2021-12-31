@@ -51,7 +51,7 @@ impl EbaucheCache {
                     .wrap_err("failed to open sled tree")?
                     .into();
 
-                pigment::cache::replace_view(
+                replace_view::replace_view_batched(
                     &store,
                     &view,
                     &mut resources.map_ok(|r| (r.key(), Some(r))),
@@ -141,5 +141,86 @@ where
                     Err(err) => Err(err.into()),
                 })
             })
+    }
+}
+
+mod replace_view {
+    use crate::store::SledStore;
+    use canvas::DateTime;
+    use futures::prelude::*;
+    use pigment::{
+        cache::{Cache, CacheEntry, Error, Key, Result},
+        View,
+    };
+    use std::time::SystemTime;
+
+    /// Batched, unordered version of [`pigment::cache::replace_view_ordered`].
+    /// Atomicity is invalidated if keys are added to the view while this function is clearing it.
+    #[inline]
+    pub async fn replace_view_batched<R, RStream, E>(
+        store: &SledStore,
+        view: &View,
+        resources: &mut RStream,
+    ) -> Result<Result<(), E>>
+    where
+        R: Cache,
+        RStream: Stream<Item = Result<(R::Key, Option<R>), E>> + Unpin,
+    {
+        let mut batch = sled::Batch::default();
+        while let Some(res) = resources.next().await {
+            match res {
+                Ok((key, resource)) => {
+                    let key_bytes = [view.serialize()?, key.serialize()?].concat();
+
+                    let old = store
+                        .get(&key_bytes)
+                        .map_err(Error::store)?
+                        .map(|bytes| {
+                            bincode::deserialize::<CacheEntry<R>>(&bytes)
+                                .map_err(Error::Deserialization)
+                        })
+                        .transpose()?;
+
+                    if let Some(resource) = resource {
+                        let now: DateTime = SystemTime::now().into();
+                        batch.insert(
+                            key_bytes.clone(),
+                            bincode::serialize(&CacheEntry {
+                                updated: now,
+                                written: match old {
+                                    Some(CacheEntry {
+                                        written,
+                                        resource: old_resource,
+                                        ..
+                                    }) if old_resource == resource => written,
+                                    _ => SystemTime::now().into(),
+                                },
+                                resource,
+                            })
+                            .map_err(Error::Serialization)?,
+                        );
+                    } else if let Some(old) = old {
+                        batch.insert(
+                            key_bytes.clone(),
+                            bincode::serialize(&CacheEntry {
+                                updated: SystemTime::now().into(),
+                                ..old
+                            })
+                            .map_err(Error::Serialization)?,
+                        );
+                    }
+                }
+                Err(e) => return Ok(Err(e)),
+            }
+        }
+
+        for key in store.scan_prefix(&view.serialize()?).keys() {
+            store
+                .remove(key.map_err(Error::store)?)
+                .map_err(Error::store)?;
+        }
+        store.apply_batch(batch).map_err(Error::store)?;
+
+        Ok(Ok(()))
     }
 }

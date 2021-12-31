@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use super::{pagination::PaginationLinks, Error, Result};
 use serde::de::DeserializeOwned;
 
@@ -26,19 +28,13 @@ impl Response {
 impl From<hyper::Response<hyper::Body>> for Response {
     #[inline]
     fn from(hyper: hyper::Response<hyper::Body>) -> Self {
-        tracing::debug!(
-            message = "recieved response",
-            cost = hyper.headers().get("X-Request-Cost").map(|hv| hv
-                .to_str()
-                .unwrap()
-                .parse::<f64>()
-                .unwrap()),
-            ratelimit_remaining = hyper.headers().get("X-Rate-Limit-Remaining").map(|hv| hv
-                .to_str()
-                .unwrap()
-                .parse::<f64>()
-                .unwrap()),
-        );
         Response { hyper }
+    }
+}
+
+impl Deref for Response {
+    type Target = hyper::Response<hyper::Body>;
+    fn deref(&self) -> &Self::Target {
+        &self.hyper
     }
 }

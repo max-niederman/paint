@@ -1,3 +1,4 @@
+use super::Response;
 use miette::{Diagnostic, SourceOffset};
 use thiserror::Error;
 
@@ -8,6 +9,19 @@ pub enum Error {
 
     #[error(transparent)]
     Http(#[from] hyper::http::Error),
+
+    #[error("client is not authorized")]
+    Unauthorized,
+
+    #[error("client was ratelimited by a cost of {cost} with {remaining} seconds remaining")]
+    HitRatelimit { cost: f64, remaining: f64 },
+
+    #[error("unknown http status {code} with headers {headers:#?}")]
+    UnknownHttpStatus {
+        code: hyper::StatusCode,
+        headers: hyper::HeaderMap,
+        response: Response,
+    },
 
     #[error("missing `Links` header")]
     MissingLinksHeader,

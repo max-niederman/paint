@@ -89,7 +89,7 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
         Conn: Connect + Send + Sync + 'static,
     {
         self.client
-            .http
+            .hyper
             .request(self.build(body)?.1)
             .await
             .map(Response::from)

@@ -1,5 +1,4 @@
 #![feature(async_closure)]
-#![feature(generic_associated_types)]
 #![feature(never_type)]
 #![feature(result_flattening)]
 
