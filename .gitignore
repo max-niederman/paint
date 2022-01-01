@@ -1,9 +1,16 @@
+# dependencies
+node_modules/
+
+# build outputs
+target/
+
+# logs
+.pnpm-debug.log
+
 # environment
 .direnv/
 .envrc.secret
 
-# build outputs
-target/
 
 # editor
 .vscode/
@@ -11,3 +18,4 @@ target/
 
 # performance profiling
 perf.data
+flamegraph.svg

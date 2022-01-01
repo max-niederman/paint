@@ -19,8 +19,6 @@ pub trait Cache: Resource + PartialEq {
     fn key(&self) -> Self::Key;
 }
 
-// TODO: add `tracing` spans
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CacheEntry<R> {
     pub resource: R,
@@ -31,6 +29,7 @@ pub struct CacheEntry<R> {
 /// Replace all resources in the cache under a given view with the given resources.
 /// The resource stream must yield resources in key-lexicographical order, so that we can efficiently write to the store.
 #[inline]
+#[tracing::instrument(skip(store, resources), fields(resource = std::any::type_name::<R>()))]
 pub async fn replace_view_ordered<S, R, RStream, E>(
     store: &S,
     view: &View,
@@ -114,13 +113,16 @@ where
 
     let mut end = view.serialize()?;
     end.extend(std::iter::repeat(0xFF).take(R::Key::SER_LEN));
-    store.remove_range(gap_start.as_slice()..end.as_slice()).await?;
+    store
+        .remove_range(gap_start.as_slice()..end.as_slice())
+        .await?;
 
     Ok(Ok(()))
 }
 
 /// Get a single resource from the cache.
 #[inline]
+#[tracing::instrument(skip(store, key), fields(resource = std::any::type_name::<R>()))]
 pub async fn get<S: Store, R: Cache>(
     store: &S,
     view: &View,
@@ -136,6 +138,7 @@ pub async fn get<S: Store, R: Cache>(
 
 /// Get all resources under the view from the cache.
 #[inline]
+#[tracing::instrument(skip(store), fields(resource = std::any::type_name::<R>()))]
 pub fn get_all<S: Store, R: Cache>(
     store: &S,
     view: &View,

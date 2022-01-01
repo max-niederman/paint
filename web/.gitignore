@@ -1,2 +1,7 @@
-# Perseus
-.perseus/
+/build
+/.svelte-kit
+/package
+
+.env
+.env.*
+!.env.example

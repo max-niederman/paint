@@ -83,7 +83,6 @@ where
     source: S,
     source_finished: bool,
 
-    #[pin]
     map: F,
 
     #[pin]
