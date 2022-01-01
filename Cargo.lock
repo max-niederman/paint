@@ -317,7 +317,6 @@ dependencies = [
  "canvas-lms",
  "fallible-stream",
  "futures",
- "heapless",
  "hyper-tls",
  "miette",
  "ouroboros",
@@ -988,18 +987,13 @@ dependencies = [
 name = "pigment"
 version = "0.1.0"
 dependencies = [
- "async-bincode",
  "bincode",
  "canvas-lms",
  "futures",
  "heapless",
  "miette",
- "pin-project",
  "serde",
- "serde_json",
- "structopt",
  "thiserror",
- "tokio",
  "tracing",
 ]
 
@@ -1008,6 +1002,7 @@ name = "pigment-js"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "pigment",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "wee_alloc",

@@ -4,10 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-canvas-lms = { path = "../packages/canvas" }
+canvas-lms = { path = "../packages/canvas", features = ["client"] }
 pigment = { path = "../packages/pigment" }
 fallible-stream = { path = "../packages/fallible-stream" }
-heapless = "0.7"
 futures = "0.3"
 pin-project = "1.0"
 ouroboros = "0.14"
