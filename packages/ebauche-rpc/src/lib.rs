@@ -1,3 +1,5 @@
+extern crate canvas_lms as canvas;
+
 pub mod error;
 pub mod message;
 

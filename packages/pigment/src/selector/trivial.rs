@@ -5,7 +5,7 @@ use super::Selector;
 use canvas::resource::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub struct All;
 impl<R: Resource> Selector<R> for All {
     #[inline]
@@ -14,7 +14,7 @@ impl<R: Resource> Selector<R> for All {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub struct None;
 impl<R: Resource> Selector<R> for None {
     #[inline]
@@ -51,7 +51,7 @@ id_selector!(Course);
 id_selector!(GradingPeriod);
 id_selector!(User);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub struct Not<A>(A);
 impl<R: Resource, A: Selector<R>> Selector<R> for Not<A> {
     #[inline]
@@ -60,7 +60,7 @@ impl<R: Resource, A: Selector<R>> Selector<R> for Not<A> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub struct Or<A, B>(A, B);
 impl<R: Resource, A: Selector<R>, B: Selector<R>> Selector<R> for Or<A, B> {
     #[inline]
@@ -69,7 +69,7 @@ impl<R: Resource, A: Selector<R>, B: Selector<R>> Selector<R> for Or<A, B> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub struct And<A, B>(A, B);
 impl<R: Resource, A: Selector<R>, B: Selector<R>> Selector<R> for And<A, B> {
     #[inline]
@@ -78,7 +78,7 @@ impl<R: Resource, A: Selector<R>, B: Selector<R>> Selector<R> for And<A, B> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 pub struct ExclusiveOr<A, B>(A, B);
 impl<R: Resource, A: Selector<R>, B: Selector<R>> Selector<R> for ExclusiveOr<A, B> {
     #[inline]

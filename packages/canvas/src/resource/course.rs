@@ -49,7 +49,7 @@ pub struct Course {
 
 impl Resource for Course {}
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkflowState {
     Unpublished,
@@ -58,7 +58,7 @@ pub enum WorkflowState {
     Deleted,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CourseView {
     Feed,
@@ -68,7 +68,7 @@ pub enum CourseView {
     Syllabus,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Term {
     pub id: Id,
     pub name: String,
@@ -78,7 +78,7 @@ pub struct Term {
     pub end_at: Option<DateTime>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CourseProgress {
     pub requirement_count: u32,
     pub requirement_count_completed_count: u32,
@@ -86,14 +86,14 @@ pub struct CourseProgress {
     pub completed_at: Option<DateTime>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CourseFormat {
     OnCampus,
     Online,
     Blended,
 }
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Permissions {
     pub attach: bool,
     pub update: bool,

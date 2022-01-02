@@ -315,6 +315,7 @@ dependencies = [
  "async-bincode",
  "bincode",
  "canvas-lms",
+ "ebauche-rpc",
  "fallible-stream",
  "futures",
  "hyper-tls",
@@ -330,6 +331,19 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "ebauche-rpc"
+version = "0.1.0"
+dependencies = [
+ "canvas-lms",
+ "futures",
+ "miette",
+ "pigment",
+ "serde",
+ "thiserror",
+ "tracing",
 ]
 
 [[package]]
@@ -1001,7 +1015,9 @@ dependencies = [
 name = "pigment-js"
 version = "0.1.0"
 dependencies = [
+ "canvas-lms",
  "console_error_panic_hook",
+ "ebauche-rpc",
  "pigment",
  "wasm-bindgen",
  "wasm-bindgen-test",
@@ -1757,6 +1773,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "632f73e236b219150ea279196e54e610f5dbafa5d61786303d4da54f84e47fce"
 dependencies = [
  "cfg-if 1.0.0",
+ "serde",
+ "serde_json",
  "wasm-bindgen-macro",
 ]
 

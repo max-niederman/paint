@@ -43,7 +43,7 @@ pub struct Submission {
 
 impl Resource for Submission {}
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SubmissionType {
     DiscussionTopic,
@@ -60,7 +60,7 @@ pub enum SubmissionType {
     NotGraded,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkflowState {
     Graded,
@@ -69,7 +69,7 @@ pub enum WorkflowState {
     PendingReview,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LatePolicyStatus {
     Late,

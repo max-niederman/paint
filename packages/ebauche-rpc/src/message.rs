@@ -1,4 +1,4 @@
-// memory usage doesn't really matter, so wasting a bit of the stack is alright
+// memory usage doesn't really matter here, so wasting a bit of the stack is alright
 #![allow(clippy::large_enum_variant)]
 
 use canvas::{resource, DateTime};
