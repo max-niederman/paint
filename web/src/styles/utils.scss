@@ -1,0 +1,6 @@
+@mixin maybe-dark($property, $default, $dark) {
+	#{$property}: $default;
+	@media (prefers-color-scheme: dark) {
+		#{$property}: $dark;
+	}
+}

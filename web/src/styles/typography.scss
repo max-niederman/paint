@@ -1,0 +1,24 @@
+@use "./utils" as *;
+
+html,
+body {
+	font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: var(--font-serif);
+	font-weight: 500;
+}
+
+hr {
+	color: var(--color-foreground);
+}
+
+a {
+	@include maybe-dark(color, var(--color-blue-500), var(--color-blue-700));
+}
