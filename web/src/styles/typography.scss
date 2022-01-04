@@ -20,5 +20,7 @@ hr {
 }
 
 a {
+	text-decoration: none;
+
 	@include maybe-dark(color, var(--color-blue-500), var(--color-blue-700));
 }
