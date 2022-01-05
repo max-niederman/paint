@@ -517,6 +517,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
 
 [[package]]
+name = "glaze-wasm"
+version = "0.1.0"
+dependencies = [
+ "canvas-lms",
+ "console_error_panic_hook",
+ "ebauche-rpc",
+ "js-sys",
+ "pigment",
+ "wasm-bindgen",
+ "wasm-bindgen-test",
+ "wee_alloc",
+]
+
+[[package]]
 name = "h2"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1009,20 +1023,6 @@ dependencies = [
  "serde",
  "thiserror",
  "tracing",
-]
-
-[[package]]
-name = "pigment-js"
-version = "0.1.0"
-dependencies = [
- "canvas-lms",
- "console_error_panic_hook",
- "ebauche-rpc",
- "js-sys",
- "pigment",
- "wasm-bindgen",
- "wasm-bindgen-test",
- "wee_alloc",
 ]
 
 [[package]]

@@ -11,7 +11,7 @@ export default defineConfig({
       profile: "dev", // TODO: detect production
       root: "../packages",
       crates: [{
-        name: "pigment-js",
+        name: "glaze-wasm",
       }],
     })
   ]
