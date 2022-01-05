@@ -3,6 +3,7 @@
 	import Nav from "./components/Nav.svelte";
 	import SearchPage from "./pages/Search.svelte";
 	import Button from "./components/Button.svelte";
+	import HomePage from "./pages/Home.svelte";
 </script>
 
 <Router>
@@ -11,6 +12,10 @@
 	<div class="container">
 		<div class="page">
 			<Route path="/">
+				<HomePage />
+			</Route>
+
+			<Route path="/search">
 				<SearchPage />
 			</Route>
 

@@ -1,4 +1,9 @@
 <script lang="ts">
+    import Search from "../components/search/Search.svelte";
 </script>
 
-<h1>Search</h1>
+<Search />
+
+<style lang="scss">
+
+</style>
