@@ -1018,6 +1018,7 @@ dependencies = [
  "canvas-lms",
  "console_error_panic_hook",
  "ebauche-rpc",
+ "js-sys",
  "pigment",
  "wasm-bindgen",
  "wasm-bindgen-test",
