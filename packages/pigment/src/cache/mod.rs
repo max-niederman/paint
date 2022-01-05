@@ -64,7 +64,7 @@ where
                     .get(&key_bytes)
                     .await?
                     .map(|bytes| {
-                        bincode::deserialize::<CacheEntry<R>>(&bytes)
+                        bincode::deserialize::<CacheEntry<R>>(bytes.as_ref())
                             .map_err(Error::Deserialization)
                     })
                     .transpose()?;
@@ -132,7 +132,7 @@ pub async fn get<S: Store, R: Cache>(
         .get(&[view.serialize()?, key.serialize()?].concat())
         .await?;
 
-    val.map(|bytes| bincode::deserialize::<CacheEntry<R>>(&bytes).map_err(Error::Deserialization))
+    val.map(|bytes| bincode::deserialize::<CacheEntry<R>>(&bytes.as_ref()).map_err(Error::Deserialization))
         .transpose()
 }
 
@@ -146,7 +146,7 @@ pub fn get_all<S: Store, R: Cache>(
     Ok(store.scan_prefix(&view.serialize()?).map(|res| {
         let (key, val) = res?;
 
-        let key = R::Key::deserialize(&mut key.iter().skip(View::SER_LEN).copied())?;
+        let key = R::Key::deserialize(&mut key.as_ref().iter().skip(View::SER_LEN).copied())?;
 
         let entry: CacheEntry<R> =
             bincode::deserialize(val.as_ref()).map_err(Error::Deserialization)?;

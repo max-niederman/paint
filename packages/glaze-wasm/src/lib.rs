@@ -1,6 +1,7 @@
 extern crate canvas_lms as canvas;
 
 pub mod search;
+pub mod store;
 mod utils;
 
 use wasm_bindgen::prelude::*;

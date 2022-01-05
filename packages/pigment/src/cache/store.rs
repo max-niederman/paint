@@ -2,13 +2,13 @@
 
 use super::Error;
 use futures::prelude::*;
-use std::ops::{Deref, RangeBounds};
+use std::ops::RangeBounds;
 
 type Result<T> = std::result::Result<T, Error>;
 
 pub trait Store {
     /// The type of byte vectors retrieved from and inserted into the store.
-    type ByteVec: AsRef<[u8]> + Deref<Target = [u8]> + From<Vec<u8>>;
+    type ByteVec: AsRef<[u8]> + From<Vec<u8>>;
 
     type GetFut: Future<Output = Result<Option<Self::ByteVec>>>;
 
