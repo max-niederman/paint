@@ -1,6 +1,7 @@
 #![feature(box_patterns)]
 #![feature(async_closure)]
 #![feature(try_trait_v2)]
+#![feature(generic_associated_types)]
 
 extern crate canvas_lms as canvas;
 

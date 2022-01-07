@@ -1,5 +1,5 @@
-use wasm_bindgen::prelude::*;
 use super::Query;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 #[derive(Debug, Default, Clone, PartialEq)]

@@ -1,6 +1,7 @@
 #![feature(async_closure)]
 #![feature(never_type)]
 #![feature(result_flattening)]
+#![feature(generic_associated_types)]
 
 extern crate canvas_lms as canvas;
 

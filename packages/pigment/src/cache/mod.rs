@@ -50,9 +50,7 @@ where
 
                 if key_bytes >= gap_start {
                     // remove all keys inbetween the last key and this key
-                    store
-                        .remove_range(gap_start.as_slice()..key_bytes.as_slice())
-                        .await?;
+                    store.remove_range(gap_start.as_slice()..key_bytes.as_slice())?;
                 } else {
                     return Err(Error::UnexpectedStreamYield {
                         expected: "key lexicographically greater than the last",
@@ -61,8 +59,7 @@ where
                 }
 
                 let old = store
-                    .get(&key_bytes)
-                    .await?
+                    .get(&key_bytes)?
                     .map(|bytes| {
                         bincode::deserialize::<CacheEntry<R>>(bytes.as_ref())
                             .map_err(Error::Deserialization)
@@ -71,35 +68,31 @@ where
 
                 if let Some(resource) = resource {
                     let now: DateTime = SystemTime::now().into();
-                    store
-                        .insert(
-                            &key_bytes,
-                            bincode::serialize(&CacheEntry {
-                                updated: now,
-                                written: match old {
-                                    Some(CacheEntry {
-                                        written,
-                                        resource: old_resource,
-                                        ..
-                                    }) if old_resource == resource => written,
-                                    _ => SystemTime::now().into(),
-                                },
-                                resource,
-                            })
-                            .map_err(Error::Serialization)?,
-                        )
-                        .await?;
+                    store.insert(
+                        &key_bytes,
+                        bincode::serialize(&CacheEntry {
+                            updated: now,
+                            written: match old {
+                                Some(CacheEntry {
+                                    written,
+                                    resource: old_resource,
+                                    ..
+                                }) if old_resource == resource => written,
+                                _ => SystemTime::now().into(),
+                            },
+                            resource,
+                        })
+                        .map_err(Error::Serialization)?,
+                    )?;
                 } else if let Some(old) = old {
-                    store
-                        .insert(
-                            &key_bytes,
-                            bincode::serialize(&CacheEntry {
-                                updated: SystemTime::now().into(),
-                                ..old
-                            })
-                            .map_err(Error::Serialization)?,
-                        )
-                        .await?;
+                    store.insert(
+                        &key_bytes,
+                        bincode::serialize(&CacheEntry {
+                            updated: SystemTime::now().into(),
+                            ..old
+                        })
+                        .map_err(Error::Serialization)?,
+                    )?;
                 }
 
                 // move the key forward by one to get the start of the gap
@@ -113,9 +106,7 @@ where
 
     let mut end = view.serialize()?;
     end.extend(std::iter::repeat(0xFF).take(R::Key::SER_LEN));
-    store
-        .remove_range(gap_start.as_slice()..end.as_slice())
-        .await?;
+    store.remove_range(gap_start.as_slice()..end.as_slice())?;
 
     Ok(Ok(()))
 }
@@ -123,26 +114,26 @@ where
 /// Get a single resource from the cache.
 #[inline]
 #[tracing::instrument(skip(store, key), fields(resource = std::any::type_name::<R>()))]
-pub async fn get<S: Store, R: Cache>(
+pub fn get<S: Store, R: Cache>(
     store: &S,
     view: &View,
     key: &R::Key,
 ) -> Result<Option<CacheEntry<R>>> {
-    let val = store
-        .get(&[view.serialize()?, key.serialize()?].concat())
-        .await?;
+    let val = store.get(&[view.serialize()?, key.serialize()?].concat())?;
 
-    val.map(|bytes| bincode::deserialize::<CacheEntry<R>>(&bytes.as_ref()).map_err(Error::Deserialization))
-        .transpose()
+    val.map(|bytes| {
+        bincode::deserialize::<CacheEntry<R>>(&bytes.as_ref()).map_err(Error::Deserialization)
+    })
+    .transpose()
 }
 
 /// Get all resources under the view from the cache.
 #[inline]
 #[tracing::instrument(skip(store), fields(resource = std::any::type_name::<R>()))]
-pub fn get_all<S: Store, R: Cache>(
-    store: &S,
-    view: &View,
-) -> Result<impl Stream<Item = Result<(R::Key, CacheEntry<R>)>>> {
+pub fn get_all<'r, S: Store, R: Cache>(
+    store: &'r S,
+    view: &'r View,
+) -> Result<impl Iterator<Item = Result<(R::Key, CacheEntry<R>)>> + 'r> {
     Ok(store.scan_prefix(&view.serialize()?).map(|res| {
         let (key, val) = res?;
 

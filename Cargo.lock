@@ -529,6 +529,7 @@ dependencies = [
  "indexed_db_futures",
  "js-sys",
  "pigment",
+ "serde",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "web-sys",

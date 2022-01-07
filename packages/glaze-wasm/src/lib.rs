@@ -1,3 +1,7 @@
+#![feature(bound_map)]
+#![feature(btree_drain_filter)]
+#![feature(generic_associated_types)]
+
 extern crate canvas_lms as canvas;
 
 pub mod search;

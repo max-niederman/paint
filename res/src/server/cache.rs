@@ -92,55 +92,51 @@ impl EbaucheCache {
 }
 
 #[self_referencing]
-struct ViewUpdate<R, St>
+struct ViewUpdate<R, I>
 where
     R: Cache,
-    St: Stream<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>>,
+    I: Iterator<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>>,
 {
     view: View,
     since: DateTime,
 
     store: SledStore,
     #[borrows(store, view)]
-    stream: St,
+    iter: I,
 }
 
-impl<R, St> ViewUpdate<R, St>
+impl<R, I> ViewUpdate<R, I>
 where
-    R: Cache,
-    St: Stream<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>>,
+    R: Cache + Into<DResource>,
+    I: Iterator<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>>,
 {
-    fn with_stream_mut_pinned<Ret, F: FnOnce(Pin<&mut St>) -> Ret>(
-        self: Pin<&mut Self>,
-        f: F,
-    ) -> Ret {
+    fn with_iter_mut_pinned<Ret, F: FnOnce(Pin<&mut I>) -> Ret>(self: Pin<&mut Self>, f: F) -> Ret {
         unsafe {
             self.get_unchecked_mut()
-                .with_stream_mut(|unpinned| f(Pin::new_unchecked(unpinned)))
+                .with_iter_mut(|iter| f(Pin::new_unchecked(iter)))
         }
     }
 }
 
-impl<R, St> Stream for ViewUpdate<R, St>
+impl<R, I> Stream for ViewUpdate<R, I>
 where
     R: Cache + Into<DResource>,
-    St: Stream<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>>,
+    I: Iterator<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>> + Unpin,
 {
     type Item = Result<Response, BoxedDiagnostic>;
-    fn poll_next(self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Option<Self::Item>> {
+    fn poll_next(self: Pin<&mut Self>, _cx: &mut task::Context<'_>) -> Poll<Option<Self::Item>> {
         let since = self.borrow_since().timestamp_millis();
-        self.with_stream_mut_pinned(|stream| stream.poll_next(cx))
-            .map(|item| {
-                item.map(|item| match item {
-                    Ok((_, entry)) if entry.written.timestamp_millis() > since => Ok(
-                        Response::Update(UpdateResponse::Resource(entry.resource.into())),
-                    ),
-                    Ok((key, _)) => Ok(Response::Update(UpdateResponse::Stub(
-                        pigment::cache::Key::serialize(&key)?,
-                    ))),
-                    Err(err) => Err(err.into()),
-                })
-            })
+        Poll::Ready(self.with_iter_mut_pinned(|iter| iter.get_mut().next()).map(
+            |item| match item {
+                Ok((_, entry)) if entry.written.timestamp_millis() > since => Ok(Response::Update(
+                    UpdateResponse::Resource(entry.resource.into()),
+                )),
+                Ok((key, _)) => Ok(Response::Update(UpdateResponse::Stub(
+                    pigment::cache::Key::serialize(&key)?,
+                ))),
+                Err(err) => Err(err.into()),
+            },
+        ))
     }
 }
 

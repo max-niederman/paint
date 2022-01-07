@@ -1,47 +1,52 @@
 //! Common behavior on backing stores for Ebuache caches.
 
 use super::Error;
-use futures::prelude::*;
 use std::ops::RangeBounds;
 
 type Result<T> = std::result::Result<T, Error>;
 
 pub trait Store {
-    /// The type of byte vectors retrieved from and inserted into the store.
-    type ByteVec: AsRef<[u8]> + From<Vec<u8>>;
-
-    type GetFut: Future<Output = Result<Option<Self::ByteVec>>>;
+    /// The type of owned byte vectors inserted into the store.
+    type ByteVec: AsRef<[u8]> + From<Vec<u8>> + Clone;
+    /// The type of byte vectors borrowed from the store.
+    type ByteVecBorrowed<'s>: AsRef<[u8]> + 's where Self: 's;
 
     /// Get a value from the store by its key.
-    fn get<K: AsRef<[u8]>>(&self, key: &K) -> Self::GetFut;
-
-    type InsertFut: Future<Output = Result<Option<Self::ByteVec>>>;
+    fn get<K: AsRef<[u8]>>(&self, key: &K) -> Result<Option<Self::ByteVecBorrowed<'_>>>;
 
     /// Insert a key-value pair into the store.
-    fn insert<K: AsRef<[u8]>, V: Into<Self::ByteVec>>(&self, key: &K, value: V) -> Self::InsertFut;
-
-    type RemoveFut: Future<Output = Result<Option<Self::ByteVec>>>;
+    fn insert<K: AsRef<[u8]>, V: Into<Self::ByteVec>>(
+        &self,
+        key: &K,
+        value: V,
+    ) -> Result<Option<Self::ByteVec>>;
 
     /// Remove a key-value pair from the store.
-    fn remove<K: AsRef<[u8]>>(&self, key: &K) -> Self::RemoveFut;
+    fn remove<K: AsRef<[u8]>>(&self, key: &K) -> Result<Option<Self::ByteVec>>;
 
-    type ScanRangeStream: Stream<Item = Result<(Self::ByteVec, Self::ByteVec)>>;
-
+    type ScanRangeIter<'s>: Iterator<Item = Result<(Self::ByteVecBorrowed<'s>, Self::ByteVecBorrowed<'s>)>>
+    where
+        Self: 's,
+        Self::ByteVec: 's;
     /// Scan a range of keys in the store.
-    fn scan_range<K: AsRef<[u8]>, R: RangeBounds<K>>(&self, range: R) -> Self::ScanRangeStream;
-
-    type RemoveRangeFut: Future<Output = Result<()>>;
+    fn scan_range<K: AsRef<[u8]>, R: RangeBounds<K>>(&self, range: R) -> Self::ScanRangeIter<'_>;
 
     /// Remove a range of keys in the store.
-    fn remove_range<K: AsRef<[u8]>, R: RangeBounds<K>>(&self, range: R) -> Self::RemoveRangeFut;
+    fn remove_range<K: AsRef<[u8]>, R: RangeBounds<K>>(&self, range: R) -> Result<()> {
+        self.scan_range(range)
+            .try_for_each(|kv| self.remove(&kv?.0).map(|_| ()))
+    }
 
-    type ScanPrefixStream: Stream<Item = Result<(Self::ByteVec, Self::ByteVec)>>;
-
+    type ScanPrefixIter<'s>: Iterator<Item = Result<(Self::ByteVecBorrowed<'s>, Self::ByteVecBorrowed<'s>)>>
+    where
+        Self: 's,
+        Self::ByteVec: 's;
     /// Scan a prefix of the store.
-    fn scan_prefix<P: AsRef<[u8]>>(&self, prefix: &P) -> Self::ScanPrefixStream;
-
-    type RemovePrefixFut: Future<Output = Result<()>>;
+    fn scan_prefix<P: AsRef<[u8]>>(&self, prefix: &P) -> Self::ScanPrefixIter<'_>;
 
     /// Remove all keys with the given prefix.
-    fn remove_prefix<P: AsRef<[u8]>>(&self, prefix: &P) -> Self::RemovePrefixFut;
+    fn remove_prefix<P: AsRef<[u8]>>(&self, prefix: &P) -> Result<()> {
+        self.scan_prefix(prefix)
+            .try_for_each(|kv| self.remove(&kv?.0).map(|_| ()))
+    }
 }
