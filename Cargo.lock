@@ -292,9 +292,32 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ec02e091aa634e2c3ada4a392989e7c3116673ef0ac5b72232439094d73b7fd"
 dependencies = [
  "cfg-if 1.0.0",
- "crossbeam-utils",
+ "crossbeam-utils 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static",
  "memoffset",
+ "scopeguard",
+]
+
+[[package]]
+name = "crossbeam-epoch"
+version = "0.9.5"
+source = "git+https://github.com/crossbeam-rs/crossbeam?tag=crossbeam-0.8.1#6d4cdd4daf9a897deef6cde9569f2fbf12c29bc5"
+dependencies = [
+ "cfg-if 1.0.0",
+ "crossbeam-utils 0.8.5 (git+https://github.com/crossbeam-rs/crossbeam?tag=crossbeam-0.8.1)",
+ "lazy_static",
+ "memoffset",
+ "scopeguard",
+]
+
+[[package]]
+name = "crossbeam-skiplist"
+version = "0.0.0"
+source = "git+https://github.com/crossbeam-rs/crossbeam?tag=crossbeam-0.8.1#6d4cdd4daf9a897deef6cde9569f2fbf12c29bc5"
+dependencies = [
+ "cfg-if 1.0.0",
+ "crossbeam-epoch 0.9.5 (git+https://github.com/crossbeam-rs/crossbeam?tag=crossbeam-0.8.1)",
+ "crossbeam-utils 0.8.5 (git+https://github.com/crossbeam-rs/crossbeam?tag=crossbeam-0.8.1)",
  "scopeguard",
 ]
 
@@ -303,6 +326,15 @@ name = "crossbeam-utils"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d82cfc11ce7f2c3faef78d8a684447b40d503d9681acebed6cb728d45940c4db"
+dependencies = [
+ "cfg-if 1.0.0",
+ "lazy_static",
+]
+
+[[package]]
+name = "crossbeam-utils"
+version = "0.8.5"
+source = "git+https://github.com/crossbeam-rs/crossbeam?tag=crossbeam-0.8.1#6d4cdd4daf9a897deef6cde9569f2fbf12c29bc5"
 dependencies = [
  "cfg-if 1.0.0",
  "lazy_static",
@@ -524,6 +556,7 @@ version = "0.1.0"
 dependencies = [
  "canvas-lms",
  "console_error_panic_hook",
+ "crossbeam-skiplist",
  "ebauche-rpc",
  "futures",
  "indexed_db_futures",
@@ -1370,8 +1403,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f96b4737c2ce5987354855aed3797279def4ebf734436c6aa4552cf8e169935"
 dependencies = [
  "crc32fast",
- "crossbeam-epoch",
- "crossbeam-utils",
+ "crossbeam-epoch 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "crossbeam-utils 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fs2",
  "fxhash",
  "libc",

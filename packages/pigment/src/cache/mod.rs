@@ -130,10 +130,10 @@ pub fn get<S: Store, R: Cache>(
 /// Get all resources under the view from the cache.
 #[inline]
 #[tracing::instrument(skip(store), fields(resource = std::any::type_name::<R>()))]
-pub fn get_all<'r, S: Store, R: Cache>(
-    store: &'r S,
-    view: &'r View,
-) -> Result<impl Iterator<Item = Result<(R::Key, CacheEntry<R>)>> + 'r> {
+pub fn get_all<'s, S: Store, R: Cache>(
+    store: &'s S,
+    view: &View,
+) -> Result<impl Iterator<Item = Result<(R::Key, CacheEntry<R>)>> + 's> {
     Ok(store.scan_prefix(&view.serialize()?).map(|res| {
         let (key, val) = res?;
 

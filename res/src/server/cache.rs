@@ -86,7 +86,7 @@ impl EbaucheCache {
 
         YieldError::Ok(
             ViewUpdate::<R, _>::try_new(view, since, store, pigment::cache::get_all)
-                .map_err(BoxedDiagnostic::from)?,
+            .map_err(BoxedDiagnostic::from)?,
         )
     }
 }

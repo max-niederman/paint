@@ -1,6 +1,6 @@
 use pigment::cache::*;
 use sled::{IVec, Tree};
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, RangeBounds};
 
 pub struct SledStore {
     tree: Tree,
@@ -44,11 +44,12 @@ impl Store for SledStore {
         self.tree.remove(key).map_err(Error::store)
     }
 
-    type ScanRangeIter<'s> = SledIter;
-    fn scan_range<K: AsRef<[u8]>, R: std::ops::RangeBounds<K>>(
-        &self,
-        range: R,
-    ) -> Self::ScanRangeIter<'_> {
+    type ScanRangeIter<'s, K: 's, R: 's> = SledIter;
+    fn scan_range<'s, K, R>(&'s self, range: R) -> Self::ScanRangeIter<'_, K, R>
+    where
+        K: AsRef<[u8]> + 's,
+        R: RangeBounds<K> + 's,
+    {
         SledIter::new(self.tree.range(range))
     }
 

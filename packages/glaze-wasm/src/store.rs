@@ -1,81 +1,76 @@
-use std::{
-    borrow::BorrowMut,
-    cell::RefCell,
-    collections::{btree_map, BTreeMap},
-    ops::RangeBounds,
-};
-
-use js_sys::Iter;
+use crossbeam_skiplist::{map, SkipMap};
 use pigment::cache::*;
-use serde::{Deserialize, Serialize};
+use std::ops::{Bound, Range, RangeBounds};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct GlazeStore {
-    resources: RefCell<BTreeMap<Vec<u8>, Vec<u8>>>,
+    resources: SkipMap<Vec<u8>, Vec<u8>>,
 }
 
 impl Store for GlazeStore {
     type ByteVec = Vec<u8>;
-    type ByteVecBorrowed<'s> = &'s [u8];
+    type ByteVecBorrowed<'s> = Vec<u8>;
 
     fn get<K: AsRef<[u8]>>(&self, key: &K) -> Result<Option<Self::ByteVecBorrowed<'_>>> {
-        Ok(self.resources.borrow().get(key.as_ref()).map(Vec::as_slice))
+        Ok(self
+            .resources
+            .get(key.as_ref())
+            .as_ref()
+            .map(map::Entry::value)
+            .cloned())
     }
 
+    /// [`SkipMap`] does not return the previous value on insertion, so we always return `Ok(None)`.
     fn insert<K: AsRef<[u8]>, V: Into<Self::ByteVec>>(
         &self,
         key: &K,
         value: V,
     ) -> Result<Option<Self::ByteVec>> {
-        Ok(self
-            .resources
-            .borrow_mut()
-            .insert(key.as_ref().to_vec(), value.into()))
+        self.resources.insert(key.as_ref().to_vec(), value.into());
+        Ok(None)
     }
 
+    /// [`SkipMap`] does not return the previous value on removal, so we always return `Ok(None)`.
     fn remove<K: AsRef<[u8]>>(&self, key: &K) -> Result<Option<Self::ByteVec>> {
-        Ok(self.resources.borrow_mut().remove(key.as_ref()))
+        self.resources.remove(key.as_ref());
+        Ok(None)
     }
 
-    type ScanRangeIter<'s> = GlazeIter<'s>;
-    fn scan_range<K: AsRef<[u8]>, R: std::ops::RangeBounds<K>>(
-        &self,
-        range: R,
-    ) -> Self::ScanRangeIter<'_> {
-        self.resources.borrow().range::<[u8], _>((
-            range.start_bound().map(AsRef::as_ref),
-            range.end_bound().map(AsRef::as_ref),
-        )).into()
-    }
-    fn remove_range<K: AsRef<[u8]>, R: std::ops::RangeBounds<K>>(&self, range: R) -> Result<()> {
-        let range = (
-            range.start_bound().map(AsRef::as_ref),
-            range.end_bound().map(AsRef::as_ref),
-        );
-        self.resources
-            .borrow_mut()
-            .drain_filter(|k, _| RangeBounds::<[u8]>::contains(&range, k.as_slice()));
-        Ok(())
+    type ScanRangeIter<'s, K: 's, R: 's> = GlazeIter<'s, (Bound<Vec<u8>>, Bound<Vec<u8>>)>;
+    fn scan_range<'s, K, R>(&'s self, range: R) -> Self::ScanRangeIter<'s, K, R>
+    where
+        K: AsRef<[u8]> + 's,
+        R: RangeBounds<K> + 's,
+    {
+        // I tried to avoid a clone here for literally an hour, and it's just not worth it
+        GlazeIter(self.resources.range((
+            range.start_bound().map(|bound| bound.as_ref().to_vec()),
+            range.end_bound().map(|bound| bound.as_ref().to_vec()),
+        )))
     }
 
-    type ScanPrefixIter<'s> = GlazeIter<'s>;
+    type ScanPrefixIter<'s> = Self::ScanRangeIter<'s, Vec<u8>, Range<Vec<u8>>>;
     fn scan_prefix<P: AsRef<[u8]>>(&self, prefix: &P) -> Self::ScanPrefixIter<'_> {
-        todo!()
-    }
-    fn remove_prefix<P: AsRef<[u8]>>(&self, prefix: &P) -> Result<()> {
-        todo!()
+        let start: Vec<u8> = prefix.as_ref().to_vec();
+        let end = {
+            let mut end = prefix.as_ref().to_vec();
+            increment_key(&mut end);
+            end
+        };
+
+        self.scan_range(start..end)
     }
 }
 
-pub(crate) struct GlazeIter<'s>(btree_map::Range<'s, Vec<u8>, Vec<u8>>);
-impl<'s> From<btree_map::Range<'s, Vec<u8>, Vec<u8>>> for GlazeIter<'s> {
-    fn from(iter: btree_map::Range<'s, Vec<u8>, Vec<u8>>) -> Self {
-        Self(iter)
-    }
-}
-impl<'s> Iterator for GlazeIter<'s> {
-    type Item = Result<(&'s [u8], &'s [u8])>;
+pub struct GlazeIter<'s, R: RangeBounds<Vec<u8>>>(map::Range<'s, Vec<u8>, R, Vec<u8>, Vec<u8>>);
+impl<'s, R> Iterator for GlazeIter<'s, R>
+where
+    R: RangeBounds<Vec<u8>>,
+{
+    type Item = Result<(Vec<u8>, Vec<u8>)>;
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|(k, v)| Ok((k.as_slice(), v.as_slice())))
+        self.0
+            .next()
+            .map(|entry| Ok((entry.key().clone(), entry.value().clone())))
     }
 }

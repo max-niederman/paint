@@ -17,6 +17,7 @@ js-sys = "0.3"
 web-sys = "0.3"
 indexed_db_futures = "0.2"
 serde = "1.0"
+crossbeam-skiplist = { git = "https://github.com/crossbeam-rs/crossbeam", tag = "crossbeam-0.8.1" }
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
