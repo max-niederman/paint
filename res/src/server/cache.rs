@@ -69,8 +69,8 @@ impl EbaucheCache {
     /// Get an update for a view.
     pub fn view_update<'s, R>(
         &'s self,
-        tree_name: &'s str,
-        view: View,
+        tree_name: &str,
+        view: &View,
         since: DateTime,
     ) -> YieldError<impl Stream<Item = Result<Response, BoxedDiagnostic>> + 's>
     where

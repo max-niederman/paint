@@ -81,13 +81,13 @@ impl<'h> rpc::Handler<'h> for Handler {
 
                 stream::select_all([
                     self.cache
-                        .view_update::<resource::Course>("courses", view.clone(), since)
+                        .view_update::<resource::Course>("courses", &view, since)
                         .boxed(),
                     self.cache
-                        .view_update::<resource::Assignment>("assignments", view.clone(), since)
+                        .view_update::<resource::Assignment>("assignments", &view, since)
                         .boxed(),
                     self.cache
-                        .view_update::<resource::Submission>("submissions", view, since)
+                        .view_update::<resource::Submission>("submissions", &view, since)
                         .boxed(),
                 ])
                 .map_err(PrettyBoxedDiagnostic::from)
