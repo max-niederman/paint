@@ -44,8 +44,8 @@ impl Store for SledStore {
         self.tree.remove(key).map_err(Error::store)
     }
 
-    type ScanRangeIter<'s, K: 's, R: 's> = SledIter;
-    fn scan_range<'s, K, R>(&'s self, range: R) -> Self::ScanRangeIter<'_, K, R>
+    type ScanRangeIter<'s> = SledIter;
+    fn scan_range<'s, K, R>(&'s self, range: R) -> Self::ScanRangeIter<'_>
     where
         K: AsRef<[u8]> + 's,
         R: RangeBounds<K> + 's,

@@ -26,16 +26,14 @@ pub trait Store {
     /// Remove a key-value pair from the store.
     fn remove<K: AsRef<[u8]>>(&self, key: &K) -> Result<Option<Self::ByteVec>>;
 
-    type ScanRangeIter<'s, K, R>: Iterator<
+    type ScanRangeIter<'s>: Iterator<
         Item = Result<(Self::ByteVecBorrowed<'s>, Self::ByteVecBorrowed<'s>)>,
     >
     where
         Self: 's,
-        Self::ByteVec: 's,
-        K: 's,
-        R: 's;
+        Self::ByteVec: 's;
     /// Scan a range of keys in the store.
-    fn scan_range<'s, K, R>(&'s self, range: R) -> Self::ScanRangeIter<'s, K, R>
+    fn scan_range<'s, K, R>(&'s self, range: R) -> Self::ScanRangeIter<'s>
     where
         K: AsRef<[u8]> + 's,
         R: RangeBounds<K> + 's;

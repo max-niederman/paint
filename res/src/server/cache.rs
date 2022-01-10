@@ -85,7 +85,7 @@ impl EbaucheCache {
             .map_err(BoxedDiagnostic::from)?;
 
         YieldError::Ok(
-            ViewUpdate::<R, _>::try_new(view, since, store, pigment::cache::get_all)
+            ViewUpdate::<R, _>::try_new(since, store, |store| pigment::cache::get_all(store, &view))
             .map_err(BoxedDiagnostic::from)?,
         )
     }
@@ -97,11 +97,9 @@ where
     R: Cache,
     I: Iterator<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>>,
 {
-    view: View,
     since: DateTime,
-
     store: SledStore,
-    #[borrows(store, view)]
+    #[borrows(store)]
     iter: I,
 }
 

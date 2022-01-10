@@ -5,9 +5,9 @@
 
 extern crate canvas_lms as canvas;
 
-mod cache;
-mod handler;
-mod store;
+pub mod cache;
+pub mod handler;
+pub mod store;
 
 use async_bincode::AsyncBincodeStream;
 use ebauche::rpc;

@@ -29,9 +29,6 @@
 
             # JS
             nodePackages.pnpm
-
-            # Build Tools
-            cargo-make
           ];
 
           # needed for rust-openssl

@@ -36,8 +36,8 @@ impl Store for GlazeStore {
         Ok(None)
     }
 
-    type ScanRangeIter<'s, K: 's, R: 's> = GlazeIter<'s, (Bound<Vec<u8>>, Bound<Vec<u8>>)>;
-    fn scan_range<'s, K, R>(&'s self, range: R) -> Self::ScanRangeIter<'s, K, R>
+    type ScanRangeIter<'s> = GlazeIter<'s, (Bound<Vec<u8>>, Bound<Vec<u8>>)>;
+    fn scan_range<'s, K, R>(&'s self, range: R) -> Self::ScanRangeIter<'s>
     where
         K: AsRef<[u8]> + 's,
         R: RangeBounds<K> + 's,
@@ -49,7 +49,7 @@ impl Store for GlazeStore {
         )))
     }
 
-    type ScanPrefixIter<'s> = Self::ScanRangeIter<'s, Vec<u8>, Range<Vec<u8>>>;
+    type ScanPrefixIter<'s> = Self::ScanRangeIter<'s>;
     fn scan_prefix<P: AsRef<[u8]>>(&self, prefix: &P) -> Self::ScanPrefixIter<'_> {
         let start: Vec<u8> = prefix.as_ref().to_vec();
         let end = {

@@ -1,6 +1,0 @@
-[env.release]
-CARGO_PROFILE_release_OPT_LEVEL = "s"
-
-[tasks.build]
-command = "wasm-pack"
-args = ["build"]
