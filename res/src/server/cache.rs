@@ -85,7 +85,16 @@ impl EbaucheCache {
             .map_err(BoxedDiagnostic::from)?;
 
         YieldError::Ok(
-            ViewUpdate::<R, _>::try_new(since, store, |store| pigment::cache::get_all(store, &view))
+            ViewUpdate::<R, _>::try_new(since, store, |store| unsafe {
+                // SAFETY: ouroboros (as of v0.14) stores fields in [`Box`]s, so we can safely
+                //         interpret the reference as unbounded, since the iterator will always
+                //         be dropped with the referenced store.
+                //         if that changes, this could easily become UB.
+                pigment::cache::get_all(
+                    std::mem::transmute::<&SledStore, &'static SledStore>(store),
+                    &view,
+                )
+            })
             .map_err(BoxedDiagnostic::from)?,
         )
     }
@@ -108,7 +117,7 @@ where
     R: Cache + Into<DResource>,
     I: Iterator<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>>,
 {
-    fn with_iter_mut_pinned<Ret, F: FnOnce(Pin<&mut I>) -> Ret>(self: Pin<&mut Self>, f: F) -> Ret {
+    fn with_iter_mut_pinned<Ret>(self: Pin<&mut Self>, f: impl FnOnce(Pin<&mut I>) -> Ret) -> Ret {
         unsafe {
             self.get_unchecked_mut()
                 .with_iter_mut(|iter| f(Pin::new_unchecked(iter)))
