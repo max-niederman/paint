@@ -1,6 +1,9 @@
 use crossbeam_skiplist::{map, SkipMap};
+use indexed_db_futures::prelude::*;
 use pigment::cache::*;
-use std::ops::{Bound, Range, RangeBounds};
+use std::ops::{Bound, RangeBounds};
+use wasm_bindgen::prelude::*;
+use web_sys::DomException;
 
 #[derive(Debug)]
 pub struct GlazeStore {
@@ -73,4 +76,31 @@ where
             .next()
             .map(|entry| Ok((entry.key().clone(), entry.value().clone())))
     }
+}
+
+const IDB_NAME: &str = "glaze_store";
+const IDB_VERSION: u32 = 1;
+
+impl GlazeStore {
+    /// Load the [`GlazeStore`] from IndexedDB.
+    pub async fn load(name: &str) -> Result<Self, DomException> {
+        todo!()
+    }
+
+    /// Write the [`GlazeStore`] to IndexedDB.
+    pub async fn write(&self) -> Result<(), DomException> {
+        todo!()
+    }
+}
+
+async fn get_database() -> Result<IdbDatabase, DomException> {
+    let mut req: OpenDbRequest = IdbDatabase::open_u32(IDB_NAME, IDB_VERSION)?;
+    // if the store is outdated, we delete all of its data
+    req.set_on_upgrade_needed(Some(|event: &IdbVersionChangeEvent| {
+        for name in event.db().object_store_names() {
+            event.db().delete_object_store(&name)?;
+        }
+        Ok(())
+    }));
+    req.into_future().await
 }
