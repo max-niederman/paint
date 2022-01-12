@@ -122,7 +122,7 @@ pub fn get<S: Store, R: Cache>(
     let val = store.get(&[view.serialize()?, key.serialize()?].concat())?;
 
     val.map(|bytes| {
-        bincode::deserialize::<CacheEntry<R>>(&bytes.as_ref()).map_err(Error::Deserialization)
+        bincode::deserialize::<CacheEntry<R>>(bytes.as_ref()).map_err(Error::Deserialization)
     })
     .transpose()
 }

@@ -127,6 +127,7 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
     }
 
     #[inline]
+    #[must_use = "request builder methods create new builders"]
     pub fn query<K, V>(mut self, key: K, value: V) -> Self
     where
         K: Into<String>,
@@ -137,6 +138,7 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
     }
 
     #[inline]
+    #[must_use = "request builder methods create new builders"]
     pub fn extend_query<K, V, I>(mut self, iter: I) -> Self
     where
         K: Into<String>,
@@ -151,12 +153,14 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
     }
 
     #[inline]
+    #[must_use = "request builder methods create new builders"]
     pub fn include(mut self, val: &'static str) -> Self {
         self.include.push(val);
         self
     }
 
     #[inline]
+    #[must_use = "request builder methods create new builders"]
     pub fn extend_include<I>(mut self, iter: I) -> Self
     where
         I: IntoIterator<Item = &'static str>,

@@ -92,7 +92,7 @@ impl EbaucheCache {
                 //         if that changes, this could easily become UB.
                 pigment::cache::get_all(
                     std::mem::transmute::<&SledStore, &'static SledStore>(store),
-                    &view,
+                    view,
                 )
             })
             .map_err(BoxedDiagnostic::from)?,

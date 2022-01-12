@@ -1,7 +1,7 @@
-use crate::store::GlazeStore;
 use super::Query;
+use crate::store::GlazeStore;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::spawn_local;
+
 use web_sys::DomException;
 
 #[wasm_bindgen]

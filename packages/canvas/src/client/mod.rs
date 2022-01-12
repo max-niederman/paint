@@ -58,11 +58,14 @@ impl ClientBuilder {
     }
 
     #[inline]
+    #[must_use = "client builder methods create new builders"]
     pub fn auth(mut self, auth: Auth) -> Self {
         self.auth = Some(auth);
         self
     }
+
     #[inline]
+    #[must_use = "client builder methods create new builders"]
     pub fn base_url<U: Into<String>>(mut self, base_url: U) -> Self {
         self.base_url = base_url.into();
         self

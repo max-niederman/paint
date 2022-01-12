@@ -51,7 +51,7 @@ pub trait Store {
         Self: 's,
         Self::ByteVec: 's;
     /// Scan a prefix of the store.
-    fn scan_prefix<'s, P: AsRef<[u8]>>(&self, prefix: &P) -> Self::ScanPrefixIter<'_>;
+    fn scan_prefix<P: AsRef<[u8]>>(&self, prefix: &P) -> Self::ScanPrefixIter<'_>;
 
     /// Remove all keys with the given prefix.
     fn remove_prefix<P: AsRef<[u8]>>(&self, prefix: &P) -> Result<()> {

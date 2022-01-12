@@ -2,7 +2,7 @@ use crossbeam_skiplist::{map, SkipMap};
 use indexed_db_futures::prelude::*;
 use pigment::cache::*;
 use std::ops::{Bound, RangeBounds};
-use wasm_bindgen::prelude::*;
+
 use web_sys::DomException;
 
 #[derive(Debug)]
@@ -83,7 +83,7 @@ const IDB_VERSION: u32 = 1;
 
 impl GlazeStore {
     /// Load the [`GlazeStore`] from IndexedDB.
-    pub async fn load(name: &str) -> Result<Self, DomException> {
+    pub async fn load(_name: &str) -> Result<Self, DomException> {
         todo!()
     }
 

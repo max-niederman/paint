@@ -149,7 +149,7 @@ where
                         tracing::trace!("recieved page");
 
                         PaginationStateTransition {
-                            new: match PaginationLinks::from_headers(&response.headers())?.next() {
+                            new: match PaginationLinks::from_headers(response.headers())?.next() {
                                 Ok(next) => PaginationState::awaiting_response(
                                     &client,
                                     next.clone(),
