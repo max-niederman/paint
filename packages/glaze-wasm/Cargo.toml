@@ -12,6 +12,7 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 futures = "0.3"
+heapless = "0.7"
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"

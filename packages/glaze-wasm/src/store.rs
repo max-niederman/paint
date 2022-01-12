@@ -1,5 +1,6 @@
 use crossbeam_skiplist::{map, SkipMap};
 use indexed_db_futures::prelude::*;
+use js_sys::Uint8Array;
 use pigment::cache::*;
 use std::ops::{Bound, RangeBounds};
 
@@ -82,20 +83,47 @@ const IDB_NAME: &str = "glaze_store";
 const IDB_VERSION: u32 = 1;
 
 impl GlazeStore {
+    // TODO: by my best count, these methods have _three_ copies of the same data in memory;
+    //       it would be nice to avoid that, considering each store could easily be megabytes.
+    // TODO: load and write multiple stores to IndexedDB with the same transaction?
+
     /// Load the [`GlazeStore`] from IndexedDB.
-    pub async fn load(_name: &str) -> Result<Self, DomException> {
-        todo!()
+    pub async fn load(name: &str) -> Result<Self, DomException> {
+        let db: IdbDatabase = get_database().await?;
+        let tr: IdbTransaction = db.transaction_on_one_with_mode(name, IdbTransactionMode::Readwrite)?;
+        let bytes: Option<Uint8Array> = tr.object_store(name)?.get_owned("resources")?.await?.map(Into::into);
+
+        if let Some(bytes) = bytes {
+            Ok(Self {
+                resources: Deserializer::new(bytes.to_vec().into_iter()).collect()
+            })
+        } else {
+            Ok(Self { resources: SkipMap::new() })
+        }
     }
 
     /// Write the [`GlazeStore`] to IndexedDB.
-    pub async fn write(&self) -> Result<(), DomException> {
-        todo!()
+    pub async fn write(&self, name: &str) -> Result<(), DomException> {
+        let mut bytes = Vec::new();
+        for entry in self.resources.iter() {
+            bytes.extend_from_slice(&(entry.key().len() as u32).to_be_bytes());
+            bytes.extend_from_slice(&(entry.value().len() as u32).to_be_bytes());
+            bytes.extend_from_slice(entry.key());
+            bytes.extend_from_slice(entry.value());
+        }
+
+        let db: IdbDatabase = get_database().await?;
+        let tr: IdbTransaction = db.transaction_on_one_with_mode(name, IdbTransactionMode::Readwrite)?;
+        tr.object_store(name)?.put_key_val_owned("resources", &Uint8Array::from(bytes.as_slice()))?.into_future().await?;
+
+        Ok(())
     }
 }
 
 async fn get_database() -> Result<IdbDatabase, DomException> {
     let mut req: OpenDbRequest = IdbDatabase::open_u32(IDB_NAME, IDB_VERSION)?;
-    // if the store is outdated, we delete all of its data
+    // TODO: if the store is outdated, we delete all of its data
+    //       in the future, we also need to replace this data with a new one from Ebauche
     req.set_on_upgrade_needed(Some(|event: &IdbVersionChangeEvent| {
         for name in event.db().object_store_names() {
             event.db().delete_object_store(&name)?;
@@ -103,4 +131,29 @@ async fn get_database() -> Result<IdbDatabase, DomException> {
         Ok(())
     }));
     req.into_future().await
+}
+
+struct Deserializer<B> {
+    bytes: B,
+}
+
+impl<B: Iterator<Item = u8>> Deserializer<B> {
+    fn new(bytes: B) -> Self {
+        Self { bytes }
+    }
+
+    fn consume_u32(&mut self) -> Option<u32> {
+        self.bytes.by_ref().take(4).collect::<heapless::Vec<_, 4>>().into_array().ok().map(u32::from_be_bytes)
+    }
+}
+
+impl<B: Iterator<Item = u8>> Iterator for Deserializer<B> {
+    type Item = (Vec<u8>, Vec<u8>);
+    fn next(&mut self) -> Option<Self::Item> {
+        let (key_len, val_len) = (self.consume_u32()?, self.consume_u32()?);
+        Some((
+            self.bytes.by_ref().take(key_len as usize).collect(),
+            self.bytes.by_ref().take(val_len as usize).collect(),
+        ))
+    }
 }
