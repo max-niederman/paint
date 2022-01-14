@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
-// TODO: refactor item/member visibility
+// TODO: refactor item visibility
 
 /// A view into a Canvas instance.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

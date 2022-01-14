@@ -1,3 +1,6 @@
+pub mod stores;
+pub use stores::Stores;
+
 use crossbeam_skiplist::{map, SkipMap};
 use indexed_db_futures::prelude::*;
 use js_sys::Uint8Array;
@@ -90,15 +93,22 @@ impl GlazeStore {
     /// Load the [`GlazeStore`] from IndexedDB.
     pub async fn load(name: &str) -> Result<Self, DomException> {
         let db: IdbDatabase = get_database().await?;
-        let tr: IdbTransaction = db.transaction_on_one_with_mode(name, IdbTransactionMode::Readwrite)?;
-        let bytes: Option<Uint8Array> = tr.object_store(name)?.get_owned("resources")?.await?.map(Into::into);
+        let tr: IdbTransaction =
+            db.transaction_on_one_with_mode(name, IdbTransactionMode::Readwrite)?;
+        let bytes: Option<Uint8Array> = tr
+            .object_store(name)?
+            .get_owned("resources")?
+            .await?
+            .map(Into::into);
 
         if let Some(bytes) = bytes {
             Ok(Self {
-                resources: Deserializer::new(bytes.to_vec().into_iter()).collect()
+                resources: Deserializer::new(bytes.to_vec().into_iter()).collect(),
             })
         } else {
-            Ok(Self { resources: SkipMap::new() })
+            Ok(Self {
+                resources: SkipMap::new(),
+            })
         }
     }
 
@@ -113,8 +123,12 @@ impl GlazeStore {
         }
 
         let db: IdbDatabase = get_database().await?;
-        let tr: IdbTransaction = db.transaction_on_one_with_mode(name, IdbTransactionMode::Readwrite)?;
-        tr.object_store(name)?.put_key_val_owned("resources", &Uint8Array::from(bytes.as_slice()))?.into_future().await?;
+        let tr: IdbTransaction =
+            db.transaction_on_one_with_mode(name, IdbTransactionMode::Readwrite)?;
+        tr.object_store(name)?
+            .put_key_val_owned("resources", &Uint8Array::from(bytes.as_slice()))?
+            .into_future()
+            .await?;
 
         Ok(())
     }
@@ -143,7 +157,13 @@ impl<B: Iterator<Item = u8>> Deserializer<B> {
     }
 
     fn consume_u32(&mut self) -> Option<u32> {
-        self.bytes.by_ref().take(4).collect::<heapless::Vec<_, 4>>().into_array().ok().map(u32::from_be_bytes)
+        self.bytes
+            .by_ref()
+            .take(4)
+            .collect::<heapless::Vec<_, 4>>()
+            .into_array()
+            .ok()
+            .map(u32::from_be_bytes)
     }
 }
 

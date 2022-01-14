@@ -2,7 +2,7 @@
     import Search from "../components/search/Search.svelte";
 </script>
 
-<Search />
+<Search text={true} />
 
 <style lang="scss">
 

@@ -1,5 +1,96 @@
-pub mod manager;
 pub mod query;
-
-pub use manager::Manager;
 pub use query::Query;
+
+use crate::store::Stores;
+use canvas::resource::*;
+use pigment::{cache, Selector, View};
+use query::JsQuery;
+use serde::Serialize;
+use std::fmt::Display;
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+impl Stores {
+    // TODO: the typescript definition should know this returns a Result<QueryResult, JsValue>
+    /// Run the given query in the given view.
+    pub fn query(&self, view: &JsView, query: &JsQuery) -> Result<JsValue, JsValue> {
+        JsValue::from_serde(
+            &self
+                .query_view(
+                    &view.into_serde().map_err(into_exception)?,
+                    &query.into_serde::<Query>().map_err(into_exception)?,
+                )
+                .map_err(into_exception)?,
+        )
+        .map_err(into_exception)
+    }
+}
+
+macro_rules! impl_stores_query_view {
+    ($( $name:ident : $ty:ty, )*) => {
+        impl Stores {
+            fn query_view<S>(&self, view: &View, selector: &S) -> cache::Result<QueryResults>
+            where
+                $( S: Selector<$ty> ),*
+            {
+                fn collect<T, E>(iter: impl Iterator<Item = Result<T, E>>) -> Result<Vec<T>, E> {
+                    let mut vec = Vec::with_capacity(iter.size_hint().0);
+                    for item in iter {
+                        vec.push(item?);
+                    }
+                    Ok(vec)
+                }
+
+                Ok(QueryResults {
+                    $(
+                        $name: collect(
+                            cache::get_all::<_, $ty>(&self.$name, view)?
+                                .map(|res| res.map(|(_, entry)| entry.resource))
+                                .filter(|res| res.is_err() || selector.matches(res.as_ref().unwrap())),
+                        )?,
+                    )*
+                })
+            }
+        }
+    };
+}
+impl_stores_query_view! {
+    courses: Course,
+    assignments: Assignment,
+    submissions: Submission,
+}
+
+#[derive(Serialize)]
+pub struct QueryResults {
+    pub courses: Vec<Course>,
+    pub assignments: Vec<Assignment>,
+    pub submissions: Vec<Submission>,
+}
+
+fn into_exception(err: impl Display) -> JsValue {
+    JsValue::from_str(&format!("{}", err))
+}
+
+#[wasm_bindgen(typescript_custom_section)]
+const TS_VIEW: &str = r#"
+export type View = {
+    truth: { base_url: string; };
+    viewer: { user: number };
+};
+"#;
+
+// TODO: add stricter types for resources
+#[wasm_bindgen(typescript_custom_section)]
+const TS_QUERY_RESULTS: &str = r#"
+export type QueryResults = {
+    courses: any[];
+    assignments: any[];
+    submissions: any[];
+};
+"#;
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(typescript_type = "View")]
+    pub type JsView;
+}
