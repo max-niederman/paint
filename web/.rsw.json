@@ -1,5 +1,5 @@
 {
   "crates": [
-    "packages/pigment-js"
+    "glaze-wasm"
   ]
 }
