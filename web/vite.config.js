@@ -14,5 +14,8 @@ export default defineConfig({
         name: "glaze-wasm",
       }],
     })
-  ]
+  ],
+  server: {
+    port: process.env.PORT || 4212,
+  }
 });
