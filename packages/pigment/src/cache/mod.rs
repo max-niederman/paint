@@ -40,13 +40,14 @@ where
     R: Cache,
     RStream: Stream<Item = Result<(R::Key, Option<R>), E>> + Unpin,
 {
+    let view_serialized = view.serialize()?;
     // the start of the gap between the preceding resource and the current one
-    let mut gap_start = view.serialize()?;
+    let mut gap_start = view_serialized.clone();
 
-    while let Some(res) = resources.next().await {
-        match res {
+    while let Some(item) = resources.next().await {
+        match item {
             Ok((key, resource)) => {
-                let key_bytes = [view.serialize()?, key.serialize()?].concat();
+                let key_bytes = [view_serialized.as_slice(), key.serialize()?.as_slice()].concat();
 
                 if key_bytes >= gap_start {
                     // remove all keys inbetween the last key and this key

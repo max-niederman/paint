@@ -45,11 +45,12 @@ pub enum FetchResponse {
 
 /// An update response sent to the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum UpdateResponse {
-    /// A serialized resource which the client does not have an update copy of.
-    Resource(Vec<u8>),
-    /// A stub standing in for a resource the client has an updated copy of already.
-    Stub(Vec<u8>),
+pub struct UpdateResponse {
+    /// The key of the resource.
+    pub key: Vec<u8>,
+    /// Serialized [`CacheEntry`] containing the resource.
+    /// If the client has an up-to-date copy of the resource, this will be `None`.
+    pub resource: Option<Vec<u8>>,
 }
 
 /// A kind of resource.
@@ -68,7 +69,7 @@ impl FromStr for ResourceKind {
             "assignment" => Ok(Self::Assignment),
             "course" => Ok(Self::Course),
             "submission" => Ok(Self::Submission),
-            _ => Err(""),
+            _ => Err("no such resource kind"),
         }
     }
 }

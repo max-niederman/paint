@@ -1,5 +1,5 @@
-pub mod stores;
 pub mod oil;
+pub mod stores;
 
 pub use stores::Stores;
 
@@ -7,12 +7,15 @@ use crossbeam_skiplist::{map, SkipMap};
 use indexed_db_futures::prelude::*;
 use js_sys::Uint8Array;
 use pigment::cache::*;
-use std::ops::{Bound, RangeBounds};
+use std::{
+    fmt::{self, Debug},
+    ops::{Bound, RangeBounds},
+};
 
 use web_sys::DomException;
 
-#[derive(Debug)]
 pub struct GlazeStore {
+    name: &'static str,
     resources: SkipMap<Vec<u8>, Vec<u8>>,
 }
 
@@ -93,7 +96,7 @@ impl GlazeStore {
     // TODO: load and write multiple stores to IndexedDB with the same transaction?
 
     /// Load the [`GlazeStore`] from IndexedDB.
-    pub async fn load(name: &str) -> Result<Self, DomException> {
+    pub async fn load(name: &'static str) -> Result<Self, DomException> {
         let db: IdbDatabase = get_database().await?;
         let tr: IdbTransaction =
             db.transaction_on_one_with_mode(name, IdbTransactionMode::Readwrite)?;
@@ -105,17 +108,19 @@ impl GlazeStore {
 
         if let Some(bytes) = bytes {
             Ok(Self {
+                name,
                 resources: Deserializer::new(bytes.to_vec().into_iter()).collect(),
             })
         } else {
             Ok(Self {
+                name,
                 resources: SkipMap::new(),
             })
         }
     }
 
     /// Write the [`GlazeStore`] to IndexedDB.
-    pub async fn write(&self, name: &str) -> Result<(), DomException> {
+    pub async fn write(&self) -> Result<(), DomException> {
         let mut bytes = Vec::new();
         for entry in self.resources.iter() {
             bytes.extend_from_slice(&(entry.key().len() as u32).to_be_bytes());
@@ -126,13 +131,19 @@ impl GlazeStore {
 
         let db: IdbDatabase = get_database().await?;
         let tr: IdbTransaction =
-            db.transaction_on_one_with_mode(name, IdbTransactionMode::Readwrite)?;
-        tr.object_store(name)?
+            db.transaction_on_one_with_mode(self.name, IdbTransactionMode::Readwrite)?;
+        tr.object_store(self.name)?
             .put_key_val_owned("resources", &Uint8Array::from(bytes.as_slice()))?
             .into_future()
             .await?;
 
         Ok(())
+    }
+}
+
+impl Debug for GlazeStore {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "GlazeStore({})", self.name)
     }
 }
 

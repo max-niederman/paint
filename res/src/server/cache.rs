@@ -9,7 +9,7 @@ use futures::prelude::*;
 use miette::{Diagnostic, IntoDiagnostic, WrapErr};
 use ouroboros::self_referencing;
 use pigment::{
-    cache::{Cache, CacheEntry},
+    cache::{Cache, CacheEntry, Key},
     View,
 };
 use std::{
@@ -139,25 +139,30 @@ where
     type Item = Result<Response, BoxedDiagnostic>;
     fn poll_next(self: Pin<&mut Self>, _cx: &mut task::Context<'_>) -> Poll<Option<Self::Item>> {
         let since = self.borrow_since().timestamp_millis();
-        Poll::Ready(self.with_iter_mut_pinned(|iter| iter.get_mut().next()).map(
-            |item| match item {
-                Ok((_, entry)) if entry.written.timestamp_millis() > since => {
-                    Ok(Response::Update(
-                        // TODO: it's almost certainly possible to avoid the serialization here by reusing the original bytes
-                        UpdateResponse::Resource(
-                            bincode::serialize(&entry.resource)
-                                .into_diagnostic()
-                                .wrap_err("while serializing resource to yield to update")
-                                .map_err(BoxedDiagnostic::from)?,
-                        ),
-                    ))
-                }
-                Ok((key, _)) => Ok(Response::Update(UpdateResponse::Stub(
-                    pigment::cache::Key::serialize(&key)?,
-                ))),
-                Err(err) => Err(err.into()),
-            },
-        ))
+        Poll::Ready(
+            self.with_iter_mut_pinned(|iter| iter.get_mut().next())
+                .map(|item| {
+                    item.map_err(BoxedDiagnostic::from)
+                        .and_then(|(key, entry)| {
+                            Ok(Response::Update(UpdateResponse {
+                                key: Key::serialize(&key)?,
+
+                                // TODO: if we want the client to be totally consistent with Ebauche after updates,
+                                //       we also need to send `entry.updated` when it's greater than `since` in some way.
+                                resource: if entry.written.timestamp_millis() > since {
+                                    // TODO: this serializes exactly the same entry we just deserialized.
+                                    //       in the future, we should use an iterator that also yields serialized entry.
+                                    //       almost all deserialization overhead could also be avoided by using zero-copy deserialization.
+                                    Some(bincode::serialize(&entry).into_diagnostic().wrap_err(
+                                        "while serializing resource to yield to update",
+                                    )?)
+                                } else {
+                                    None
+                                },
+                            }))
+                        })
+                }),
+        )
     }
 }
 
