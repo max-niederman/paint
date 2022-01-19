@@ -1,4 +1,6 @@
 pub mod stores;
+pub mod oil;
+
 pub use stores::Stores;
 
 use crossbeam_skiplist::{map, SkipMap};
