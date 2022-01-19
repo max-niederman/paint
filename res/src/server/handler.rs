@@ -49,14 +49,14 @@ impl<'h> rpc::Handler<'h> for Handler {
                 stream::select_all([
                     self.cache
                         .fetch_view(
-                            "courses",
+                            rpc::ResourceKind::Course,
                             view.clone(),
                             Fetch::<resource::Course>::fetch_independent(&canvas_client),
                         )
                         .boxed(),
                     self.cache
                         .fetch_view(
-                            "assignments",
+                            rpc::ResourceKind::Assignment,
                             view.clone(),
                             Fetch::<resource::Assignment>::fetch_independent(&TieredFetcher(
                                 &canvas_client,
@@ -65,7 +65,7 @@ impl<'h> rpc::Handler<'h> for Handler {
                         .boxed(),
                     self.cache
                         .fetch_view(
-                            "submissions",
+                            rpc::ResourceKind::Submission,
                             view,
                             Fetch::<resource::Submission>::fetch_independent(&TieredFetcher(
                                 &canvas_client,
@@ -76,20 +76,27 @@ impl<'h> rpc::Handler<'h> for Handler {
                 .map_err(PrettyBoxedDiagnostic::from)
                 .boxed()
             }
-            Request::Update { view, since } => {
+            Request::Update {
+                view,
+                since,
+                resource_kind,
+            } => {
                 tracing::info!(message = "handling update request", %view);
 
-                stream::select_all([
-                    self.cache
-                        .view_update::<resource::Course>("courses", &view, since)
+                match resource_kind {
+                    rpc::ResourceKind::Course => self
+                        .cache
+                        .view_update::<resource::Course>(resource_kind, &view, since)
                         .boxed(),
-                    self.cache
-                        .view_update::<resource::Assignment>("assignments", &view, since)
+                    rpc::ResourceKind::Assignment => self
+                        .cache
+                        .view_update::<resource::Assignment>(resource_kind, &view, since)
                         .boxed(),
-                    self.cache
-                        .view_update::<resource::Submission>("submissions", &view, since)
+                    rpc::ResourceKind::Submission => self
+                        .cache
+                        .view_update::<resource::Submission>(resource_kind, &view, since)
                         .boxed(),
-                ])
+                }
                 .map_err(PrettyBoxedDiagnostic::from)
                 .boxed()
             }

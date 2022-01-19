@@ -33,7 +33,7 @@ impl EbaucheCache {
     /// Fetch a view and write it into the cache.
     pub fn fetch_view<'s, R, RStream>(
         &'s self,
-        tree_name: &'static str,
+        resource_kind: ResourceKind,
         view: View,
         resources: RStream,
     ) -> impl Stream<Item = Result<Response, BoxedDiagnostic>> + 's
@@ -46,7 +46,7 @@ impl EbaucheCache {
             async move {
                 let store: SledStore = self
                     .db
-                    .open_tree(tree_name)
+                    .open_tree(tree_name(resource_kind))
                     .into_diagnostic()
                     .wrap_err("failed to open sled tree")?
                     .into();
@@ -58,27 +58,25 @@ impl EbaucheCache {
                 )
                 .await??;
 
-                Ok(Response::Fetch(FetchResponse::Progress {
-                    resource: tree_name.to_string(),
-                }))
+                Ok(Response::Fetch(FetchResponse::Progress { resource_kind }))
             }
-            .instrument(tracing::info_span!("fetch_view", tree_name, view = %view_display)),
+            .instrument(tracing::info_span!("fetch_view", ?resource_kind, view = %view_display)),
         )
     }
 
     /// Get an update for a view.
     pub fn view_update<'s, R>(
         &'s self,
-        tree_name: &str,
+        resource_kind: ResourceKind,
         view: &View,
         since: DateTime,
     ) -> YieldError<impl Stream<Item = Result<Response, BoxedDiagnostic>> + 's>
     where
-        R: Cache + Into<DResource> + 's,
+        R: Cache + 's,
     {
         let store = self
             .db
-            .open_tree(tree_name)
+            .open_tree(tree_name(resource_kind))
             .map(SledStore::from)
             .into_diagnostic()
             .wrap_err("failed to open sled tree")
@@ -100,6 +98,14 @@ impl EbaucheCache {
     }
 }
 
+fn tree_name(resource_kind: ResourceKind) -> &'static str {
+    match resource_kind {
+        ResourceKind::Assignment => "assignments",
+        ResourceKind::Course => "courses",
+        ResourceKind::Submission => "submissions",
+    }
+}
+
 #[self_referencing]
 struct ViewUpdate<R, I>
 where
@@ -114,7 +120,7 @@ where
 
 impl<R, I> ViewUpdate<R, I>
 where
-    R: Cache + Into<DResource>,
+    R: Cache,
     I: Iterator<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>>,
 {
     fn with_iter_mut_pinned<Ret>(self: Pin<&mut Self>, f: impl FnOnce(Pin<&mut I>) -> Ret) -> Ret {
@@ -127,7 +133,7 @@ where
 
 impl<R, I> Stream for ViewUpdate<R, I>
 where
-    R: Cache + Into<DResource>,
+    R: Cache,
     I: Iterator<Item = pigment::cache::Result<(R::Key, CacheEntry<R>)>> + Unpin,
 {
     type Item = Result<Response, BoxedDiagnostic>;
@@ -135,9 +141,17 @@ where
         let since = self.borrow_since().timestamp_millis();
         Poll::Ready(self.with_iter_mut_pinned(|iter| iter.get_mut().next()).map(
             |item| match item {
-                Ok((_, entry)) if entry.written.timestamp_millis() > since => Ok(Response::Update(
-                    UpdateResponse::Resource(entry.resource.into()),
-                )),
+                Ok((_, entry)) if entry.written.timestamp_millis() > since => {
+                    Ok(Response::Update(
+                        // TODO: it's almost certainly possible to avoid the serialization here by reusing the original bytes
+                        UpdateResponse::Resource(
+                            bincode::serialize(&entry.resource)
+                                .into_diagnostic()
+                                .wrap_err("while serializing resource to yield to update")
+                                .map_err(BoxedDiagnostic::from)?,
+                        ),
+                    ))
+                }
                 Ok((key, _)) => Ok(Response::Update(UpdateResponse::Stub(
                     pigment::cache::Key::serialize(&key)?,
                 ))),

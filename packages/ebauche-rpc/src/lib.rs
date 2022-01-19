@@ -7,7 +7,7 @@ use futures::{io, prelude::*};
 use std::fmt::Display;
 
 pub use error::{Error, Result};
-pub use message::{Request, Response};
+pub use message::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Server<H> {

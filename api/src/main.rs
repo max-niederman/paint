@@ -1,11 +1,8 @@
 mod ebauche;
 
-use ebauche::Ebauche;
-use futures::prelude::*;
 use miette::{Context, IntoDiagnostic, Result};
 use poem::{listener::TcpListener, middleware::Tracing, EndpointExt, Route};
 use poem_openapi::{OpenApi, OpenApiService};
-use std::net::SocketAddr;
 use tracing_subscriber::EnvFilter;
 
 struct Api;
@@ -31,17 +28,18 @@ async fn main() -> Result<()> {
     let api = OpenApiService::new(Api, env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
         .server("http://localhost:4210");
 
-    let ebauche_api = Ebauche {
-        address: std::env::var("EBAUCHE_ADDR")
-            .unwrap_or_else(|_| "127.0.0.1:4211".to_string())
-            .parse()
-            .into_diagnostic()
-            .wrap_err("failed parsing Ebauche host address")?,
-    };
-
     let app = Route::new()
         .nest("/swagger", api.swagger_ui())
-        .nest("/ebauche", ebauche_api)
+        .nest(
+            "/ebauche",
+            ebauche::Api {
+                address: std::env::var("EBAUCHE_ADDR")
+                    .unwrap_or_else(|_| "127.0.0.1:4211".to_string())
+                    .parse()
+                    .into_diagnostic()
+                    .wrap_err("failed parsing Ebauche host address")?,
+            },
+        )
         .nest("/", api)
         .with(Tracing);
 

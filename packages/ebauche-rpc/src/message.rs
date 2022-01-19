@@ -1,7 +1,9 @@
 // memory usage doesn't really matter here, so wasting a bit of the stack is alright
 #![allow(clippy::large_enum_variant)]
 
-use canvas::{resource, DateTime};
+use std::str::FromStr;
+
+use canvas::DateTime;
 use pigment::View;
 use serde::{Deserialize, Serialize};
 
@@ -15,12 +17,18 @@ pub enum Request {
         canvas_token: String,
     },
     Update {
+        /// The kind of resource.
+        resource_kind: ResourceKind,
         /// The viewer being queried.
         view: View,
         /// Date of last update.
         since: DateTime,
     },
 }
+
+// TODO: abolish the [`Response`] type entirely and rely on deserialization errors
+//       this will require lots of refactoring and I think it's best to wait until
+//       the codebase is more stable
 
 /// A response sent to the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,36 +40,35 @@ pub enum Response {
 /// A fetch response sent to the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FetchResponse {
-    Progress { resource: String },
+    Progress { resource_kind: ResourceKind },
 }
 
 /// An update response sent to the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UpdateResponse {
-    /// A resource which the client does not have.
-    Resource(DResource),
+    /// A serialized resource which the client does not have an update copy of.
+    Resource(Vec<u8>),
     /// A stub standing in for a resource the client has an updated copy of already.
     Stub(Vec<u8>),
 }
 
-/// A discriminated resource.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum DResource {
-    Assignment(resource::Assignment),
-    Course(resource::Course),
-    Submission(resource::Submission),
+/// A kind of resource.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum ResourceKind {
+    Assignment,
+    Course,
+    Submission,
 }
 
-macro_rules! impl_dresource_from_resource {
-    ($res:ident) => {
-        impl From<::canvas_lms::resource::$res> for DResource {
-            fn from(r: ::canvas_lms::resource::$res) -> Self {
-                Self::$res(r)
-            }
+impl FromStr for ResourceKind {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "assignment" => Ok(Self::Assignment),
+            "course" => Ok(Self::Course),
+            "submission" => Ok(Self::Submission),
+            _ => Err(""),
         }
-    };
-    ($($res:ident),* $(,)?) => {
-        $(impl_dresource_from_resource!($res);)*
-    };
+    }
 }
-impl_dresource_from_resource!(Assignment, Course, Submission);

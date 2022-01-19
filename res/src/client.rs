@@ -49,6 +49,9 @@ enum Verb {
 
         #[structopt(short, long)]
         since: DateTime,
+
+        #[structopt(short, long)]
+        kind: ResourceKind,
     },
 }
 
@@ -103,12 +106,14 @@ async fn main() -> miette::Result<()> {
                 canvas,
                 user,
                 since,
+                kind,
             } => Request::Update {
                 view: View {
                     truth: view::Canvas { base_url: canvas },
                     viewer: view::Viewer::User(user),
                 },
                 since,
+                resource_kind: kind,
             },
         };
 
