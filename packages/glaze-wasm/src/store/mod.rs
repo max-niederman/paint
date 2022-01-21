@@ -98,6 +98,7 @@ impl GlazeStore {
     /// Load the [`GlazeStore`] from IndexedDB.
     pub async fn load(name: &'static str) -> Result<Self, DomException> {
         let db: IdbDatabase = get_database().await?;
+        db.create_object_store(name)?;
         let tr: IdbTransaction =
             db.transaction_on_one_with_mode(name, IdbTransactionMode::Readwrite)?;
         let bytes: Option<Uint8Array> = tr

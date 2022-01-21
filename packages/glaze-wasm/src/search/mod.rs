@@ -1,21 +1,35 @@
 pub mod query;
 pub use query::Query;
+use wasm_bindgen_futures::spawn_local;
 
-use crate::store::Stores;
+use crate::store::{self, Stores};
 use canvas::resource::*;
+use chrono::{TimeZone, Utc};
+use gloo_storage::{LocalStorage, Storage as WebStorage};
 use pigment::{cache, Selector, View};
 use query::JsQuery;
 use serde::Serialize;
-use std::fmt::Display;
+use std::{fmt::Display, rc::Rc};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-impl Stores {
+pub struct SearchManager {
+    pub(crate) stores: Rc<Stores>,
+}
+
+#[wasm_bindgen]
+impl SearchManager {
+    #[wasm_bindgen(constructor)]
+    pub async fn new() -> Result<SearchManager, JsValue> {
+        Ok(SearchManager { stores: Rc::new(Stores::new().await?)})
+    }
+
     // TODO: the typescript definition should know this returns a Result<QueryResult, JsValue>
     /// Run the given query in the given view.
     pub fn query(&self, view: &JsView, query: &JsQuery) -> Result<JsValue, JsValue> {
         JsValue::from_serde(
             &self
+                .stores
                 .query_view(
                     &view.into_serde().map_err(into_exception)?,
                     &query.into_serde::<Query>().map_err(into_exception)?,
@@ -23,6 +37,27 @@ impl Stores {
                 .map_err(into_exception)?,
         )
         .map_err(into_exception)
+    }
+
+    /// Update the views in the store.
+    pub fn update(&self, view: &JsView) -> Result<(), JsValue> {
+        let stores = self.stores.clone();
+        let view = view.into_serde().map_err(into_exception)?;
+
+        spawn_local(async move {
+            let last_update =
+                LocalStorage::get("store::last_update").unwrap_or_else(|_| Utc.timestamp(0, 0));
+            LocalStorage::set("store::last_update", &Utc::now()).unwrap();
+
+            store::oil::update_stores(
+                &stores,
+                last_update,
+                &view,
+            )
+            .await
+            .expect("failed to update stores")
+        });
+        Ok(())
     }
 }
 

@@ -20,7 +20,7 @@ pub fn update_store<'a>(
     view: &'a View,
 ) -> impl Future<Output = Result<()>> + 'a {
     async move {
-    let (_meta, socket): (_, WsStream) = WsMeta::connect(
+        let (_meta, socket): (_, WsStream) = WsMeta::connect(
         &format!(
             "wss://{oil}/ebauche/update?canvas={canvas}&user_id={user_id}&resource_kind={resource_kind:?}&since={since}",
             oil = "localhost:4210", // FIXME: make oil address configurable
@@ -38,50 +38,52 @@ pub fn update_store<'a>(
     .into_diagnostic()
     .wrap_err("failed to create WebSocket client")?;
 
-    let mut responses = socket.map(|msg| match msg {
-        WsMessage::Binary(bytes) => bincode::deserialize::<UpdateResponse>(&bytes)
-            .into_diagnostic()
-            .wrap_err("failed to deserialize update message"),
-        WsMessage::Text(contents) => bail!("unexpected text message with contents {:#?}", contents),
-    });
-
-    let view_serialized = view.serialize()?;
-    // the start of the gap between the preceding resource and the current one
-    let mut gap_start = view_serialized.clone();
-
-    while let Some(resp) = responses.next().await {
-        let resp = resp?;
-
-        let key_bytes = [view_serialized.as_slice(), &resp.key].concat();
-
-        if key_bytes >= gap_start {
-            // remove all keys inbetween the last key and this key
-            store
-                .resources
-                .range::<Vec<u8>, _>(&gap_start..&key_bytes)
-                .for_each(|entry| {
-                    entry.remove();
-                })
-        } else {
-            return Err(cache::Error::UnexpectedStreamYield {
-                expected: "key lexicographically greater than the last",
-                actual: "key lexicographically less than the last",
+        let mut responses = socket.map(|msg| match msg {
+            WsMessage::Binary(bytes) => bincode::deserialize::<UpdateResponse>(&bytes)
+                .into_diagnostic()
+                .wrap_err("failed to deserialize update message"),
+            WsMessage::Text(contents) => {
+                bail!("unexpected text message with contents {:#?}", contents)
             }
-            .into());
+        });
+
+        let view_serialized = view.serialize()?;
+        // the start of the gap between the preceding resource and the current one
+        let mut gap_start = view_serialized.clone();
+
+        while let Some(resp) = responses.next().await {
+            let resp = resp?;
+
+            let key_bytes = [view_serialized.as_slice(), &resp.key].concat();
+
+            if key_bytes >= gap_start {
+                // remove all keys inbetween the last key and this key
+                store
+                    .resources
+                    .range::<Vec<u8>, _>(&gap_start..&key_bytes)
+                    .for_each(|entry| {
+                        entry.remove();
+                    })
+            } else {
+                return Err(cache::Error::UnexpectedStreamYield {
+                    expected: "key lexicographically greater than the last",
+                    actual: "key lexicographically less than the last",
+                }
+                .into());
+            }
+
+            if let Some(resource_bytes) = resp.resource {
+                store.resources.insert(key_bytes.clone(), resource_bytes);
+            }
+
+            // move the key forward by one to get the start of the gap
+            // this assumes that the keys will not increase in length
+            gap_start = key_bytes;
+            increment_key(&mut gap_start);
         }
 
-        if let Some(resource_bytes) = resp.resource {
-            store.resources.insert(key_bytes.clone(), resource_bytes);
-        }
-
-        // move the key forward by one to get the start of the gap
-        // this assumes that the keys will not increase in length
-        gap_start = key_bytes;
-        increment_key(&mut gap_start);
+        Ok(())
     }
-
-    Ok(())
-}
 }
 
 #[tracing::instrument("updating all stores", skip(stores))]

@@ -17,6 +17,7 @@ wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
 web-sys = "0.3"
+gloo-storage = "0.2"
 indexed_db_futures = "0.2"
 ws_stream_wasm = "0.7"
 chrono = "0.4"
