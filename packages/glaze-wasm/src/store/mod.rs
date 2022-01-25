@@ -15,7 +15,7 @@ use std::{
 use web_sys::DomException;
 
 pub struct GlazeStore {
-    name: &'static str,
+    name: StoreName,
     resources: SkipMap<Vec<u8>, Vec<u8>>,
 }
 
@@ -90,19 +90,37 @@ where
 const IDB_NAME: &str = "glaze_store";
 const IDB_VERSION: u32 = 1;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StoreName {
+    Course,
+    Assignment,
+    Submission,
+}
+
+impl StoreName {
+    const ALL: [Self; 3] = [Self::Course, Self::Assignment, Self::Submission];
+
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Course => "course",
+            Self::Assignment => "course",
+            Self::Submission => "submission",
+        }
+    }
+}
+
 impl GlazeStore {
     // TODO: by my best count, these methods have _three_ copies of the same data in memory;
     //       it would be nice to avoid that, considering each store could easily be megabytes.
     // TODO: load and write multiple stores to IndexedDB with the same transaction?
 
     /// Load the [`GlazeStore`] from IndexedDB.
-    pub async fn load(name: &'static str) -> Result<Self, DomException> {
+    pub async fn load(name: StoreName) -> Result<Self, DomException> {
         let db: IdbDatabase = get_database().await?;
-        db.create_object_store(name)?;
         let tr: IdbTransaction =
-            db.transaction_on_one_with_mode(name, IdbTransactionMode::Readwrite)?;
+            db.transaction_on_one_with_mode(name.as_str(), IdbTransactionMode::Readonly)?;
         let bytes: Option<Uint8Array> = tr
-            .object_store(name)?
+            .object_store(name.as_str())?
             .get_owned("resources")?
             .await?
             .map(Into::into);
@@ -132,8 +150,8 @@ impl GlazeStore {
 
         let db: IdbDatabase = get_database().await?;
         let tr: IdbTransaction =
-            db.transaction_on_one_with_mode(self.name, IdbTransactionMode::Readwrite)?;
-        tr.object_store(self.name)?
+            db.transaction_on_one_with_mode(self.name.as_str(), IdbTransactionMode::Readwrite)?;
+        tr.object_store(self.name.as_str())?
             .put_key_val_owned("resources", &Uint8Array::from(bytes.as_slice()))?
             .into_future()
             .await?;
@@ -144,7 +162,7 @@ impl GlazeStore {
 
 impl Debug for GlazeStore {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "GlazeStore({})", self.name)
+        write!(f, "GlazeStore({})", self.name.as_str())
     }
 }
 
@@ -155,6 +173,9 @@ async fn get_database() -> Result<IdbDatabase, DomException> {
     req.set_on_upgrade_needed(Some(|event: &IdbVersionChangeEvent| {
         for name in event.db().object_store_names() {
             event.db().delete_object_store(&name)?;
+        }
+        for name in StoreName::ALL {
+            event.db().create_object_store(name.as_str())?;
         }
         Ok(())
     }));

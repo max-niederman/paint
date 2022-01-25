@@ -140,64 +140,69 @@ where
                 ref mut resp_fut,
                 ref uri,
             } => match resp_fut.poll_unpin(cx) {
-                Poll::Ready(Ok(response)) => tracing::debug_span!("handling pagination response", 
-                %uri,
-                cost = response.headers().get("X-Request-Cost").and_then(|hv| Some(hv.to_str().ok()?.parse::<f32>().ok())),
-                ratelimit_remaining = response.headers().get("X-Rate-Limit-Remaining").and_then(|hv| Some(hv.to_str().ok()?.parse::<f32>().ok()))
-            ).in_scope(|| match response.status() {
-                    StatusCode::OK => {
-                        tracing::trace!("recieved page");
+                Poll::Ready(Ok(response)) => {
+                    let _span = tracing::debug_span!(
+                        "handling pagination response",
+                        %uri,
+                        cost = response.headers().get("X-Request-Cost").and_then(|hv| Some(hv.to_str().ok()?.parse::<f32>().ok())),
+                        ratelimit_remaining = response.headers().get("X-Rate-Limit-Remaining").and_then(|hv| Some(hv.to_str().ok()?.parse::<f32>().ok()))
+                    ).entered();
 
-                        PaginationStateTransition {
-                            new: match PaginationLinks::from_headers(response.headers())?.next() {
-                                Ok(next) => PaginationState::awaiting_response(
-                                    &client,
-                                    next.clone(),
-                                    req_headers,
-                                )?,
-                                Err(_) => PaginationState::Finished,
-                            },
-                            ret: Poll::Ready(Some(Ok(response.into()))),
+                    match response.status() {
+                        StatusCode::OK => {
+                            tracing::trace!("recieved page");
+
+                            PaginationStateTransition {
+                                new: match PaginationLinks::from_headers(response.headers())?.next() {
+                                    Ok(next) => PaginationState::awaiting_response(
+                                        &client,
+                                        next.clone(),
+                                        req_headers,
+                                    )?,
+                                    Err(_) => PaginationState::Finished,
+                                },
+                                ret: Poll::Ready(Some(Ok(response.into()))),
+                            }
                         }
+
+                        StatusCode::FORBIDDEN => {
+                            tracing::warn!("request throttled");
+
+                            PaginationStateTransition {
+                                new: PaginationState::Throttled {
+                                    timer: Delay::new(Duration::from_secs_f32(2.0)), // TODO: adjust by ratelimit remaining and per Canvas instance
+                                    uri: uri.clone(),
+                                },
+                                ret: {
+                                    cx.waker().wake_by_ref();
+                                    Poll::Pending
+                                },
+                            }
+                        }
+
+                        StatusCode::UNAUTHORIZED => {
+                            tracing::error!(message = "incorrect authorization", auth_header = ?response.headers().get(header::AUTHORIZATION));
+
+                            PaginationStateTransition {
+                                new: PaginationState::Finished,
+                                ret: Poll::Ready(Some(Err(Error::Unauthorized)))
+                            }
+                        }
+
+                        code => {
+                            tracing::warn!(message = "recieved response with unknown status code", %code);
+
+                            PaginationStateTransition {
+                                new: PaginationState::Finished,
+                                ret: Poll::Ready(Some(Err(Error::UnknownHttpStatus {
+                                    code,
+                                    headers: response.headers().clone(),
+                                    response: response.into(),
+                                })))
+                            }
+                        },
                     }
-
-                    StatusCode::FORBIDDEN => {
-                        tracing::warn!("request throttled");
-
-                        PaginationStateTransition {
-                            new: PaginationState::Throttled {
-                                timer: Delay::new(Duration::from_secs_f32(2.0)), // TODO: adjust by ratelimit remaining and per Canvas instance
-                                uri: uri.clone(),
-                            },
-                            ret: {
-                                cx.waker().wake_by_ref();
-                                Poll::Pending
-                            },
-                        }
-                    }
-
-                    StatusCode::UNAUTHORIZED => {
-                        tracing::error!(message = "incorrect authorization", auth_header = ?response.headers().get(header::AUTHORIZATION));
-
-                        PaginationStateTransition {
-                            new: PaginationState::Finished,
-                            ret: Poll::Ready(Some(Err(Error::Unauthorized)))
-                        }
-                    }
-
-                    code => {
-                        tracing::warn!(message = "recieved response with unknown status code", %code);
-
-                        PaginationStateTransition {
-                            new: PaginationState::Finished,
-                            ret: Poll::Ready(Some(Err(Error::UnknownHttpStatus {
-                                code,
-                                headers: response.headers().clone(),
-                                response: response.into(),
-                            })))
-                        }
-                    },
-                }),
+                },
                 Poll::Ready(Err(err)) => PaginationStateTransition::from_residual(Err(err.into())),
                 Poll::Pending => PaginationStateTransition {
                     new: state,

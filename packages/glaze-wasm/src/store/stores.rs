@@ -1,4 +1,4 @@
-use super::GlazeStore;
+use super::{StoreName, GlazeStore};
 use wasm_bindgen::prelude::*;
 
 #[derive(Debug)]
@@ -11,9 +11,9 @@ pub struct Stores {
 impl Stores {
     pub async fn new() -> Result<Stores, JsValue> {
         Ok(Self {
-            courses: GlazeStore::load("courses").await?,
-            assignments: GlazeStore::load("assignments").await?,
-            submissions: GlazeStore::load("submissions").await?,
+            courses: GlazeStore::load(StoreName::Course).await?,
+            assignments: GlazeStore::load(StoreName::Assignment).await?,
+            submissions: GlazeStore::load(StoreName::Submission).await?,
         })
     }
 }
