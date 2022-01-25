@@ -61,6 +61,16 @@ pub enum ResourceKind {
     Submission,
 }
 
+impl ResourceKind {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            ResourceKind::Assignment => "assignment",
+            ResourceKind::Course => "course",
+            ResourceKind::Submission => "submission",
+        }
+    }
+}
+
 impl FromStr for ResourceKind {
     type Err = &'static str;
 

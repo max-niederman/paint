@@ -20,17 +20,29 @@ pub fn update_store<'a>(
     view: &'a View,
 ) -> impl Future<Output = Result<()>> + 'a {
     async move {
+        #[derive(serde::Serialize)]
+        struct QueryVariables<'a> {
+            canvas: &'a str,
+            user_id: canvas::Id,
+            resource_kind: &'static str,
+            since: DateTime<Utc>,
+        }
+
         let (_meta, socket): (_, WsStream) = WsMeta::connect(
         &format!(
-            "wss://{oil}/ebauche/update?canvas={canvas}&user_id={user_id}&resource_kind={resource_kind:?}&since={since}",
-            oil = "localhost:4210", // FIXME: make oil address configurable
-            canvas = view.truth.base_url,
-            user_id = {
-                let Viewer::User(id) = view.viewer;
-                id
-            },
-            resource_kind = resource_kind,
-            since = since,
+            "{oil}/ebauche/update?{query}",
+            oil = "ws://localhost:4210", // FIXME: make oil address configurable
+            query = serde_urlencoded::to_string(
+                QueryVariables {
+                    canvas: view.truth.base_url.as_str(),
+                    user_id: {
+                        let Viewer::User(id) = view.viewer;
+                        id
+                    },
+                    resource_kind: resource_kind.as_str(),
+                    since,
+                }
+            ).into_diagnostic()?,
         ),
         None,
     )

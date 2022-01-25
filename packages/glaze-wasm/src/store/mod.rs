@@ -103,7 +103,7 @@ impl StoreName {
     fn as_str(&self) -> &'static str {
         match self {
             Self::Course => "course",
-            Self::Assignment => "course",
+            Self::Assignment => "assignment",
             Self::Submission => "submission",
         }
     }
@@ -115,6 +115,7 @@ impl GlazeStore {
     // TODO: load and write multiple stores to IndexedDB with the same transaction?
 
     /// Load the [`GlazeStore`] from IndexedDB.
+    #[tracing::instrument]
     pub async fn load(name: StoreName) -> Result<Self, DomException> {
         let db: IdbDatabase = get_database().await?;
         let tr: IdbTransaction =
@@ -139,6 +140,7 @@ impl GlazeStore {
     }
 
     /// Write the [`GlazeStore`] to IndexedDB.
+    #[tracing::instrument]
     pub async fn write(&self) -> Result<(), DomException> {
         let mut bytes = Vec::new();
         for entry in self.resources.iter() {
@@ -166,16 +168,23 @@ impl Debug for GlazeStore {
     }
 }
 
+#[tracing::instrument]
 async fn get_database() -> Result<IdbDatabase, DomException> {
     let mut req: OpenDbRequest = IdbDatabase::open_u32(IDB_NAME, IDB_VERSION)?;
-    // TODO: if the store is outdated, we delete all of its data
-    //       in the future, we also need to replace this data with a new one from Ebauche
+    // FIXME: if the store is outdated, we delete all of its data
+    //        in the future, we also need to replace this data with a new copy from Ebauche
     req.set_on_upgrade_needed(Some(|event: &IdbVersionChangeEvent| {
-        for name in event.db().object_store_names() {
-            event.db().delete_object_store(&name)?;
+        let _span = tracing::info_span!("upgrade store").entered();
+
+        let db = event.db();
+
+        tracing::debug!("deleting old stores: {:?}", db.object_store_names().collect::<Vec<_>>());
+        for name in db.object_store_names() {
+            db.delete_object_store(&name)?;
         }
+
         for name in StoreName::ALL {
-            event.db().create_object_store(name.as_str())?;
+            db.create_object_store(name.as_str())?;
         }
         Ok(())
     }));

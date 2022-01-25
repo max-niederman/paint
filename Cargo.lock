@@ -837,6 +837,7 @@ dependencies = [
  "miette",
  "pigment",
  "serde",
+ "serde_urlencoded",
  "tracing",
  "tracing-wasm",
  "wasm-bindgen",

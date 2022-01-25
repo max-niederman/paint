@@ -29,6 +29,7 @@
 
             # JS
             nodePackages.pnpm
+            nodePackages.prettier
           ];
 
           # needed for rust-openssl

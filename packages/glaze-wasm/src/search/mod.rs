@@ -47,7 +47,7 @@ impl SearchManager {
         spawn_local(async move {
             let last_update =
                 LocalStorage::get("store::last_update").unwrap_or_else(|_| Utc.timestamp(0, 0));
-            LocalStorage::set("store::last_update", &Utc::now()).unwrap();
+            LocalStorage::set("store::last_update", &Utc.timestamp_millis(js_sys::Date::now() as _)).unwrap();
 
             store::oil::update_stores(
                 &stores,
@@ -110,7 +110,7 @@ fn into_exception(err: impl Display) -> JsValue {
 const TS_VIEW: &str = r#"
 export type View = {
     truth: { base_url: string; };
-    viewer: { user: number };
+    viewer: { User: number; };
 };
 "#;
 

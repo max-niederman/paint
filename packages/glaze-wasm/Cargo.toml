@@ -24,6 +24,7 @@ chrono = "0.4"
 bincode = "1.3"
 serde = "1.0"
 erased-serde = "0.3"
+serde_urlencoded = "0.7"
 crossbeam-skiplist = { git = "https://github.com/crossbeam-rs/crossbeam", tag = "crossbeam-0.8.1" }
 miette = "3.3"
 tracing = "0.1"
