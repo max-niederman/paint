@@ -35,12 +35,14 @@ impl IntoEndpoint for Api {
 async fn update(
     ebauche: Data<&Arc<Api>>,
     ws: WebSocket,
-    canvas: Query<String>,
+    // canvas: Query<String>,
     user_id: Query<String>,
     since: Query<DateTime<Utc>>,
     resource_kind: Query<ebauche_rpc::ResourceKind>,
 ) -> impl IntoResponse {
     use pigment::view::*;
+
+    let canvas = "https://lms.pps.net";
 
     let ebauche = ebauche.clone();
     ws.on_upgrade(move |mut socket| async move {
