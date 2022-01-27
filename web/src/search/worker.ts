@@ -1,18 +1,7 @@
 import initWasm, { SearchManager } from "glaze-wasm";
-import type { View, Query } from "glaze-wasm";
+import type { View, Query, QueryResults } from "glaze-wasm";
 
-let searchManager = await new SearchManager();
-const view: View = {
-	truth: { base_url: "https://lms.pps.net" },
-	viewer: { User: 89090000000116506 }
-};
-searchManager.update(view);
-console.log(searchManager.query(view, { text: "" }));
-
-type Request =
-	| {
-			type: "initialize";
-	  }
+export type Request =
 	| {
 			type: "update";
 			view: View;
@@ -23,23 +12,46 @@ type Request =
 			query: Query;
 	  };
 
-onmessage = async (e) => {
-    let req: Request = e.data;
+export type Response =
+	| {
+			type: "update";
+	  }
+	| {
+			type: "query";
+			results: QueryResults;
+	  };
 
-    switch (req.type) {
-        case "initialize":
-            await initWasm();
-            break;
-        
-        case "update":
-            searchManager.update(req.view);
-            break;
+let initialized = false;
+let searchManager: SearchManager;
 
-        case "query":
-            break;
+async function ensureInitialized() {
+	if (!initialized) {
+		console.log("initializing search worker");
+		await initWasm();
+		searchManager = new SearchManager();
+		initialized = true;
+	}
+}
 
-        default:
-            const invalidReq: never = req;
-            throw new Error(`Invalid request: ${invalidReq}`);
-    }
+self.onmessageerror = console.error;
+self.onmessage = async (e) => {
+	let req: Request = e.data;
+	console.log(`recieved request: ${req}`);
+
+	await ensureInitialized();
+
+	switch (req.type) {
+		case "update":
+			searchManager.update(req.view);
+			postMessage({ type: "update" });
+			break;
+
+		case "query":
+			postMessage({ type: "query", results: searchManager.query(req.view, req.query) });
+			break;
+
+		default:
+			const invalidReq: never = req;
+			throw new Error(`Invalid request: ${invalidReq}`);
+	}
 };

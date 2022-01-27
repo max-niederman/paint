@@ -5,6 +5,3 @@
 {#if text}
 	<input type="text" placeholder="Type to search..." />
 {/if}
-
-<style lang="scss">
-</style>
