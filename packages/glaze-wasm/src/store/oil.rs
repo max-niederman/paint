@@ -24,31 +24,30 @@ pub fn update_store<'a>(
         struct QueryVariables<'a> {
             canvas: &'a str,
             user_id: canvas::Id,
-            resource_kind: &'static str,
+            resource_kind: ResourceKind,
             since: DateTime<Utc>,
         }
 
         let (_meta, socket): (_, WsStream) = WsMeta::connect(
-        &format!(
-            "{oil}/ebauche/update?{query}",
-            oil = "ws://localhost:4210", // FIXME: make oil address configurable
-            query = serde_urlencoded::to_string(
-                QueryVariables {
+            &format!(
+                "{oil}/ebauche/update?{query}",
+                oil = "ws://localhost:4210", // FIXME: make oil address configurable
+                query = serde_urlencoded::to_string(QueryVariables {
                     canvas: view.truth.base_url.as_str(),
                     user_id: {
                         let Viewer::User(id) = view.viewer;
                         id
                     },
-                    resource_kind: resource_kind.as_str(),
+                    resource_kind,
                     since,
-                }
-            ).into_diagnostic()?,
-        ),
-        None,
-    )
-    .await
-    .into_diagnostic()
-    .wrap_err("failed to create WebSocket client")?;
+                })
+                .into_diagnostic()?,
+            ),
+            None,
+        )
+        .await
+        .into_diagnostic()
+        .wrap_err("failed to create WebSocket client")?;
 
         let mut responses = socket.map(|msg| match msg {
             WsMessage::Binary(bytes) => bincode::deserialize::<UpdateResponse>(&bytes)

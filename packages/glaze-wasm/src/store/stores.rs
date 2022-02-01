@@ -1,4 +1,5 @@
 use super::{StoreName, GlazeStore};
+use indexed_db_futures::prelude::*;
 use wasm_bindgen::prelude::*;
 
 #[derive(Debug)]

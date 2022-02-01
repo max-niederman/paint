@@ -1,10 +1,12 @@
 import initWasm, { SearchManager } from "glaze-wasm";
+import WasmURL from "glaze-wasm/glaze_wasm_bg.wasm";
 import type { View, Query, QueryResults } from "glaze-wasm";
 
 export type Request =
 	| {
 			type: "update";
 			view: View;
+			since: string;
 	  }
 	| {
 			type: "query";
@@ -21,14 +23,19 @@ export type Response =
 			results: QueryResults;
 	  };
 
+export interface SearchWorker extends Worker {
+	postMessage(req: Request): void;
+	onmessage: (e: MessageEvent<Response>) => void;
+}
+
 let initialized = false;
 let searchManager: SearchManager;
 
 async function ensureInitialized() {
 	if (!initialized) {
 		console.log("initializing search worker");
-		await initWasm();
-		searchManager = new SearchManager();
+		await initWasm(WasmURL);
+		searchManager = await new SearchManager();
 		initialized = true;
 	}
 }
@@ -36,13 +43,13 @@ async function ensureInitialized() {
 self.onmessageerror = console.error;
 self.onmessage = async (e) => {
 	let req: Request = e.data;
-	console.log(`recieved request: ${req}`);
+	console.log(`recieved request of type '${req.type}' from main thread`);
 
 	await ensureInitialized();
 
 	switch (req.type) {
 		case "update":
-			searchManager.update(req.view);
+			searchManager.update(req.view, req.since);
 			postMessage({ type: "update" });
 			break;
 

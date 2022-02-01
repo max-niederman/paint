@@ -167,18 +167,21 @@ impl Debug for GlazeStore {
         write!(f, "GlazeStore({})", self.name.as_str())
     }
 }
-
 #[tracing::instrument]
-async fn get_database() -> Result<IdbDatabase, DomException> {
+pub async fn get_database() -> Result<IdbDatabase, DomException> {
+    tracing::trace!("creating IDB open request");
     let mut req: OpenDbRequest = IdbDatabase::open_u32(IDB_NAME, IDB_VERSION)?;
     // FIXME: if the store is outdated, we delete all of its data
-    //        in the future, we also need to replace this data with a new copy from Ebauche
+    //        in the future, we also need to replace this data with a new copy from Oil
     req.set_on_upgrade_needed(Some(|event: &IdbVersionChangeEvent| {
         let _span = tracing::info_span!("upgrade store").entered();
 
         let db = event.db();
 
-        tracing::debug!("deleting old stores: {:?}", db.object_store_names().collect::<Vec<_>>());
+        tracing::debug!(
+            "deleting old stores: {:?}",
+            db.object_store_names().collect::<Vec<_>>()
+        );
         for name in db.object_store_names() {
             db.delete_object_store(&name)?;
         }
@@ -188,9 +191,9 @@ async fn get_database() -> Result<IdbDatabase, DomException> {
         }
         Ok(())
     }));
+    tracing::debug!("opening database");
     req.into_future().await
 }
-
 struct Deserializer<B> {
     bytes: B,
 }

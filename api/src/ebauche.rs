@@ -2,7 +2,7 @@
 //! This is necessary because funging other users' Canvas base URLs and IDs is trivial.
 
 use async_bincode::AsyncBincodeStream;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use futures::prelude::*;
 use miette::{miette, IntoDiagnostic, WrapErr};
 use poem::{
@@ -13,6 +13,7 @@ use poem::{
     },
     EndpointExt, IntoEndpoint, IntoResponse, Route,
 };
+use serde::Deserialize;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::net::TcpStream;
 
@@ -31,30 +32,33 @@ impl IntoEndpoint for Api {
     }
 }
 
+#[derive(Deserialize)]
+struct UpdateQuery {
+    canvas: String,
+    user_id: canvas::Id,
+    resource_kind: ebauche_rpc::ResourceKind,
+    since: DateTime<Utc>,
+}
+
 #[handler]
 async fn update(
     ebauche: Data<&Arc<Api>>,
     ws: WebSocket,
-    // canvas: Query<String>,
-    user_id: Query<String>,
-    since: Query<DateTime<Utc>>,
-    resource_kind: Query<ebauche_rpc::ResourceKind>,
+    query: Query<UpdateQuery>,
 ) -> impl IntoResponse {
     use pigment::view::*;
-
-    let canvas = "https://lms.pps.net";
 
     let ebauche = ebauche.clone();
     ws.on_upgrade(move |mut socket| async move {
         let req = ebauche_rpc::Request::Update {
-            since: *since,
+            since: query.since,
             view: View {
                 truth: Canvas {
-                    base_url: canvas.to_string(),
+                    base_url: query.canvas.clone(),
                 },
-                viewer: Viewer::User(user_id.parse().into_diagnostic()?),
+                viewer: Viewer::User(query.user_id),
             },
-            resource_kind: *resource_kind,
+            resource_kind: query.resource_kind,
         };
         let mut transport = AsyncBincodeStream::from(
             TcpStream::connect(ebauche.address)
@@ -85,16 +89,23 @@ async fn update(
             }
         }
 
+        tracing::info!("exhausted response stream, finishing...");
+
         Ok::<(), miette::ErrReport>(())
     })
+}
+
+#[derive(Deserialize)]
+struct FetchQuery {
+    canvas: String,
+    user_id: canvas::Id,
 }
 
 #[handler]
 async fn fetch(
     ebauche: Data<&Arc<Api>>,
     ws: WebSocket,
-    canvas: Query<String>,
-    user_id: Query<String>,
+    query: Query<FetchQuery>,
 ) -> impl IntoResponse {
     use pigment::view::*;
 
@@ -104,9 +115,9 @@ async fn fetch(
             canvas_token: todo!("fetch canvas token from database"),
             view: View {
                 truth: Canvas {
-                    base_url: canvas.to_string(),
+                    base_url: query.canvas.clone(),
                 },
-                viewer: Viewer::User(user_id.parse().into_diagnostic()?),
+                viewer: Viewer::User(query.user_id),
             },
         };
         let mut transport = AsyncBincodeStream::from(

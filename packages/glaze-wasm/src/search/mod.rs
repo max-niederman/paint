@@ -1,16 +1,15 @@
 pub mod query;
-pub use query::Query;
-use wasm_bindgen_futures::spawn_local;
 
 use crate::store::{self, Stores};
 use canvas::resource::*;
-use chrono::{TimeZone, Utc};
-use gloo_storage::{LocalStorage, Storage as WebStorage};
+use chrono::{DateTime, Utc};
 use pigment::{cache, Selector, View};
 use query::JsQuery;
+pub use query::Query;
 use serde::Serialize;
 use std::{fmt::Display, rc::Rc};
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
 #[wasm_bindgen]
 pub struct SearchManager {
@@ -21,7 +20,10 @@ pub struct SearchManager {
 impl SearchManager {
     #[wasm_bindgen(constructor)]
     pub async fn new() -> Result<SearchManager, JsValue> {
-        Ok(SearchManager { stores: Rc::new(Stores::new().await?)})
+        tracing::info!("constructing search manager");
+        Ok(SearchManager {
+            stores: Rc::new(Stores::new().await?),
+        })
     }
 
     // TODO: the typescript definition should know this returns a Result<QueryResult, JsValue>
@@ -40,22 +42,15 @@ impl SearchManager {
     }
 
     /// Update the views in the store.
-    pub fn update(&self, view: &JsView) -> Result<(), JsValue> {
+    pub fn update(&self, view: &JsView, since: &str) -> Result<(), JsValue> {
         let stores = self.stores.clone();
         let view = view.into_serde().map_err(into_exception)?;
+        let since = since.parse::<DateTime<Utc>>().map_err(into_exception)?;
 
         spawn_local(async move {
-            let last_update =
-                LocalStorage::get("store::last_update").unwrap_or_else(|_| Utc.timestamp(0, 0));
-            LocalStorage::set("store::last_update", &Utc.timestamp_millis(js_sys::Date::now() as _)).unwrap();
-
-            store::oil::update_stores(
-                &stores,
-                last_update,
-                &view,
-            )
-            .await
-            .expect("failed to update stores")
+            store::oil::update_stores(&stores, since, &view)
+                .await
+                .expect("failed to update stores")
         });
         Ok(())
     }
