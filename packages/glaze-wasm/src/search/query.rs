@@ -9,7 +9,7 @@ pub struct Query {
 }
 
 impl<R: Resource> Selector<R> for Query {
-    fn matches(&self, resource: &R) -> bool {
+    fn matches(&self, _resource: &R) -> bool {
         // FIXME: implement query matching
         true
     }

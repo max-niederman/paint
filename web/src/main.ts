@@ -8,7 +8,7 @@ const app = new App({
 
 const searchWorker: Search.SearchWorker = new Worker("/search/worker.js");
 
-searchWorker.onmessage = (msg) => {
+searchWorker.onmessage = async (msg) => {
 	const resp: Search.Response = msg.data;
 
 	console.log(`received response from search worker`);
@@ -18,7 +18,7 @@ searchWorker.onmessage = (msg) => {
 		case "update":
 			searchWorker.postMessage({
 				type: "query",
-				view: { truth: { base_url: "https://lms.pps.net" }, viewer: { User: 89090000000116506 } },
+				view: { truth: { base_url: "https://lms.pps.net" }, viewer: { User: 89090000000116506n } },
 				query: { text: "" },
 			});
 			break;
@@ -33,6 +33,6 @@ searchWorker.onmessage = (msg) => {
 };
 searchWorker.postMessage({
 	type: "update",
-	view: { truth: { base_url: "https://lms.pps.net" }, viewer: { User: 89090000000116506 } },
+	view: { truth: { base_url: "https://lms.pps.net" }, viewer: { User: 89090000000116506n } },
 	since: "2022-01-01T00:00:00Z"
 });

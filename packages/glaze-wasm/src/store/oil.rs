@@ -104,9 +104,9 @@ pub fn update_stores<'a>(
     view: &'a View,
 ) -> impl Future<Output = Result<()>> + 'a {
     future::try_join_all([
-        update_store(&stores.courses, ResourceKind::Course, since, &view),
-        update_store(&stores.assignments, ResourceKind::Assignment, since, &view),
-        update_store(&stores.submissions, ResourceKind::Submission, since, &view),
+        update_store(&stores.courses, ResourceKind::Course, since, view),
+        update_store(&stores.assignments, ResourceKind::Assignment, since, view),
+        update_store(&stores.submissions, ResourceKind::Submission, since, view),
     ])
     .map_ok(|_| ())
 }

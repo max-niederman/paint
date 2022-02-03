@@ -3,13 +3,14 @@ pub mod query;
 use crate::store::{self, Stores};
 use canvas::resource::*;
 use chrono::{DateTime, Utc};
+use js_sys::Promise;
 use pigment::{cache, Selector, View};
 use query::JsQuery;
 pub use query::Query;
 use serde::Serialize;
 use std::{fmt::Display, rc::Rc};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::spawn_local;
+use wasm_bindgen_futures::{future_to_promise};
 
 #[wasm_bindgen]
 pub struct SearchManager {
@@ -33,7 +34,8 @@ impl SearchManager {
             &self
                 .stores
                 .query_view(
-                    &view.into_serde().map_err(into_exception)?,
+                    // we use serde-wasm-bindgen because the `View` type contains a bigint
+                    &serde_wasm_bindgen::from_value(view.into()).map_err(into_exception)?,
                     &query.into_serde::<Query>().map_err(into_exception)?,
                 )
                 .map_err(into_exception)?,
@@ -42,18 +44,19 @@ impl SearchManager {
     }
 
     /// Update the views in the store.
-    pub fn update(&self, view: &JsView, since: &str) -> Result<(), JsValue> {
+    pub fn update(&self, view: &JsView, since: &str) -> Result<Promise, JsValue> {
         let stores = self.stores.clone();
-        let view = view.into_serde().map_err(into_exception)?;
+        // we use serde-wasm-bindgen because the `View` type contains a bigint
+        let view = serde_wasm_bindgen::from_value(view.into()).map_err(into_exception)?;
         let since = since.parse::<DateTime<Utc>>().map_err(into_exception)?;
 
-        spawn_local(async move {
+        Ok(future_to_promise(async move {
             store::oil::update_stores(&stores, since, &view)
                 .await
-                .expect("failed to update stores");
+                .map_err(into_exception)?;
             tracing::info!(message = "finished store update", %view);
-        });
-        Ok(())
+            Ok(JsValue::UNDEFINED)
+        }))
     }
 }
 
@@ -106,7 +109,7 @@ fn into_exception(err: impl Display) -> JsValue {
 const TS_VIEW: &str = r#"
 export type View = {
     truth: { base_url: string; };
-    viewer: { User: number; };
+    viewer: { User: bigint; };
 };
 "#;
 

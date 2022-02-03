@@ -1,3 +1,5 @@
+#![feature(box_patterns)]
+
 mod ebauche;
 
 extern crate canvas_lms as canvas;

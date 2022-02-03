@@ -49,7 +49,7 @@ self.onmessage = async (e) => {
 
 	switch (req.type) {
 		case "update":
-			searchManager.update(req.view, req.since);
+			await searchManager.update(req.view, req.since);
 			postMessage({ type: "update" });
 			break;
 
