@@ -16,6 +16,11 @@ searchWorker.onmessage = (msg) => {
 
 	switch (resp.type) {
 		case "update":
+			searchWorker.postMessage({
+				type: "query",
+				view: { truth: { base_url: "https://lms.pps.net" }, viewer: { User: 89090000000116506 } },
+				query: { text: "" },
+			});
 			break;
 
 		case "query":

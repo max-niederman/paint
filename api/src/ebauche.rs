@@ -65,8 +65,9 @@ async fn update(
                 .await
                 .into_diagnostic()
                 .wrap_err("failed connecting to Ebauche")?,
-        );
+        ).for_async();
         let mut responses = req.send(&mut transport).await?;
+        tracing::debug!("awaiting responses...");
         while let Some(resp) = responses.next().await {
             // TODO: currently, we are deserializing the entire message only to immediately reserialize it
             //        this is fucking stupid, but it'll do for now
@@ -89,7 +90,7 @@ async fn update(
             }
         }
 
-        tracing::info!("exhausted response stream, finishing...");
+        tracing::debug!("exhausted response stream, finishing...");
 
         Ok::<(), miette::ErrReport>(())
     })
@@ -125,7 +126,7 @@ async fn fetch(
                 .await
                 .into_diagnostic()
                 .wrap_err("failed connecting to Ebauche")?,
-        );
+        ).for_async();
         let mut responses = req.send(&mut transport).await?;
         while let Some(resp) = responses.next().await {
             // TODO: currently, we are deserializing the entire message only to immediately reserialize it

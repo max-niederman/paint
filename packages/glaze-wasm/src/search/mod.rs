@@ -50,7 +50,8 @@ impl SearchManager {
         spawn_local(async move {
             store::oil::update_stores(&stores, since, &view)
                 .await
-                .expect("failed to update stores")
+                .expect("failed to update stores");
+            tracing::info!(message = "finished store update", %view);
         });
         Ok(())
     }
