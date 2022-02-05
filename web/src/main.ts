@@ -18,8 +18,13 @@ searchWorker.onmessage = async (msg) => {
 		case "update":
 			searchWorker.postMessage({
 				type: "query",
-				view: { truth: { base_url: "https://lms.pps.net" }, viewer: { User: 89090000000116506n } },
-				query: { text: "" },
+				view: {
+					truth: { base_url: "https://lms.pps.net" },
+					viewer: { User: 89090000000116506n }
+				},
+				query: {
+					count: 10
+				}
 			});
 			break;
 

@@ -4,13 +4,13 @@ use crate::store::{self, Stores};
 use canvas::resource::*;
 use chrono::{DateTime, Utc};
 use js_sys::Promise;
-use pigment::{cache, Selector, View};
+use pigment::View;
 use query::JsQuery;
 pub use query::Query;
 use serde::Serialize;
 use std::{fmt::Display, rc::Rc};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::{future_to_promise};
+use wasm_bindgen_futures::future_to_promise;
 
 #[wasm_bindgen]
 pub struct SearchManager {
@@ -30,17 +30,11 @@ impl SearchManager {
     // TODO: the typescript definition should know this returns a Result<QueryResult, JsValue>
     /// Run the given query in the given view.
     pub fn query(&self, view: &JsView, query: &JsQuery) -> Result<JsValue, JsValue> {
-        JsValue::from_serde(
-            &self
-                .stores
-                .query_view(
-                    // we use serde-wasm-bindgen because the `View` type contains a bigint
-                    &serde_wasm_bindgen::from_value(view.into()).map_err(into_exception)?,
-                    &query.into_serde::<Query>().map_err(into_exception)?,
-                )
-                .map_err(into_exception)?,
-        )
-        .map_err(into_exception)
+        // we use serde-wasm-bindgen because the `View` type contains a bigint
+        let view: View = serde_wasm_bindgen::from_value(view.into()).map_err(into_exception)?;
+        let query: Query = query.into_serde().map_err(into_exception)?;
+
+        JsValue::from_serde(&query.execute(&self.stores)).map_err(into_exception)
     }
 
     /// Update the views in the store.
@@ -60,45 +54,12 @@ impl SearchManager {
     }
 }
 
-macro_rules! impl_stores_query_view {
-    ($( $name:ident : $ty:ty, )*) => {
-        impl Stores {
-            fn query_view<S>(&self, view: &View, selector: &S) -> cache::Result<QueryResults>
-            where
-                $( S: Selector<$ty> ),*
-            {
-                fn collect<T, E>(iter: impl Iterator<Item = Result<T, E>>) -> Result<Vec<T>, E> {
-                    let mut vec = Vec::with_capacity(iter.size_hint().0);
-                    for item in iter {
-                        vec.push(item?);
-                    }
-                    Ok(vec)
-                }
-
-                Ok(QueryResults {
-                    $(
-                        $name: collect(
-                            cache::get_all::<_, $ty>(&self.$name, view)?
-                                .map(|res| res.map(|(_, entry)| entry.resource))
-                                .filter(|res| res.is_err() || selector.matches(res.as_ref().unwrap())),
-                        )?,
-                    )*
-                })
-            }
-        }
-    };
-}
-impl_stores_query_view! {
-    courses: Course,
-    assignments: Assignment,
-    submissions: Submission,
-}
-
-#[derive(Serialize)]
-pub struct QueryResults {
-    pub courses: Vec<Course>,
-    pub assignments: Vec<Assignment>,
-    pub submissions: Vec<Submission>,
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", content = "resource")]
+pub enum QueryResult {
+    Course(Course),
+    Assignment(Assignment),
+    Submission(Submission),
 }
 
 fn into_exception(err: impl Display) -> JsValue {
@@ -113,14 +74,25 @@ export type View = {
 };
 "#;
 
+
 // TODO: add stricter types for resources
 #[wasm_bindgen(typescript_custom_section)]
 const TS_QUERY_RESULTS: &str = r#"
-export type QueryResults = {
-    courses: any[];
-    assignments: any[];
-    submissions: any[];
-};
+export type QueryResult = 
+    | {
+        type: "course";
+        resource: any;
+      }
+    | {
+        type: "assignment";
+        resource: any;
+      }
+    | {
+        type: "submission";
+        resource: any;
+      };
+
+export type QueryResults = QueryResult[];
 "#;
 
 #[wasm_bindgen]

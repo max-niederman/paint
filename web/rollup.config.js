@@ -99,7 +99,7 @@ export default [
             !development && terser(),
         ],
         watch: {
-
+            buildDelay: 1000,
         }
     }
 ];
