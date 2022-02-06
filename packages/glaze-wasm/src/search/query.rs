@@ -9,6 +9,7 @@ use wasm_bindgen::prelude::*;
 pub struct Query {
     pub(crate) count: Option<usize>,
     pub(crate) sorted: bool,
+    pub(crate) targets: QueryTargets,
 
     pub(crate) text: Option<String>,
 }
@@ -17,9 +18,15 @@ impl Query {
     pub fn execute(&self, stores: &Stores) -> Result<Vec<QueryResult>> {
         let mut results = Vec::with_capacity(self.count.unwrap_or(0));
 
-        self.execute_individual::<canvas::resource::Submission>(&mut results, &stores.submissions)?;
-        self.execute_individual::<canvas::resource::Course>(&mut results, &stores.courses)?;
-        self.execute_individual::<canvas::resource::Assignment>(&mut results, &stores.assignments)?;
+        if self.targets.submission {
+            self.execute_individual::<canvas::resource::Submission>(&mut results, &stores.submissions)?;
+        }
+        if self.targets.course {
+            self.execute_individual::<canvas::resource::Course>(&mut results, &stores.courses)?;
+        }
+        if self.targets.assignment {
+            self.execute_individual::<canvas::resource::Assignment>(&mut results, &stores.assignments)?;
+        }
 
         // results are sorted by score in ascending order, so we reverse them
         results.reverse();
@@ -112,8 +119,25 @@ impl<R: Resource> Score<R> for Query {
     }
 }
 
-macro_rules! query_result_resource_enum {
-    ( $( $resource:ident ),* $(,)? ) => {
+macro_rules! query_resources {
+    ( $( $name:ident : $resource:ident ),* $(,)? ) => {
+        #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+        pub struct QueryTargets {
+            $(
+                pub $name: bool,
+            )*
+        }
+
+        impl Default for QueryTargets {
+            fn default() -> Self {
+                Self {
+                    $(
+                        $name: true,
+                    )*
+                }
+            }
+        }
+
         #[derive(Debug, Clone, PartialEq, Serialize)]
         #[serde(tag = "type", content = "resource")]
         pub enum QueryResultResource {
@@ -132,7 +156,11 @@ macro_rules! query_result_resource_enum {
     };
 }
 
-query_result_resource_enum!(Assignment, Course, Submission);
+query_resources! {
+    course: Course,
+    assignment: Assignment,
+    submission: Submission,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct QueryResult {
@@ -144,8 +172,13 @@ pub struct QueryResult {
 #[wasm_bindgen(typescript_custom_section)]
 const TS_QUERY: &str = r#"
 export type Query = {
-    count?: number;
+    count: number | null;
     sorted: boolean;
+    targets: {
+        course: boolean;
+        assignment: boolean;
+        submission: boolean;
+    };
 
     text?: string;
 };

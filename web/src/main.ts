@@ -52,11 +52,16 @@ searchWorker.onmessage = async (msg) => {
 		},
 		query: {
 			sorted: false,
+			targets: {
+				course: true,
+				assignment: false,
+				submission: false,
+			},
 			count
 		}
 	});
-// searchWorker.postMessage({
-// 	type: "update",
-// 	view: { truth: { base_url: "https://lms.pps.net" }, viewer: { User: 89090000000116506n } },
-// 	since: "2022-01-01T00:00:00Z"
-// });
+searchWorker.postMessage({
+	type: "update",
+	view: { truth: { base_url: "https://lms.pps.net" }, viewer: { User: 89090000000116506n } },
+	since: "2022-01-01T00:00:00Z"
+});
