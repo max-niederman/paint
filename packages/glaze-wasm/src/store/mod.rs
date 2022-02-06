@@ -11,12 +11,13 @@ use std::{
     fmt::{self, Debug},
     ops::{Bound, RangeBounds},
 };
+use wasm_bindgen::prelude::*;
 
 use web_sys::DomException;
 
 pub struct GlazeStore {
-    name: StoreName,
-    resources: SkipMap<Vec<u8>, Vec<u8>>,
+    pub(crate) name: StoreName,
+    pub(crate) resources: SkipMap<Vec<u8>, Vec<u8>>,
 }
 
 impl Store for GlazeStore {
@@ -114,6 +115,9 @@ impl GlazeStore {
     //       it would be nice to avoid that, considering each store could easily be megabytes.
     // TODO: load and write multiple stores to IndexedDB with the same transaction?
 
+    // NOTE: looking at the Storage tab of Firefox DevTools, it appears that the serialized values are only 1088 bytes long in IndexedDB.
+    //       I have no idea why this happens, but the values are the right length for the actual code, so it doesn't really matter.
+
     /// Load the [`GlazeStore`] from IndexedDB.
     #[tracing::instrument]
     pub async fn load(name: StoreName) -> Result<Self, DomException> {
@@ -127,9 +131,14 @@ impl GlazeStore {
             .map(Into::into);
 
         if let Some(bytes) = bytes {
+            let bytes = bytes.to_vec();
+            tracing::debug!(
+                message = "deserializing store",
+                ser_len = bytes.len(),
+            );
             Ok(Self {
                 name,
-                resources: Deserializer::new(bytes.to_vec().into_iter()).collect(),
+                resources: Deserializer::new(bytes.into_iter()).collect(),
             })
         } else {
             Ok(Self {
@@ -149,14 +158,21 @@ impl GlazeStore {
             bytes.extend_from_slice(entry.key());
             bytes.extend_from_slice(entry.value());
         }
+        tracing::debug!(
+            message = "finished serializing store",
+            ser_len = bytes.len()
+        );
 
         let db: IdbDatabase = get_database().await?;
         let tr: IdbTransaction =
             db.transaction_on_one_with_mode(self.name.as_str(), IdbTransactionMode::Readwrite)?;
         tr.object_store(self.name.as_str())?
-            .put_key_val_owned("resources", &Uint8Array::from(bytes.as_slice()))?
+            .put_key_val_owned("resources", &unsafe { Uint8Array::view(&bytes) })?
             .into_future()
             .await?;
+
+        // `bytes` must not be dropped before the transaction is completed or the view into it will be invalidated
+        drop(bytes);
 
         Ok(())
     }

@@ -9,6 +9,9 @@ export type Request =
 			since: string;
 	  }
 	| {
+			type: "save";
+	  }
+	| {
 			type: "query";
 			view: View;
 			query: Query;
@@ -17,6 +20,9 @@ export type Request =
 export type Response =
 	| {
 			type: "update";
+	  }
+	| {
+			type: "save";
 	  }
 	| {
 			type: "query";
@@ -33,10 +39,10 @@ let searchManager: SearchManager;
 
 async function ensureInitialized() {
 	if (!initialized) {
+		initialized = true;
 		console.log("initializing search worker");
 		await initWasm(WasmURL);
 		searchManager = await new SearchManager();
-		initialized = true;
 	}
 }
 
@@ -51,6 +57,11 @@ self.onmessage = async (e) => {
 		case "update":
 			await searchManager.update(req.view, req.since);
 			postMessage({ type: "update" });
+			break;
+		
+		case "save":
+			await searchManager.save();
+			postMessage({ type: "save" });
 			break;
 
 		case "query":

@@ -1,5 +1,6 @@
 #![feature(bound_map)]
 #![feature(btree_drain_filter)]
+#![feature(is_sorted)]
 #![feature(generic_associated_types)]
 
 extern crate canvas_lms as canvas;

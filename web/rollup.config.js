@@ -65,9 +65,6 @@ export default [
 
             !development && terser(),
 
-            // TODO: test incremental builds using
-            //       https://github.com/mprt-org/rollup-plugin-incremental
-
             development && serve({
                 port: 4212,
                 contentBase: ["dist"],

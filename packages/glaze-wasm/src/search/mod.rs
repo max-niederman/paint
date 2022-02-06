@@ -1,13 +1,12 @@
 pub mod query;
 
 use crate::store::{self, Stores};
-use canvas::resource::*;
 use chrono::{DateTime, Utc};
+use futures::future;
 use js_sys::Promise;
 use pigment::View;
 use query::JsQuery;
 pub use query::Query;
-use serde::Serialize;
 use std::{fmt::Display, rc::Rc};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
@@ -34,7 +33,8 @@ impl SearchManager {
         let view: View = serde_wasm_bindgen::from_value(view.into()).map_err(into_exception)?;
         let query: Query = query.into_serde().map_err(into_exception)?;
 
-        JsValue::from_serde(&query.execute(&self.stores)).map_err(into_exception)
+        JsValue::from_serde(&query.execute(&self.stores).map_err(into_exception)?)
+            .map_err(into_exception)
     }
 
     /// Update the views in the store.
@@ -52,14 +52,20 @@ impl SearchManager {
             Ok(JsValue::UNDEFINED)
         }))
     }
-}
 
-#[derive(Debug, Clone, Serialize)]
-#[serde(tag = "type", content = "resource")]
-pub enum QueryResult {
-    Course(Course),
-    Assignment(Assignment),
-    Submission(Submission),
+    /// Save the current store to IndexedDB.
+    pub fn save(&self) -> Promise {
+        let stores = self.stores.clone();
+        future_to_promise(async move {
+            future::try_join_all([
+                stores.courses.write(),
+                stores.assignments.write(),
+                stores.submissions.write(),
+            ])
+            .await?;
+            Ok::<_, JsValue>(JsValue::UNDEFINED)
+        })
+    }
 }
 
 fn into_exception(err: impl Display) -> JsValue {
@@ -72,27 +78,6 @@ export type View = {
     truth: { base_url: string; };
     viewer: { User: bigint; };
 };
-"#;
-
-
-// TODO: add stricter types for resources
-#[wasm_bindgen(typescript_custom_section)]
-const TS_QUERY_RESULTS: &str = r#"
-export type QueryResult = 
-    | {
-        type: "course";
-        resource: any;
-      }
-    | {
-        type: "assignment";
-        resource: any;
-      }
-    | {
-        type: "submission";
-        resource: any;
-      };
-
-export type QueryResults = QueryResult[];
 "#;
 
 #[wasm_bindgen]
