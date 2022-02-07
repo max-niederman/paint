@@ -1,7 +1,5 @@
 #![feature(box_patterns)]
 
-mod ebauche;
-
 extern crate canvas_lms as canvas;
 
 use miette::{Context, IntoDiagnostic, Result};
@@ -34,16 +32,6 @@ async fn main() -> Result<()> {
 
     let app = Route::new()
         .nest("/swagger", api.swagger_ui())
-        .nest(
-            "/ebauche",
-            ebauche::Api {
-                address: std::env::var("EBAUCHE_ADDR")
-                    .unwrap_or_else(|_| "127.0.0.1:4211".to_string())
-                    .parse()
-                    .into_diagnostic()
-                    .wrap_err("failed parsing Ebauche host address")?,
-            },
-        )
         .nest("/", api)
         .with(Tracing);
 
