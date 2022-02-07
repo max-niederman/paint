@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ebauche-rpc = { path = "../packages/ebauche-rpc" }
 canvas-lms = { path = "../packages/canvas", features = ["client"] }
 pigment = { path = "../packages/pigment" }
 fallible-stream = { path = "../packages/fallible-stream" }

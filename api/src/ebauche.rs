@@ -37,7 +37,7 @@ impl IntoEndpoint for Api {
 struct UpdateQuery {
     canvas: String,
     user_id: canvas::Id,
-    resource_kind: ebauche_rpc::ResourceKind,
+    resource_kind: ebauche::rpc::ResourceKind,
     since: DateTime<Utc>,
 }
 
@@ -52,7 +52,7 @@ async fn update(
     let ebauche = ebauche.clone();
     ws.on_upgrade(move |mut socket| {
         async move {
-            let req = ebauche_rpc::Request::Update {
+            let req = ebauche::rpc::Request::Update {
                 since: query.since,
                 view: View {
                     truth: Canvas {
@@ -77,12 +77,12 @@ async fn update(
                 // TODO: currently, we are deserializing the entire message only to immediately reserialize it
                 //       this is fucking stupid, but it'll do for now
 
-                let resp: ebauche_rpc::Response = resp
+                let resp: ebauche::rpc::Response = resp
                     .into_diagnostic()
                     .wrap_err("failed recieving message from Ebauche?")?
                     .map_err(|msg| miette!(msg).wrap_err("Ebauche response was error"))?;
 
-                if let ebauche_rpc::Response::Update(resp) = resp {
+                if let ebauche::rpc::Response::Update(resp) = resp {
                     socket
                         .send(websocket::Message::Binary(
                             bincode::serialize(&resp)
@@ -122,7 +122,7 @@ async fn fetch(
     let ebauche = ebauche.clone();
     ws.on_upgrade(move |mut socket| {
         async move {
-            let req = ebauche_rpc::Request::Fetch {
+            let req = ebauche::rpc::Request::Fetch {
                 canvas_token: todo!("fetch canvas token from database"),
                 view: View {
                     truth: Canvas {
@@ -146,12 +146,12 @@ async fn fetch(
                 // TODO: currently, we are deserializing the entire message only to immediately reserialize it
                 //        this is fucking stupid, but it'll do for now
 
-                let resp: ebauche_rpc::Response = resp
+                let resp: ebauche::rpc::Response = resp
                     .into_diagnostic()
                     .wrap_err("failed recieving message from Ebauche?")?
                     .map_err(|msg| miette!(msg).wrap_err("Ebauche response was error"))?;
 
-                if let ebauche_rpc::Response::Fetch(resp) = resp {
+                if let ebauche::rpc::Response::Fetch(resp) = resp {
                     socket
                         .send(websocket::Message::Binary(
                             bincode::serialize(&resp)

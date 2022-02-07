@@ -76,30 +76,4 @@ export default [
             development && livereload("dist"),
         ],
     },
-    // search worker bundle
-    {
-        input: "src/search/worker.ts",
-        output: {
-            dir: "dist/search",
-            format: "iife",
-            assetFileNames: "[name].[hash][extname]",
-            sourcemap: development,
-        },
-        plugins: [
-            del({ targets: ["dist/search/*"] }),
-            progress(),
-            typescript(),
-            resolve({ browser: true, }),
-            smartAsset({
-                url: "copy",
-                extensions: [".wasm"],
-                publicPath: "/search/",
-                nameFormat: "[name].[hash][ext]",
-            }),
-            !development && terser(),
-        ],
-        watch: {
-
-        }
-    }
 ];

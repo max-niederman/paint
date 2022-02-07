@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 canvas-lms = { path = "../packages/canvas" }
 pigment = { path = "../packages/pigment" }
-ebauche-rpc = { path = "../packages/ebauche-rpc" }
+ebauche = { path = "../res" }
 futures = "0.3"
 tokio = { version = "1.0", features = ["rt-multi-thread"] }
 poem = { version = "1.2", features = ["websocket"] }
