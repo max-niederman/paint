@@ -4,6 +4,9 @@ import type { View, Query, QueryResults } from "glaze-wasm";
 
 export type Request =
 	| {
+			type: "initialize";
+	  }
+	| {
 			type: "update";
 			view: View;
 			since: string;
@@ -18,6 +21,9 @@ export type Request =
 	  };
 
 export type Response =
+	| {
+			type: "initialize";
+	  }
 	| {
 			type: "update";
 	  }
@@ -54,11 +60,15 @@ self.onmessage = async (e) => {
 	await ensureInitialized();
 
 	switch (req.type) {
+		case "initialize":
+			postMessage({ type: "initialize" });
+			break;
+
 		case "update":
 			await searchManager.update(req.view, req.since);
 			postMessage({ type: "update" });
 			break;
-		
+
 		case "save":
 			await searchManager.save();
 			postMessage({ type: "save" });
