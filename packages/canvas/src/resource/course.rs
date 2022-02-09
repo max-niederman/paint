@@ -1,19 +1,22 @@
 use super::{enrollment::InlineEnrollment, grading_period::GradingPeriod, Resource};
-use crate::{DateTime, Id};
-use schemars::JsonSchema;
+use crate::Id;
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Course.
 ///
 /// Refer to [Canvas's API documentation](https://canvas.instructure.com/doc/api/courses.html).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Course {
     pub id: Id,
     pub uuid: String,
 
     pub name: String,
     pub course_code: String,
-    pub workflow_state: WorkflowState,
+    pub workflow_state: CourseWorkflowState,
 
     pub account_id: Id,
     pub enrollment_term_id: Id,
@@ -22,9 +25,9 @@ pub struct Course {
     pub grading_periods: Vec<GradingPeriod>,
     pub grading_standard_id: Option<Id>,
 
-    pub created_at: DateTime,
-    pub start_at: DateTime,
-    pub end_at: Option<DateTime>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub start_at: chrono::DateTime<chrono::Utc>,
+    pub end_at: Option<chrono::DateTime<chrono::Utc>>,
 
     #[serde(default)]
     pub enrollments: Vec<InlineEnrollment>, // enrollment grades present on include[]=total_scores
@@ -50,16 +53,24 @@ pub struct Course {
 
 impl Resource for Course {}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum WorkflowState {
+pub enum CourseWorkflowState {
     Unpublished,
     Available,
     Completed,
     Deleted,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CourseView {
     Feed,
@@ -69,32 +80,48 @@ pub enum CourseView {
     Syllabus,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Term {
     pub id: Id,
     pub name: String,
     #[serde(default)]
-    pub start_at: Option<DateTime>,
+    pub start_at: Option<chrono::DateTime<chrono::Utc>>,
     #[serde(default)]
-    pub end_at: Option<DateTime>,
+    pub end_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CourseProgress {
     pub requirement_count: u32,
     pub requirement_count_completed_count: u32,
     pub next_requirement_url: Option<String>,
-    pub completed_at: Option<DateTime>,
+    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CourseFormat {
     OnCampus,
     Online,
     Blended,
 }
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Permissions {
     pub attach: bool,
     pub update: bool,

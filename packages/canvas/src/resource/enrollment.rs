@@ -1,13 +1,16 @@
 use super::{user::User, Resource};
-use crate::{DateTime, Id};
-use schemars::JsonSchema;
+use crate::Id;
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Enrollment.
 ///
 /// Refer to [Canvas's API documentation](https://canvas.instructure.com/doc/api/enrollments.html)
 /// and [Source Code](https://github.com/instructure/canvas-lms/blob/master/app/controllers/enrollments_api_controller.rb).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Enrollment {
     #[serde(default)]
     pub id: Option<Id>,
@@ -18,12 +21,12 @@ pub struct Enrollment {
     #[serde(rename = "type")]
     pub enrollment_type: EnrollmentType,
 
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
-    pub start_at: DateTime,
-    pub end_at: DateTime,
-    pub last_activity_at: DateTime,
-    pub last_attended_at: DateTime,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub start_at: chrono::DateTime<chrono::Utc>,
+    pub end_at: chrono::DateTime<chrono::Utc>,
+    pub last_activity_at: chrono::DateTime<chrono::Utc>,
+    pub last_attended_at: chrono::DateTime<chrono::Utc>,
     pub total_activity_time: f64,
 
     pub html_url: String,
@@ -37,7 +40,11 @@ pub struct Enrollment {
 }
 
 /// An inline enrollment. This includes all fields which are present when Enrollments are inlined in Courses.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct InlineEnrollment {
     pub enrollment_state: EnrollmentState,
     #[serde(rename = "type")]
@@ -60,7 +67,11 @@ pub struct InlineEnrollment {
 
 impl Resource for Enrollment {}
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EnrollmentState {
     Active,
@@ -68,7 +79,11 @@ pub enum EnrollmentState {
     Inactive,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EnrollmentType {
     Student,
@@ -78,7 +93,11 @@ pub enum EnrollmentType {
     Observer,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub enum EnrollmentRole {
     StudentEnrollment,
@@ -88,7 +107,11 @@ pub enum EnrollmentRole {
     ObserverEnrollment,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Grade {
     pub html_url: String,
 

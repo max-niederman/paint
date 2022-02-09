@@ -2,7 +2,7 @@
 
 extern crate canvas_lms as canvas;
 
-use miette::{Context, IntoDiagnostic, Result};
+use miette::{IntoDiagnostic, Result};
 use poem::{listener::TcpListener, middleware::Tracing, EndpointExt, Route};
 use poem_openapi::{OpenApi, OpenApiService};
 use tracing_subscriber::EnvFilter;

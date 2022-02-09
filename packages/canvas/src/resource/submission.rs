@@ -1,12 +1,15 @@
 use super::{Assignment, Course, Resource};
-use crate::{DateTime, Id};
-use schemars::JsonSchema;
+use crate::Id;
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Submission.
 ///
 /// Refer to [Canvas's API documentation](https://canvas.instructure.com/doc/api/submissions.html).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Submission {
     pub course: Option<Course>,
     pub assignment_id: Id,
@@ -19,9 +22,9 @@ pub struct Submission {
     #[serde(default)]
     pub preview: Option<String>,
 
-    pub posted_at: Option<DateTime>,
-    pub submitted_at: Option<DateTime>,
-    pub graded_at: Option<DateTime>,
+    pub posted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub submitted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub graded_at: Option<chrono::DateTime<chrono::Utc>>,
 
     pub late: bool,
     pub excused: Option<bool>,
@@ -31,7 +34,7 @@ pub struct Submission {
     pub points_deducted: Option<f64>,
     pub seconds_late: Option<f64>,
 
-    pub workflow_state: WorkflowState,
+    pub workflow_state: SubmissionWorkflowState,
     pub extra_attempts: Option<u32>,
 
     pub submission_type: Option<SubmissionType>,
@@ -44,7 +47,11 @@ pub struct Submission {
 
 impl Resource for Submission {}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SubmissionType {
     DiscussionTopic,
@@ -61,16 +68,24 @@ pub enum SubmissionType {
     NotGraded,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum WorkflowState {
+pub enum SubmissionWorkflowState {
     Graded,
     Submitted,
     Unsubmitted,
     PendingReview,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LatePolicyStatus {
     Late,
