@@ -1,11 +1,12 @@
 use super::{Assignment, Course, Resource};
 use crate::{DateTime, Id};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Submission.
 ///
 /// Refer to [Canvas's API documentation](https://canvas.instructure.com/doc/api/submissions.html).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Submission {
     pub course: Option<Course>,
     pub assignment_id: Id,
@@ -43,7 +44,7 @@ pub struct Submission {
 
 impl Resource for Submission {}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum SubmissionType {
     DiscussionTopic,
@@ -60,7 +61,7 @@ pub enum SubmissionType {
     NotGraded,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkflowState {
     Graded,
@@ -69,7 +70,7 @@ pub enum WorkflowState {
     PendingReview,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum LatePolicyStatus {
     Late,

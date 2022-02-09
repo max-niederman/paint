@@ -1,12 +1,13 @@
 use super::{user::User, Resource};
 use crate::{DateTime, Id};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Enrollment.
 ///
 /// Refer to [Canvas's API documentation](https://canvas.instructure.com/doc/api/enrollments.html)
 /// and [Source Code](https://github.com/instructure/canvas-lms/blob/master/app/controllers/enrollments_api_controller.rb).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Enrollment {
     #[serde(default)]
     pub id: Option<Id>,
@@ -36,7 +37,7 @@ pub struct Enrollment {
 }
 
 /// An inline enrollment. This includes all fields which are present when Enrollments are inlined in Courses.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct InlineEnrollment {
     pub enrollment_state: EnrollmentState,
     #[serde(rename = "type")]
@@ -59,7 +60,7 @@ pub struct InlineEnrollment {
 
 impl Resource for Enrollment {}
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum EnrollmentState {
     Active,
@@ -67,7 +68,7 @@ pub enum EnrollmentState {
     Inactive,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum EnrollmentType {
     Student,
@@ -77,7 +78,7 @@ pub enum EnrollmentType {
     Observer,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "PascalCase")]
 pub enum EnrollmentRole {
     StudentEnrollment,
@@ -87,7 +88,7 @@ pub enum EnrollmentRole {
     ObserverEnrollment,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Grade {
     pub html_url: String,
 

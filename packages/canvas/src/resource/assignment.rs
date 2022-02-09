@@ -1,11 +1,12 @@
 use super::{submission::SubmissionType, Resource};
 use crate::{DateTime, Id};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Assignment.
 ///
 /// Refer to [Canvas's API documentation](https://canvas.instructure.com/doc/api/assignments.html).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Assignment {
     pub id: Id,
 
@@ -36,7 +37,7 @@ pub struct Assignment {
 
 impl Resource for Assignment {}
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct AssignmentOverride {
     pub id: Id,
     pub assignment_id: Id,
@@ -61,7 +62,7 @@ pub struct AssignmentOverride {
     pub lock_at: Option<DateTime>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum GradingType {
     PassFail,
@@ -72,14 +73,14 @@ pub enum GradingType {
     NotGraded,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct ScoreStatistics {
     pub min: f64,
     pub max: f64,
     pub mean: f64,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct LockInfo {
     pub asset_string: String,
     pub unlock_at: Option<DateTime>,

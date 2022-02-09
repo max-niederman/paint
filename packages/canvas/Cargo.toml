@@ -3,6 +3,13 @@ name = "canvas-lms"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "schema-canvas-lms"
+path = "src/schema.rs"
+
 [features]
 client = ["futures", "futures-timer", "hyper"]
 
@@ -21,6 +28,5 @@ hyper = { version = "0.14", features = [
     "http2",
     "tcp",
 ], optional = true }
-
-[lib]
-path = "src/lib.rs"
+schemars = { version = "0.8", features = ["chrono"] }
+gen-schema = { path = "../gen-schema" }

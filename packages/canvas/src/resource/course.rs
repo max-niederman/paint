@@ -1,11 +1,12 @@
 use super::{enrollment::InlineEnrollment, grading_period::GradingPeriod, Resource};
 use crate::{DateTime, Id};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Course.
 ///
 /// Refer to [Canvas's API documentation](https://canvas.instructure.com/doc/api/courses.html).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct Course {
     pub id: Id,
     pub uuid: String,
@@ -49,7 +50,7 @@ pub struct Course {
 
 impl Resource for Course {}
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkflowState {
     Unpublished,
@@ -58,7 +59,7 @@ pub enum WorkflowState {
     Deleted,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum CourseView {
     Feed,
@@ -68,7 +69,7 @@ pub enum CourseView {
     Syllabus,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct Term {
     pub id: Id,
     pub name: String,
@@ -78,7 +79,7 @@ pub struct Term {
     pub end_at: Option<DateTime>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct CourseProgress {
     pub requirement_count: u32,
     pub requirement_count_completed_count: u32,
@@ -86,14 +87,14 @@ pub struct CourseProgress {
     pub completed_at: Option<DateTime>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum CourseFormat {
     OnCampus,
     Online,
     Blended,
 }
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub struct Permissions {
     pub attach: bool,
     pub update: bool,

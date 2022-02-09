@@ -28,6 +28,7 @@
             wasm-pack
 
             # JS
+            nodejs-16_x
             nodePackages.pnpm
             nodePackages.prettier
           ];

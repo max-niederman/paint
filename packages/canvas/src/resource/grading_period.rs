@@ -1,11 +1,12 @@
 use super::Resource;
 use crate::{DateTime, Id};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Grading Period.
 ///
 /// Refer to [Canvas's API documentation](https://canvas.instructure.com/doc/api/grading_periods.html).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct GradingPeriod {
     pub id: Id,
     pub title: String,
