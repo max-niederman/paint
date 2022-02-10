@@ -9,8 +9,7 @@ target/
 
 # environment
 .direnv/
-.envrc.secret
-
+*.local
 
 # editor
 .vscode/

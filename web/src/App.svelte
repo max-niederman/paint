@@ -4,31 +4,45 @@
 	import SearchPage from "./pages/Search.svelte";
 	import Button from "./components/Button.svelte";
 	import HomePage from "./pages/Home.svelte";
+	import { createAuth } from "./auth";
+	import { onMount } from "svelte";
+
+	const { isLoading, isAuthenticated, login, logout, authToken, authError, userInfo } = createAuth();
 </script>
 
-<Router>
-	<Nav />
+{#if $isAuthenticated}
+	<Router>
+		<Nav />
 
+		<div class="container">
+			<div class="page">
+				<Route path="/">
+					<HomePage />
+				</Route>
+
+				<Route path="/search">
+					<SearchPage />
+				</Route>
+
+				<Route path="/**">
+					<main>
+						<h1>404 Not Found</h1>
+						<p>It looks like you're lost.</p>
+						<Link to="/"><Button>Back Home</Button></Link>
+					</main>
+				</Route>
+			</div>
+		</div>
+	</Router>
+{:else}
 	<div class="container">
 		<div class="page">
-			<Route path="/">
-				<HomePage />
-			</Route>
-
-			<Route path="/search">
-				<SearchPage />
-			</Route>
-
-			<Route path="/**">
-				<main>
-					<h1>404 Not Found</h1>
-					<p>It looks like you're lost.</p>
-					<Link to="/"><Button>Back Home</Button></Link>
-				</main>
-			</Route>
+			<main class="login">
+				<button on:click={() => login()}>Login</button>
+			</main>
 		</div>
 	</div>
-</Router>
+{/if}
 
 <style lang="scss">
 	.container {

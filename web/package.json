@@ -10,6 +10,7 @@
 		"prebuild": "pollen"
 	},
 	"devDependencies": {
+		"@auth0/auth0-spa-js": "^1.19.4",
 		"@sveltejs/vite-plugin-svelte": "^1.0.0-next.37",
 		"@tsconfig/svelte": "^2.0.1",
 		"pollen-css": "^4.2.0",
