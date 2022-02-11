@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { Router, Route, Link } from "svelte-navigator";
 	import Nav from "./components/Nav.svelte";
-	import SearchPage from "./pages/Search.svelte";
 	import Button from "./components/Button.svelte";
+	import SearchPage from "./pages/Search.svelte";
 	import HomePage from "./pages/Home.svelte";
+	import CoursePage from "./pages/Course.svelte";
 	import { createAuth } from "./auth";
 	import { onMount } from "svelte";
 
@@ -24,6 +25,10 @@
 					<SearchPage />
 				</Route>
 
+				<Route path="/courses/:id" let:params>
+					<CoursePage id={parseInt(params.id)} />
+				</Route>
+
 				<Route path="/**">
 					<main>
 						<h1>404 Not Found</h1>
@@ -38,7 +43,7 @@
 	<div class="container">
 		<div class="page">
 			<main class="login">
-				<button on:click={() => login()}>Login</button>
+				<Button on:click={() => login()}>Login</Button>
 			</main>
 		</div>
 	</div>

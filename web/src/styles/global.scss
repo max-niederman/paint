@@ -16,3 +16,9 @@ body {
 	background-color: var(--color-background);
 	color: var(--color-foreground);
 }
+
+// remove default link styles
+a {
+	color: inherit;
+	text-decoration: inherit;
+}
