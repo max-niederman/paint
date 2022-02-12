@@ -1,6 +1,6 @@
 import { onMount, setContext, getContext } from "svelte";
 import { writable } from "svelte/store";
-import createAuth0Client, { Auth0Client, RedirectLoginOptions } from "@auth0/auth0-spa-js";
+import createAuth0Client, { Auth0Client, Auth0ClientOptions, RedirectLoginOptions } from "@auth0/auth0-spa-js";
 
 const isLoading = writable(true);
 const isAuthenticated = writable(false);
@@ -9,9 +9,12 @@ const userInfo = writable({});
 const authError = writable(null);
 const AUTH_KEY = {};
 
-const config = {
+const config: Auth0ClientOptions = {
 	domain: import.meta.env.VITE_AUTH0_DOMAIN,
 	client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
+	audience: import.meta.env.VITE_API_URL,
+	scope: "email read:instances write:instances",
+	cacheLocation: "localstorage",
 };
 
 // Default Auth0 expiration time is 10 hours or something like that.

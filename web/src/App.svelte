@@ -14,6 +14,12 @@
 			login();
 		}
 	}
+
+	$: {
+		if ($authToken) {
+			fetch(`${import.meta.env.VITE_API_URL}/connections`, { headers: { Authorization: `Bearer ${$authToken}` } });
+		}
+	}
 </script>
 
 {#if !$isLoading}
@@ -23,9 +29,13 @@
 
 			<div class="container">
 				<div class="page">
-					<Route path="/" component={HomePage} />
+					<Route path="/">
+						<HomePage />
+					</Route>
 
-					<Route path="/search" component={SearchPage} />
+					<Route path="/search">
+						<SearchPage />
+					</Route>
 
 					<Route path="/courses/:id" let:params>
 						<CoursePage id={parseInt(params.id)} />
