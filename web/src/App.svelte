@@ -6,44 +6,60 @@
 	import HomePage from "./pages/Home.svelte";
 	import CoursePage from "./pages/Course.svelte";
 	import { createAuth } from "./auth";
-	import { onMount } from "svelte";
 
 	const { isLoading, isAuthenticated, login, logout, authToken, authError, userInfo } = createAuth();
+
+	$: {
+		if (!$isLoading && !$isAuthenticated) {
+			login();
+		}
+	}
 </script>
 
-{#if $isAuthenticated}
-	<Router>
-		<Nav />
+{#if !$isLoading}
+	{#if $isAuthenticated}
+		<Router>
+			<Nav />
 
+			<div class="container">
+				<div class="page">
+					<Route path="/" component={HomePage} />
+
+					<Route path="/search" component={SearchPage} />
+
+					<Route path="/courses/:id" let:params>
+						<CoursePage id={parseInt(params.id)} />
+					</Route>
+
+					<Route path="/**">
+						<main>
+							<h1>404 Not Found</h1>
+							<p>It looks like you're lost.</p>
+							<Link to="/"><Button>Back Home</Button></Link>
+						</main>
+					</Route>
+				</div>
+			</div>
+		</Router>
+	{:else}
 		<div class="container">
 			<div class="page">
-				<Route path="/">
-					<HomePage />
-				</Route>
-
-				<Route path="/search">
-					<SearchPage />
-				</Route>
-
-				<Route path="/courses/:id" let:params>
-					<CoursePage id={parseInt(params.id)} />
-				</Route>
-
-				<Route path="/**">
-					<main>
-						<h1>404 Not Found</h1>
-						<p>It looks like you're lost.</p>
-						<Link to="/"><Button>Back Home</Button></Link>
-					</main>
-				</Route>
+				<main class="login">
+					<h1>Not Logged In</h1>
+					<p>Redirecting...</p>
+					<p>
+						If you aren't redirected within a few seconds you can
+						<span class="login-link" on:click={() => login()}>login manually.</span>
+					</p>
+				</main>
 			</div>
 		</div>
-	</Router>
+	{/if}
 {:else}
 	<div class="container">
 		<div class="page">
 			<main class="login">
-				<Button on:click={() => login()}>Login</Button>
+				<h1>Loading...</h1>
 			</main>
 		</div>
 	</div>
@@ -61,5 +77,10 @@
 			width: 85ch;
 			max-width: 100%;
 		}
+	}
+
+	.login-link {
+		color: var(--color-blue);
+		cursor: pointer;
 	}
 </style>

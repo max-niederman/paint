@@ -1,6 +1,6 @@
 import { onMount, setContext, getContext } from "svelte";
 import { writable } from "svelte/store";
-import createAuth0Client, { Auth0Client } from "@auth0/auth0-spa-js";
+import createAuth0Client, { Auth0Client, RedirectLoginOptions } from "@auth0/auth0-spa-js";
 
 const isLoading = writable(true);
 const isAuthenticated = writable(false);
@@ -10,8 +10,8 @@ const authError = writable(null);
 const AUTH_KEY = {};
 
 const config = {
-    domain: "paint-dev.us.auth0.com",
-    client_id: "1Hu561MFrEiCQBfTPfIhxLxaKmV91zWl",
+	domain: "paint-dev.us.auth0.com",
+	client_id: "1Hu561MFrEiCQBfTPfIhxLxaKmV91zWl"
 };
 
 // Default Auth0 expiration time is 10 hours or something like that.
@@ -73,10 +73,17 @@ function createAuth() {
 
 	// Provide a redirect page if you need.
 	// It must be whitelisted in Auth0. I think.
-	const login = async (redirectPage?: string) => {
+	const login = async (
+		opts: {
+			redirectPage?: string;
+			prompt?: "none" | "login" | "consent" | "select_account";
+		} = {}
+	) => {
+		const { redirectPage, prompt } = opts;
+
 		await auth0.loginWithRedirect({
 			redirect_uri: redirectPage ?? window.location.origin,
-			prompt: "login" // Force login prompt. No silence auth for you!
+			prompt: prompt ?? "login"
 		});
 	};
 
