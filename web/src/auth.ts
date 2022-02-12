@@ -10,8 +10,8 @@ const authError = writable(null);
 const AUTH_KEY = {};
 
 const config = {
-	domain: "paint-dev.us.auth0.com",
-	client_id: "1Hu561MFrEiCQBfTPfIhxLxaKmV91zWl"
+	domain: import.meta.env.VITE_AUTH0_DOMAIN,
+	client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
 };
 
 // Default Auth0 expiration time is 10 hours or something like that.
