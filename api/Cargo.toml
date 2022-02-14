@@ -10,9 +10,8 @@ ebauche = { path = "../res" }
 futures = "0.3"
 tokio = { version = "1.0", features = ["rt-multi-thread"] }
 tokio-stream = "0.1"
-poem = { version = "1.2", features = ["websocket"] }
+poem = { version = "1.2", features = ["rustls"] }
 poem-openapi = { version = "1.2", features = ["swagger-ui"] }
-reqwest = { version = "0.11", features = ["json"] }
 jsonwebtoken = "8.0"
 serde = "1.0"
 serde_json = "1.0"
@@ -23,3 +22,8 @@ miette = { version = "3.2", features = ["fancy"] }
 thiserror = "1.0"
 tracing = "0.1.29"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+
+[dependencies.reqwest]
+version = "0.11"
+default-features = false
+features = ["rustls-tls", "json"]

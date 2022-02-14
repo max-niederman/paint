@@ -8,7 +8,7 @@ use ebauche::{
     rpc::{self, Request, Response},
 };
 use futures::prelude::*;
-use hyper_tls::HttpsConnector;
+use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 use miette::GraphicalReportHandler;
 use miette::{Diagnostic, ReportHandler};
 use pigment::ResourceKind;
@@ -25,7 +25,14 @@ impl Handler {
     pub fn new(db: sled::Db) -> Self {
         Self {
             cache: EbaucheCache::new(db),
-            http_client: hyper::Client::builder().build(HttpsConnector::new()),
+            http_client: hyper::Client::builder().build(
+                HttpsConnectorBuilder::new()
+                    .with_native_roots()
+                    .https_or_http()
+                    .enable_http1()
+                    .enable_http2()
+                    .build(),
+            ),
         }
     }
 }

@@ -3,13 +3,14 @@ node_modules/
 
 # build outputs
 target/
+result
 
 # logs
 .pnpm-debug.log
 
 # environment
 .direnv/
-*.local
+.envrc*.local
 
 # editor
 .vscode/

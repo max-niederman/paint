@@ -17,7 +17,7 @@
 
 	$: {
 		if ($authToken) {
-			fetch(`${import.meta.env.VITE_API_URL}/connections`, { headers: { Authorization: `Bearer ${$authToken}` } });
+			fetch(`${import.meta.env.VITE_OIL_URL}/connections`, { headers: { Authorization: `Bearer ${$authToken}` } });
 		}
 	}
 </script>

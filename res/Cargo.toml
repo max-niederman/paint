@@ -15,7 +15,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 bincode = "1.0"
 async-bincode = "0.6"
-hyper-tls = "0.5"
+hyper-rustls = { version = "0.23", features = ["http2", "webpki-roots"] }
 sled = { version = "0.34" }
 tracing = "0.1.29"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }

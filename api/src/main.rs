@@ -7,7 +7,7 @@ extern crate canvas_lms as canvas;
 
 mod auth;
 
-use auth::{update_jwks, Claims};
+use auth::Claims;
 use futures::prelude::*;
 use miette::{IntoDiagnostic, Result};
 use poem::{
