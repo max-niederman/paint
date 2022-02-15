@@ -2,43 +2,45 @@
 #![feature(once_cell)]
 #![feature(box_patterns)]
 #![feature(result_option_inspect)]
+#![feature(trivial_bounds)]
 
 extern crate canvas_lms as canvas;
 
 mod auth;
+mod instance;
 
-use auth::Claims;
 use futures::prelude::*;
-use miette::{IntoDiagnostic, Result};
+use miette::{IntoDiagnostic, WrapErr};
 use poem::{
     listener::TcpListener,
     middleware::{Cors, Tracing},
-    EndpointExt, IntoResponse, Route,
+    EndpointExt, Route,
 };
 use poem_openapi::{
-    payload::{Json, PlainText},
-    OpenApi, OpenApiService,
+    payload::{PlainText},
+    OpenApi, OpenApiService, Tags,
 };
-use trace_errors::TraceErrors;
 use tracing_subscriber::EnvFilter;
 struct Api;
 
 #[OpenApi]
 impl Api {
-    #[oai(path = "/version", method = "get")]
+    #[oai(path = "/version", method = "get", tag = "ApiTags::Meta")]
     async fn get_version(&self) -> PlainText<&'static str> {
         PlainText(env!("CARGO_PKG_VERSION"))
     }
-
-    // TODO: add API logic
-    #[oai(path = "/instances", method = "get")]
-    async fn get_instances(&self, claims: Claims) -> Json<Vec<serde_json::Value>> {
-        Json(todo!())
-    }
 }
 
+#[derive(Tags)]
+enum ApiTags {
+    Meta,
+    Instance,
+}
+
+// TODO: send proper, consistent error responses for all error types
+
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> miette::Result<()> {
     #[cfg(not(debug_assertions))]
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -50,13 +52,27 @@ async fn main() -> Result<()> {
         .pretty()
         .init();
 
-    let api = OpenApiService::new(Api, env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
-        .server("http://localhost:4210");
+    tracing::info!("connecting to MongoDB");
+    let mongo_client = mongodb::Client::with_uri_str(
+        std::env::var("OIL_MONGODB_URI")
+            .into_diagnostic()
+            .wrap_err("missing OIL_MONGODB_URI environment variable")?,
+    )
+    .await
+    .into_diagnostic()
+    .wrap_err("failed to create MongoDB client")?;
+    let database = mongo_client.database("oil");
+
+    let api = OpenApiService::new(
+        (Api, instance::Api::new(&database)),
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+    )
+    .server("http://localhost:4210");
 
     let app = Route::new()
         .nest("/swagger", api.swagger_ui())
         .nest("/", api)
-        .with(TraceErrors)
         .with(Cors::new())
         .with(Tracing);
 
@@ -77,31 +93,4 @@ async fn main() -> Result<()> {
         .run(app)
         .await
         .into_diagnostic()
-}
-
-mod trace_errors {
-    use poem::{Endpoint, Middleware, Request};
-
-    pub struct TraceErrors;
-
-    impl<E: Endpoint> Middleware<E> for TraceErrors {
-        type Output = TraceErrorsEndpoint<E>;
-
-        fn transform(&self, ep: E) -> Self::Output {
-            TraceErrorsEndpoint(ep)
-        }
-    }
-
-    pub struct TraceErrorsEndpoint<E>(E);
-
-    #[poem::async_trait]
-    impl<E: Endpoint> Endpoint for TraceErrorsEndpoint<E> {
-        type Output = E::Output;
-
-        async fn call(&self, req: Request) -> poem::Result<Self::Output> {
-            self.0.call(req).await.inspect_err(|err| {
-                tracing::error!(%err, "request errored");
-            })
-        }
-    }
 }

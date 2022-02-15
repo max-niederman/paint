@@ -14,12 +14,6 @@
 			login();
 		}
 	}
-
-	$: {
-		if ($authToken) {
-			fetch(`${import.meta.env.VITE_OIL_URL}/connections`, { headers: { Authorization: `Bearer ${$authToken}` } });
-		}
-	}
 </script>
 
 {#if !$isLoading}

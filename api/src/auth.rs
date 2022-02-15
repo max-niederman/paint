@@ -1,31 +1,44 @@
-use std::{
-    env,
-    lazy::{Lazy, OnceCell, SyncOnceCell},
-    sync::{Once, RwLock},
-    time::Duration,
-};
-
 use futures::prelude::*;
 use jsonwebtoken::jwk;
 use miette::Diagnostic;
 use poem::{error::ResponseError, http::StatusCode, FromRequest, Request, RequestBody};
 use serde::{Deserialize, Serialize};
+use std::{env, lazy::SyncOnceCell, sync::RwLock, time::Duration};
 use tokio_stream::wrappers::IntervalStream;
 use tracing::Instrument;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "ClaimsSerialized")]
 pub struct Claims {
     pub aud: Vec<String>,
     pub sub: String,
+    pub scope: Vec<String>,
+}
+
+impl Claims {
+    pub fn ensure_scopes<I, S>(&self, scopes: I) -> Result<(), AuthError>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        for scope in scopes {
+            if !self.scope.iter().any(|s| s == scope.as_ref()) {
+                return Err(AuthError::MissingScope {
+                    missing: scope.as_ref().to_string(),
+                    present: self.scope.clone(),
+                });
+            }
+        }
+        Ok(())
+    }
 }
 
 #[poem::async_trait]
 impl<'a> FromRequest<'a> for Claims {
-    async fn from_request(req: &'a Request, body: &mut RequestBody) -> poem::Result<Self> {
+    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> poem::Result<Self> {
         let token = req
             .headers()
-            .get("Authorization")
-            .ok_or_else(|| AuthError::MissingAuthorizationHeader)?
+            .get("Authorization").ok_or(AuthError::MissingAuthorizationHeader)?
             .to_str()
             .map_err(|_| AuthError::FailedStringifyingAuthorizationHeader)?
             .strip_prefix("Bearer ")
@@ -39,7 +52,7 @@ impl<'a> FromRequest<'a> for Claims {
 
         match &key.algorithm {
             jwk::AlgorithmParameters::RSA(rsa) => jsonwebtoken::decode::<Claims>(
-                &token,
+                token,
                 &jsonwebtoken::DecodingKey::from_rsa_components(&rsa.n, &rsa.e)
                     .map_err(AuthError::JsonWebToken)?,
                 &jsonwebtoken::Validation::new(
@@ -51,7 +64,7 @@ impl<'a> FromRequest<'a> for Claims {
             .map(|data| data.claims)
             .map_err(AuthError::JsonWebToken)
             .map_err(Into::into),
-            algorithm @ _ => Err(AuthError::UnsupportedAlgorithm(algorithm.clone()).into()),
+            algorithm => Err(AuthError::UnsupportedAlgorithm(algorithm.clone()).into()),
         }
     }
 }
@@ -70,7 +83,7 @@ pub fn update_jwks() -> impl Stream<Item = Result<(), AuthError>> {
                 .await
                 .map_err(AuthError::FailedFetchingJwks)?;
 
-            tracing::info!(?jwks, "updated jwks");
+            tracing::info!(jwks_kids = ?jwks.keys.iter().map(|jwk| jwk.common.key_id.as_ref().unwrap()).collect::<Vec<_>>(), "updated jwks");
 
             let rw_lock = JWKS.get_or_init(|| RwLock::new(jwks.clone()));
             *rw_lock.write().unwrap() = jwks;
@@ -115,6 +128,12 @@ pub enum AuthError {
 
     #[error("failed to fetch JWKs")]
     FailedFetchingJwks(#[source] reqwest::Error),
+
+    #[error("missing requisite scope: {missing} not found in {present:#?}")]
+    MissingScope {
+        missing: String,
+        present: Vec<String>,
+    },
 }
 
 impl ResponseError for AuthError {
@@ -130,6 +149,7 @@ impl ResponseError for AuthError {
             Self::UnsupportedAlgorithm(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::MissingJwksUrl(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::FailedFetchingJwks(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::MissingScope { .. } => StatusCode::UNAUTHORIZED,
         }
     }
 
@@ -153,5 +173,24 @@ impl ResponseError for AuthError {
         poem::Response::builder()
             .status(self.status())
             .body(format!("{}", PrettyDiagnostic(self)))
+    }
+}
+
+// we deserialize the claims as [`ClaimsSerialized`] so that we can convert `scope` to a [`Vec<String>`]
+
+#[derive(Deserialize)]
+struct ClaimsSerialized {
+    aud: Vec<String>,
+    sub: String,
+    scope: String,
+}
+
+impl From<ClaimsSerialized> for Claims {
+    fn from(ser: ClaimsSerialized) -> Self {
+        Self {
+            aud: ser.aud,
+            sub: ser.sub,
+            scope: ser.scope.split(' ').map(|s| s.to_string()).collect(),
+        }
     }
 }
