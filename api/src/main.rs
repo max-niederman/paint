@@ -75,7 +75,7 @@ async fn main() -> miette::Result<()> {
     .server("http://localhost:4210");
 
     let app = Route::new()
-        .nest("/docs", api.redoc())
+        .nest("/docs", api.rapidoc())
         .nest("/", api)
         .with(Cors::new())
         .with(Tracing);

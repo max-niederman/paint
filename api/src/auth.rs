@@ -2,6 +2,7 @@ use futures::prelude::*;
 use jsonwebtoken::jwk;
 use miette::Diagnostic;
 use poem::{error::ResponseError, http::StatusCode, FromRequest, Request, RequestBody};
+use poem_openapi::{ApiExtractor, ApiExtractorType, SecurityScheme};
 use serde::{Deserialize, Serialize};
 use std::{env, lazy::SyncOnceCell, sync::RwLock, time::Duration};
 use tokio_stream::wrappers::IntervalStream;
@@ -34,11 +35,24 @@ impl Claims {
 }
 
 #[poem::async_trait]
-impl<'a> FromRequest<'a> for Claims {
-    async fn from_request(req: &'a Request, _body: &mut RequestBody) -> poem::Result<Self> {
-        let token = req
+impl<'a> ApiExtractor<'a> for Claims {
+    const TYPE: poem_openapi::ApiExtractorType = ApiExtractorType::SecurityScheme;
+
+    const PARAM_IS_REQUIRED: bool = true;
+
+    type ParamType = ();
+
+    type ParamRawType = ();
+
+    async fn from_request(
+        request: &'a Request,
+        _body: &mut RequestBody,
+        _param_opts: poem_openapi::ExtractParamOptions<Self::ParamType>,
+    ) -> poem::Result<Self> {
+        let token = request
             .headers()
-            .get("Authorization").ok_or(AuthError::MissingAuthorizationHeader)?
+            .get("Authorization")
+            .ok_or(AuthError::MissingAuthorizationHeader)?
             .to_str()
             .map_err(|_| AuthError::FailedStringifyingAuthorizationHeader)?
             .strip_prefix("Bearer ")
@@ -66,6 +80,29 @@ impl<'a> FromRequest<'a> for Claims {
             .map_err(Into::into),
             algorithm => Err(AuthError::UnsupportedAlgorithm(algorithm.clone()).into()),
         }
+    }
+
+    // we do this manually because we want to be able to return a custom error
+    // otherwise we could just use the `poem_openapi::SecurityScheme` derive macro
+
+    fn register(registry: &mut poem_openapi::registry::Registry) {
+        registry.create_security_scheme(
+            "Claims",
+            poem_openapi::registry::MetaSecurityScheme {
+                ty: "http",
+                description: Some("JWT authentication/authorization via Auth0 using the Bearer scheme"),
+                name: None,
+                key_in: None,
+                scheme: Some("bearer"),
+                bearer_format: None,
+                flows: None,
+                openid_connect_url: None,
+            },
+        )
+    }
+
+    fn security_scheme() -> Option<&'static str> {
+        Some("Claims")
     }
 }
 

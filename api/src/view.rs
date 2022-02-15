@@ -134,7 +134,7 @@ impl Api {
         Ok(Json(db_view.into()))
     }
 
-    /// Delete an view
+    /// Delete a view
     #[oai(path = "/views/:id", method = "delete", tag = "ApiTags::View")]
     #[tracing::instrument(skip(self), fields(id = ?id.0))]
     async fn delete_view(&self, claims: Claims, id: Path<Uuid>) -> Result<()> {

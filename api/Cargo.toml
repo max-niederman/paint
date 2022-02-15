@@ -11,7 +11,7 @@ futures = "0.3"
 tokio = { version = "1.0", features = ["rt-multi-thread"] }
 tokio-stream = "0.1"
 poem = { version = "1.2", features = ["rustls"] }
-poem-openapi = { version = "1.2", features = ["uuid", "redoc"] }
+poem-openapi = { version = "1.2", features = ["uuid", "rapidoc"] }
 mongodb = "2.1"
 jsonwebtoken = "8.0"
 uuid = "0.8"
