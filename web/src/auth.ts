@@ -13,7 +13,7 @@ const config: Auth0ClientOptions = {
 	domain: import.meta.env.VITE_AUTH0_DOMAIN,
 	client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
 	audience: import.meta.env.VITE_OIL_URL,
-	scope: "email read:instances write:instances",
+	scope: "read:views write:views",
 	cacheLocation: "localstorage",
 };
 
@@ -58,6 +58,7 @@ function createAuth() {
 			// Get the access token. Make sure to supply audience property
 			// in Auth0 config, otherwise you will soon start throwing stuff!
 			const token = await auth0.getTokenSilently();
+			console.log(token);
 			authToken.set(token);
 
 			// refresh token after specific period or things will stop

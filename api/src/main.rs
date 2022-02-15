@@ -7,7 +7,7 @@
 extern crate canvas_lms as canvas;
 
 mod auth;
-mod instance;
+mod view;
 
 use futures::prelude::*;
 use miette::{IntoDiagnostic, WrapErr};
@@ -25,6 +25,7 @@ struct Api;
 
 #[OpenApi]
 impl Api {
+    /// Get the API version
     #[oai(path = "/version", method = "get", tag = "ApiTags::Meta")]
     async fn get_version(&self) -> PlainText<&'static str> {
         PlainText(env!("CARGO_PKG_VERSION"))
@@ -33,8 +34,11 @@ impl Api {
 
 #[derive(Tags)]
 enum ApiTags {
+    /// Metadata about the API.
     Meta,
-    Instance,
+    /// A view is a user in a Canvas instance. 
+    /// Most users will have only one view corresponding to their student account, but some users may have multiple.
+    View,
 }
 
 // TODO: send proper, consistent error responses for all error types
@@ -64,14 +68,14 @@ async fn main() -> miette::Result<()> {
     let database = mongo_client.database("oil");
 
     let api = OpenApiService::new(
-        (Api, instance::Api::new(&database)),
+        (Api, view::Api::new(&database)),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )
     .server("http://localhost:4210");
 
     let app = Route::new()
-        .nest("/swagger", api.swagger_ui())
+        .nest("/docs", api.redoc())
         .nest("/", api)
         .with(Cors::new())
         .with(Tracing);
