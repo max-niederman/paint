@@ -2,6 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
 
 /// A numerical Canvas ID.
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Id(u64);

@@ -1,5 +1,2 @@
 [workspace]
 members = ["packages/*", "api", "res"]
-
-[patch.crates-io]
-indexed_db_futures = { git = "https://github.com/max-niederman/rust-indexed-db" }

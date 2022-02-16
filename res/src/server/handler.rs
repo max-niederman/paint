@@ -8,9 +8,10 @@ use ebauche::{
     rpc::{self, Request, Response},
 };
 use futures::prelude::*;
-use hyper_tls::HttpsConnector;
+use hyper_rustls::{HttpsConnector, HttpsConnectorBuilder};
 use miette::GraphicalReportHandler;
 use miette::{Diagnostic, ReportHandler};
+use pigment::ResourceKind;
 
 use std::{fmt, pin::Pin};
 
@@ -24,7 +25,14 @@ impl Handler {
     pub fn new(db: sled::Db) -> Self {
         Self {
             cache: EbaucheCache::new(db),
-            http_client: hyper::Client::builder().build(HttpsConnector::new()),
+            http_client: hyper::Client::builder().build(
+                HttpsConnectorBuilder::new()
+                    .with_native_roots()
+                    .https_or_http()
+                    .enable_http1()
+                    .enable_http2()
+                    .build(),
+            ),
         }
     }
 }
@@ -38,7 +46,7 @@ impl<'h> rpc::Handler<'h> for Handler {
     #[tracing::instrument(skip(self))]
     fn handle(&'h self, request: Request) -> Self::ResponseStream {
         match request {
-            Request::Fetch { view, canvas_token } => {
+            Request::FetchUpstream { view, canvas_token } => {
                 tracing::info!(message = "handling fetch request", %view, %canvas_token);
 
                 let canvas_client = CanvasClient::builder()
@@ -49,25 +57,16 @@ impl<'h> rpc::Handler<'h> for Handler {
                 stream::select_all([
                     self.cache
                         .fetch_view(
-                            rpc::ResourceKind::Course,
+                            ResourceKind::Course,
                             view.clone(),
                             Fetch::<resource::Course>::fetch_independent(&canvas_client),
                         )
                         .boxed(),
                     self.cache
                         .fetch_view(
-                            rpc::ResourceKind::Assignment,
-                            view.clone(),
-                            Fetch::<resource::Assignment>::fetch_independent(&TieredFetcher(
-                                &canvas_client,
-                            )),
-                        )
-                        .boxed(),
-                    self.cache
-                        .fetch_view(
-                            rpc::ResourceKind::Submission,
+                            ResourceKind::Assignment,
                             view,
-                            Fetch::<resource::Submission>::fetch_independent(&TieredFetcher(
+                            Fetch::<resource::Assignment>::fetch_independent(&TieredFetcher(
                                 &canvas_client,
                             )),
                         )
@@ -76,7 +75,7 @@ impl<'h> rpc::Handler<'h> for Handler {
                 .map_err(PrettyBoxedDiagnostic::from)
                 .boxed()
             }
-            Request::Update {
+            Request::Diff {
                 view,
                 since,
                 resource_kind,
@@ -84,22 +83,19 @@ impl<'h> rpc::Handler<'h> for Handler {
                 tracing::info!(message = "handling update request", %view);
 
                 match resource_kind {
-                    rpc::ResourceKind::Course => self
+                    ResourceKind::Course => self
                         .cache
                         .view_update::<resource::Course>(resource_kind, &view, since)
                         .boxed(),
-                    rpc::ResourceKind::Assignment => self
+                    ResourceKind::Assignment => self
                         .cache
                         .view_update::<resource::Assignment>(resource_kind, &view, since)
-                        .boxed(),
-                    rpc::ResourceKind::Submission => self
-                        .cache
-                        .view_update::<resource::Submission>(resource_kind, &view, since)
                         .boxed(),
                 }
                 .map_err(PrettyBoxedDiagnostic::from)
                 .boxed()
             }
+            _ => todo!(),
         }
     }
 }

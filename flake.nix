@@ -3,44 +3,74 @@
     flake-utils.url = "github:numtide/flake-utils";
 
     nixpkgs.url = "nixpkgs/nixos-unstable";
-    fenix = {
-      url = "github:nix-community/fenix";
+
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    naersk = {
+      url = "github:nix-community/naersk";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, fenix }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-        rust = with fenix.packages.${system}; rec {
-          wasm = targets.wasm32-unknown-unknown.latest;
-          native = latest;
-          dev.toolchain = combine [ wasm.toolchain native.toolchain rust-analyzer ];
-        };
-      in
-      {
-        devShell = pkgs.mkShell {
-          nativeBuildInputs = with pkgs; [
-            # Rust
-            rust.dev.toolchain
-            mold
-            wasm-pack
+  outputs = { self, nixpkgs, flake-utils, rust-overlay, naersk, ... }:
+    flake-utils.lib.eachDefaultSystem
+      (system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ (import rust-overlay) ];
+          };
+          inherit (pkgs) lib;
 
-            # JS
-            nodePackages.pnpm
-            nodePackages.prettier
-          ];
+          rust = pkgs.rust-bin.selectLatestNightlyWith
+            (toolchain: toolchain.default.override {
+              extensions = [ "rust-src" ];
+            });
+          naersk-lib = naersk.lib.${system}.override
+            (lib.attrsets.genAttrs [ "cargo" "rustc" ] (_: rust));
+        in
+        rec {
+          packages = rec {
+            paint = naersk-lib.buildPackage {
+              pname = "paint";
+              root = ./.;
+              copyBins = true;
+              copyLibs = true;
+            };
+          };
+          defaultPackage = packages.paint;
 
-          # needed for rust-openssl
-          OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
-          OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
-          LD_LIBRARY_PATH = nixpkgs.lib.strings.makeLibraryPath (with pkgs; [ openssl ]);
+          devShell = pkgs.mkShell {
+            buildInputs = with pkgs;
+              [
+                docker-compose
 
-          # redirect ld calls to mold
-          MOLD_PATH = "${pkgs.mold}/bin/mold";
-          LD_PRELOAD = "${pkgs.mold}/lib/mold/mold-wrapper.so";
-        };
-      }
-    );
+                # Rust
+                rust
+                rust-analyzer
+                mold
+
+                # JS
+                nodejs-16_x
+                nodePackages.pnpm
+                nodePackages.prettier
+              ];
+
+            # redirect ld calls to mold
+            MOLD_PATH = "${pkgs.mold}/bin/mold";
+            LD_PRELOAD = "${pkgs.mold}/lib/mold/mold-wrapper.so";
+
+            # set log level for Rust crates
+            RUST_LOG = builtins.concatStringsSep
+              ","
+              [
+                "info"
+                "canvas_lms=debug"
+                "oil=debug"
+                "pigment=debug"
+                "ebauche=debug"
+                "ebac=debug"
+              ];
+          };
+        }
+      );
 }

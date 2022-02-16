@@ -3,6 +3,14 @@ name = "canvas-lms"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "ts-definitions-canvas-lms"
+path = "src/ts_definitions.rs"
+required-features = ["typescript-definitions"]
+
 [features]
 client = ["futures", "futures-timer", "hyper"]
 
@@ -15,12 +23,13 @@ thiserror = "1.0"
 tracing = "0.1.29"
 futures = { version = "0.3", optional = true }
 futures-timer = { version = "3.0", optional = true }
-hyper = { version = "0.14", features = [
-    "client",
-    "http1",
-    "http2",
-    "tcp",
-], optional = true }
 
-[lib]
-path = "src/lib.rs"
+[dependencies.hyper]
+version = "0.14"
+features = ["client", "http1", "http2", "tcp"]
+optional = true
+
+[dependencies.typescript-definitions]
+git = "https://github.com/onelson/typescript-definitions.git"
+branch = "no-debug-attrs"
+optional = true

@@ -19,8 +19,8 @@ pub enum DSelector {
 
 macro_rules! impl_selector {
     (
-        resource = $resource:ty;
-        special = [ $( $var:ident, )* ];
+        resource: $resource:ty;
+        special: [ $( $var:ident, )* ];
     ) => {
         impl Selector<$resource> for DSelector {
             #[inline]
@@ -47,29 +47,29 @@ macro_rules! impl_selector {
 }
 
 impl_selector! {
-    resource = resource::Assignment;
-    special = [
+    resource: resource::Assignment;
+    special: [
         Id,
         Ids,
     ];
 }
 
 impl_selector! {
-    resource = resource::Course;
-    special = [
+    resource: resource::Course;
+    special: [
         Id,
         Ids,
     ];
 }
 
 impl_selector! {
-    resource = resource::Submission;
-    special = [];
+    resource: resource::Submission;
+    special: [];
 }
 
 impl_selector! {
-    resource = resource::User;
-    special = [
+    resource: resource::User;
+    special: [
         Id,
         Ids,
     ];

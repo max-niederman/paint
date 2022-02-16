@@ -6,15 +6,27 @@ edition = "2021"
 [dependencies]
 canvas-lms = { path = "../packages/canvas" }
 pigment = { path = "../packages/pigment" }
-ebauche-rpc = { path = "../packages/ebauche-rpc" }
+ebauche = { path = "../res" }
 futures = "0.3"
 tokio = { version = "1.0", features = ["rt-multi-thread"] }
-poem = { version = "1.2", features = ["websocket"] }
-poem-openapi = { version = "1.2", features = ["swagger-ui"] }
+tokio-stream = "0.1"
+poem = { version = "1.2", features = ["rustls"] }
+poem-openapi = { version = "1.2", features = ["uuid", "rapidoc"] }
+mongodb = "2.1"
+jsonwebtoken = "8.0"
+uuid = "0.8"
 serde = "1.0"
-bincode = "1.0"
-async-bincode = "0.6"
-chrono = { version = "0.4", features = ["serde"] }
+serde_json = "1.0"
+bson = { version = "2.1", features = ["uuid-0_8"] }
+# bincode = "1.0"
+# async-bincode = "0.6"
+# chrono = { version = "0.4", features = ["serde"] }
 miette = { version = "3.2", features = ["fancy"] }
+thiserror = "1.0"
 tracing = "0.1.29"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+
+[dependencies.reqwest]
+version = "0.11"
+default-features = false
+features = ["rustls-tls", "json"]

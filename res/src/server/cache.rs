@@ -10,7 +10,7 @@ use miette::{Diagnostic, IntoDiagnostic, WrapErr};
 use ouroboros::self_referencing;
 use pigment::{
     cache::{Cache, CacheEntry, Key},
-    View,
+    ResourceKind, View,
 };
 use std::{
     pin::Pin,
@@ -102,7 +102,6 @@ fn tree_name(resource_kind: ResourceKind) -> &'static str {
     match resource_kind {
         ResourceKind::Assignment => "assignments",
         ResourceKind::Course => "courses",
-        ResourceKind::Submission => "submissions",
     }
 }
 

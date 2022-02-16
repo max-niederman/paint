@@ -1,27 +1,36 @@
 // memory usage doesn't really matter here, so wasting a bit of the stack is alright
 #![allow(clippy::large_enum_variant)]
 
-use std::str::FromStr;
-
 use canvas::DateTime;
-use pigment::View;
+use pigment::{DSelector, ResourceKind, View};
 use serde::{Deserialize, Serialize};
 
 /// A request sent to the server by the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Request {
-    Fetch {
+    /// Fetch upstream view.
+    FetchUpstream {
         /// The view to update.
         view: View,
         /// The Canvas token to use.
         canvas_token: String,
     },
-    Update {
-        /// The kind of resource.
-        resource_kind: ResourceKind,
+    /// Run a query on the view and return the results.
+    Query {
         /// The viewer being queried.
         view: View,
-        /// Date of last update.
+        /// The kind of resource.
+        resource_kind: ResourceKind,
+        /// The selector to match.
+        selector: DSelector,
+    },
+    /// Get a diff between the server's view and the client's view.
+    Diff {
+        /// The viewer being queried.
+        view: View,
+        /// The kind of resource.
+        resource_kind: ResourceKind,
+        /// The selector to match.
         since: DateTime,
     },
 }
@@ -35,6 +44,7 @@ pub enum Request {
 pub enum Response {
     Fetch(FetchResponse),
     Update(UpdateResponse),
+    Query(QueryResponse),
 }
 
 /// A fetch response sent to the client.
@@ -53,33 +63,6 @@ pub struct UpdateResponse {
     pub resource: Option<Vec<u8>>,
 }
 
-/// A kind of resource.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum ResourceKind {
-    Assignment,
-    Course,
-    Submission,
-}
-
-impl ResourceKind {
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            ResourceKind::Assignment => "assignment",
-            ResourceKind::Course => "course",
-            ResourceKind::Submission => "submission",
-        }
-    }
-}
-
-impl FromStr for ResourceKind {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "assignment" => Ok(Self::Assignment),
-            "course" => Ok(Self::Course),
-            "submission" => Ok(Self::Submission),
-            _ => Err("no such resource kind"),
-        }
-    }
-}
+/// A query response sent to the client.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryResponse {}

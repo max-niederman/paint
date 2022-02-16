@@ -7,6 +7,7 @@ use ebauche::rpc::*;
 use futures::{future, StreamExt};
 use miette::{Context, IntoDiagnostic};
 use pigment::view::{self, View};
+use pigment::ResourceKind;
 use structopt::StructOpt;
 use tokio::net::TcpStream;
 
@@ -40,7 +41,7 @@ enum Verb {
         #[structopt(short, long, env = "CANVAS_USER")]
         user: canvas_lms::Id,
     },
-    Update {
+    Diff {
         #[structopt(short, long, env = "CANVAS_BASE_URL")]
         canvas: String,
 
@@ -95,19 +96,19 @@ async fn main() -> miette::Result<()> {
                 token,
                 canvas,
                 user,
-            } => Request::Fetch {
+            } => Request::FetchUpstream {
                 canvas_token: token,
                 view: View {
                     truth: view::Canvas { base_url: canvas },
                     viewer: view::Viewer::User(user),
                 },
             },
-            Verb::Update {
+            Verb::Diff {
                 canvas,
                 user,
                 since,
                 kind,
-            } => Request::Update {
+            } => Request::Diff {
                 view: View {
                     truth: view::Canvas { base_url: canvas },
                     viewer: view::Viewer::User(user),
