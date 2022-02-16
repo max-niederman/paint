@@ -10,7 +10,7 @@ use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// A Canvas view associated with a user.
+/// A Canvas view associated with a user
 #[derive(Debug, Clone, Serialize, Deserialize, Object)]
 pub struct View {
     /// The unique identifier of the view.
@@ -24,7 +24,7 @@ pub struct View {
     pub canvas_access_token: String,
 }
 
-/// A new view to be created by the client.
+/// A new view to be created by the client
 #[derive(Debug, Clone, Serialize, Deserialize, Object)]
 pub struct NewView {
     pub canvas_base_url: String,

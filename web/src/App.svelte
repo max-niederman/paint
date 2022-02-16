@@ -5,18 +5,18 @@
 	import SearchPage from "./pages/Search.svelte";
 	import HomePage from "./pages/Home.svelte";
 	import CoursePage from "./pages/Course.svelte";
-	import { createAuth } from "./auth";
+	import { isLoading as isAuthLoading, isAuthenticated, createAuth } from "./auth";
 
-	const { isLoading, isAuthenticated, login, logout, authToken, authError, userInfo } = createAuth();
+	const auth = createAuth();
 
 	$: {
-		if (!$isLoading && !$isAuthenticated) {
-			login();
+		if (!$isAuthLoading && !$isAuthenticated) {
+			auth.login();
 		}
 	}
 </script>
 
-{#if !$isLoading}
+{#if !$isAuthLoading}
 	{#if $isAuthenticated}
 		<Router>
 			<Nav />
@@ -53,7 +53,7 @@
 					<p>Redirecting...</p>
 					<p>
 						If you aren't redirected within a few seconds you can
-						<span class="login-link" on:click={() => login()}>login manually.</span>
+						<span class="login-link" on:click={() => auth.login()}>login manually.</span>
 					</p>
 				</main>
 			</div>

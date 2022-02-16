@@ -8,5 +8,6 @@ export default defineConfig({
   },
 	plugins: [
     svelte(),
+    // TODO: generate and include pollen-css with a plugin
   ],
 });

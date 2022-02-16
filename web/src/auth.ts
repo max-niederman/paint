@@ -1,12 +1,13 @@
 import { onMount, setContext, getContext } from "svelte";
 import { writable } from "svelte/store";
-import createAuth0Client, { Auth0Client, Auth0ClientOptions, RedirectLoginOptions } from "@auth0/auth0-spa-js";
+import createAuth0Client, { Auth0Client, Auth0ClientOptions } from "@auth0/auth0-spa-js";
 
-const isLoading = writable(true);
-const isAuthenticated = writable(false);
-const authToken = writable("");
-const userInfo = writable({});
-const authError = writable(null);
+export const isLoading = writable(true);
+export const isAuthenticated = writable(false);
+export const authToken = writable("");
+export const userInfo = writable({});
+export const authError = writable(null);
+
 const AUTH_KEY = {};
 
 const config: Auth0ClientOptions = {
@@ -58,7 +59,6 @@ function createAuth() {
 			// Get the access token. Make sure to supply audience property
 			// in Auth0 config, otherwise you will soon start throwing stuff!
 			const token = await auth0.getTokenSilently();
-			console.log(token);
 			authToken.set(token);
 
 			// refresh token after specific period or things will stop
