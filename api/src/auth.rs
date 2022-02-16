@@ -90,7 +90,9 @@ impl<'a> ApiExtractor<'a> for Claims {
             "Claims",
             poem_openapi::registry::MetaSecurityScheme {
                 ty: "http",
-                description: Some("JWT authentication/authorization via Auth0 using the Bearer scheme"),
+                description: Some(
+                    "JWT authentication/authorization via Auth0 using the Bearer scheme",
+                ),
                 name: None,
                 key_in: None,
                 scheme: Some("bearer"),

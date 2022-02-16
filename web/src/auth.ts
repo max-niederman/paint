@@ -1,12 +1,12 @@
 import { onMount, setContext, getContext } from "svelte";
-import { writable } from "svelte/store";
+import { Writable, writable } from "svelte/store";
 import createAuth0Client, { Auth0Client, Auth0ClientOptions } from "@auth0/auth0-spa-js";
 
-export const isLoading = writable(true);
-export const isAuthenticated = writable(false);
-export const authToken = writable("");
-export const userInfo = writable({});
-export const authError = writable(null);
+export const isLoading: Writable<boolean> = writable(true);
+export const isAuthenticated: Writable<boolean> = writable(false);
+export const authToken: Writable<string> = writable(null);
+export const userInfo: Writable<{}> = writable(null);
+export const authError: Writable<Error> = writable(null);
 
 const AUTH_KEY = {};
 

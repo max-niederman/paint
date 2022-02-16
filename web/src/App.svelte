@@ -6,6 +6,7 @@
 	import HomePage from "./pages/Home.svelte";
 	import CoursePage from "./pages/Course.svelte";
 	import { isLoading as isAuthLoading, isAuthenticated, createAuth } from "./auth";
+	import { views } from "./view";
 
 	const auth = createAuth();
 

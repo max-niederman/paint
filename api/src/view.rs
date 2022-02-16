@@ -11,10 +11,17 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 /// A Canvas view associated with a user
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
 #[derive(Debug, Clone, Serialize, Deserialize, Object)]
 pub struct View {
     /// The unique identifier of the view.
     pub id: Uuid,
+
+    /// The name of the view.
+    pub name: String,
 
     /// The base URL of the Canvas view.
     pub canvas_base_url: String,
@@ -25,8 +32,13 @@ pub struct View {
 }
 
 /// A new view to be created by the client
+#[cfg_attr(
+    feature = "typescript-definitions",
+    derive(typescript_definitions::TypeScriptify)
+)]
 #[derive(Debug, Clone, Serialize, Deserialize, Object)]
 pub struct NewView {
+    pub name: String,
     pub canvas_base_url: String,
     pub canvas_user_id: u64,
     pub canvas_access_token: String,
@@ -36,6 +48,7 @@ pub struct NewView {
 struct DbView {
     #[serde(rename = "_id")]
     id: bson::Uuid,
+    name: String,
     user: String,
     canvas_view: pigment::View,
     canvas_access_token: String,
@@ -45,6 +58,7 @@ impl From<DbView> for View {
     fn from(db_view: DbView) -> Self {
         View {
             id: db_view.id.into(),
+            name: db_view.name,
             canvas_base_url: db_view.canvas_view.truth.base_url,
             canvas_user_id: match db_view.canvas_view.viewer {
                 pigment::view::Viewer::User(id) => id.into(),
@@ -105,17 +119,14 @@ impl Api {
     /// Create a new view
     #[oai(path = "/views", method = "post", tag = "ApiTags::View")]
     #[tracing::instrument(skip(self))]
-    async fn post_view(
-        &self,
-        claims: Claims,
-        new_view: Json<NewView>,
-    ) -> Result<Json<View>> {
+    async fn post_view(&self, claims: Claims, new_view: Json<NewView>) -> Result<Json<View>> {
         let new_view = new_view.0;
 
         claims.ensure_scopes(["write:views"])?;
 
         let db_view = DbView {
             id: Uuid::new_v4().into(),
+            name: new_view.name,
             user: claims.sub,
             canvas_view: pigment::View {
                 truth: pigment::view::Canvas {

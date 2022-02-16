@@ -3,6 +3,18 @@ name = "oil"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+path = "src/main.rs"
+
+[[bin]]
+name = "oil"
+path = "src/main.rs"
+
+[[bin]]
+name = "ts-definitions-oil"
+path = "src/ts_definitions.rs"
+required-features = ["typescript-definitions"]
+
 [dependencies]
 canvas-lms = { path = "../packages/canvas" }
 pigment = { path = "../packages/pigment" }
@@ -30,3 +42,8 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
 version = "0.11"
 default-features = false
 features = ["rustls-tls", "json"]
+
+[dependencies.typescript-definitions]
+git = "https://github.com/onelson/typescript-definitions.git"
+branch = "no-debug-attrs"
+optional = true

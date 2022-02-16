@@ -6,8 +6,8 @@
 
 extern crate canvas_lms as canvas;
 
-mod auth;
-mod view;
+pub mod auth;
+pub mod view;
 
 use futures::prelude::*;
 use miette::{IntoDiagnostic, WrapErr};
@@ -16,10 +16,7 @@ use poem::{
     middleware::{Cors, Tracing},
     EndpointExt, Route,
 };
-use poem_openapi::{
-    payload::{PlainText},
-    OpenApi, OpenApiService, Tags,
-};
+use poem_openapi::{payload::PlainText, OpenApi, OpenApiService, Tags};
 use tracing_subscriber::EnvFilter;
 struct Api;
 
@@ -36,7 +33,7 @@ impl Api {
 enum ApiTags {
     /// Metadata about the API.
     Meta,
-    /// A view is a user in a Canvas instance. 
+    /// A view is a user in a Canvas instance.
     /// Most users will have only one view corresponding to their student account, but some users may have multiple.
     View,
 }
