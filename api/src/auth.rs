@@ -1,8 +1,8 @@
 use futures::prelude::*;
 use jsonwebtoken::jwk;
 use miette::Diagnostic;
-use poem::{error::ResponseError, http::StatusCode, FromRequest, Request, RequestBody};
-use poem_openapi::{ApiExtractor, ApiExtractorType, SecurityScheme};
+use poem::{error::ResponseError, http::StatusCode, Request, RequestBody};
+use poem_openapi::{ApiExtractor, ApiExtractorType};
 use serde::{Deserialize, Serialize};
 use std::{env, lazy::SyncOnceCell, sync::RwLock, time::Duration};
 use tokio_stream::wrappers::IntervalStream;
@@ -181,7 +181,11 @@ impl ResponseError for AuthError {
             Self::MissingAuthorizationHeader => StatusCode::UNAUTHORIZED,
             Self::FailedStringifyingAuthorizationHeader => StatusCode::BAD_REQUEST,
             Self::AuthorizationHeaderMissingBearer => StatusCode::BAD_REQUEST,
-            Self::JsonWebToken(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::JsonWebToken(err) => match err.kind() {
+                jsonwebtoken::errors::ErrorKind::InvalidRsaKey(_) => StatusCode::INTERNAL_SERVER_ERROR,
+                jsonwebtoken::errors::ErrorKind::InvalidAlgorithm => StatusCode::INTERNAL_SERVER_ERROR,
+                _ => StatusCode::UNAUTHORIZED,
+            },
             Self::MissingKidClaim => StatusCode::BAD_REQUEST,
             Self::MissingJwks => StatusCode::INTERNAL_SERVER_ERROR,
             Self::MissingKey => StatusCode::INTERNAL_SERVER_ERROR,

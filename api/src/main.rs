@@ -1,42 +1,15 @@
-#![feature(never_type)]
-#![feature(once_cell)]
-#![feature(box_patterns)]
-#![feature(result_option_inspect)]
-#![feature(trivial_bounds)]
-
 extern crate canvas_lms as canvas;
 
-pub mod auth;
-pub mod view;
-
 use futures::prelude::*;
+use oil::*;
 use miette::{IntoDiagnostic, WrapErr};
 use poem::{
     listener::TcpListener,
     middleware::{Cors, Tracing},
     EndpointExt, Route,
 };
-use poem_openapi::{payload::PlainText, OpenApi, OpenApiService, Tags};
+use poem_openapi::OpenApiService;
 use tracing_subscriber::EnvFilter;
-struct Api;
-
-#[OpenApi]
-impl Api {
-    /// Get the API version
-    #[oai(path = "/version", method = "get", tag = "ApiTags::Meta")]
-    async fn get_version(&self) -> PlainText<&'static str> {
-        PlainText(env!("CARGO_PKG_VERSION"))
-    }
-}
-
-#[derive(Tags)]
-enum ApiTags {
-    /// Metadata about the API.
-    Meta,
-    /// A view is a user in a Canvas instance.
-    /// Most users will have only one view corresponding to their student account, but some users may have multiple.
-    View,
-}
 
 // TODO: send proper, consistent error responses for all error types
 
