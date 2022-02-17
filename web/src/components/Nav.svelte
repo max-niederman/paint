@@ -6,9 +6,12 @@
 </script>
 
 <nav>
-	<Link to="/"><div class="icon"><FaHome /></div></Link>
+	<div>
+		<Link to="/"><div class="icon"><FaHome /></div></Link>
+	</div>
 	<div>
 		<ViewSelector />
+		<div class="spacer" />
 		<Link to="/settings"><div class="icon"><MdSettings /></div></Link>
 	</div>
 </nav>
@@ -17,14 +20,14 @@
 	$icon-size: var(--size-7);
 
 	nav {
-		height: var(--size-8);
+		padding: var(--size-4);
 
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: stretch;
 
-		// `div` elements are used to seperate left-aligned elements from right-aligned elements
+		// each div serves as a section, either left- or right- aligned
 		div {
 			display: flex;
 			flex-direction: row;
@@ -33,7 +36,11 @@
 		.icon {
 			height: $icon-size;
 			width: $icon-size;
-            color: var(--color-foreground);
+			color: var(--color-foreground);
+		}
+
+		.spacer {
+			width: var(--size-3);
 		}
 	}
 </style>
