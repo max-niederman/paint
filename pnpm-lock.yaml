@@ -7,6 +7,7 @@ importers:
       '@auth0/auth0-spa-js': ^1.19.4
       '@sveltejs/vite-plugin-svelte': ^1.0.0-next.37
       '@tsconfig/svelte': ^2.0.1
+      deepmerge: ^4.2.2
       pollen-css: ^4.2.0
       prettier: ^2.5.1
       sass: ^1.49.0
@@ -22,6 +23,7 @@ importers:
       '@auth0/auth0-spa-js': 1.19.4
       '@sveltejs/vite-plugin-svelte': 1.0.0-next.37_svelte@3.46.3+vite@2.8.0
       '@tsconfig/svelte': 2.0.1
+      deepmerge: 4.2.2
       pollen-css: 4.2.0
       prettier: 2.5.1
       sass: 1.49.0
@@ -285,6 +287,11 @@ packages:
 
   /dedent-js/1.0.1:
     resolution: {integrity: sha1-vuX7fJ5yfYXf+iRZDRDsGrElUwU=}
+    dev: true
+
+  /deepmerge/4.2.2:
+    resolution: {integrity: sha512-FJ3UgI4gIl+PHZm53knsuSFpE+nESMr7M4v9QcgB7S63Kj/6WqMiFQJpBBYz1Pt+66bZpP3Q7Lye0Oo9MPKEdg==}
+    engines: {node: '>=0.10.0'}
     dev: true
 
   /detect-indent/6.1.0:

@@ -11,8 +11,13 @@ services:
     image: mongo-express
     restart: always
     ports:
-      - 4220:8081
+      - 4201:8081
     environment:
       ME_CONFIG_MONGODB_URL: mongodb://root:paint@mongo:27017/
     depends_on:
       - mongo
+
+  cors_proxy:
+    image: imjacobclark/cors-container
+    ports:
+      - 4221:3000

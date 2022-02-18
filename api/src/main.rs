@@ -71,7 +71,7 @@ async fn main() -> miette::Result<()> {
         }
     });
 
-    let listen_addr = std::env::var("OIL_ADDR").unwrap_or_else(|_| "0.0.0.0:4210".into());
+    let listen_addr = std::env::var("OIL_ADDR").unwrap_or_else(|_| "0.0.0.0:4200".into());
     poem::Server::new(TcpListener::bind(listen_addr))
         .run(app)
         .await

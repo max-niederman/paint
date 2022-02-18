@@ -1,14 +1,29 @@
 import { writable, Writable } from "svelte/store";
 import { authToken } from "./auth";
+import deepmerge from "deepmerge";
 
-interface View extends Oil.View {}
+export async function makeCanvasRequest<T>(view: Oil.View, path: string, init?: RequestInit): Promise<T> {
+	const response = await fetch(
+		`${view.canvas_base_url}${path}`,
+		deepmerge(
+			{
+				headers: {
+					Authorization: `Bearer ${view.canvas_access_token}`
+				}
+			},
+			init ?? {}
+		)
+	);
+	console.log(response);
+	return await response.json();
+}
 
 // persist the view in localStorage
-export const view: Writable<View> = writable(JSON.parse(localStorage.getItem("view") ?? "null"));
+export const view: Writable<Oil.View> = writable(JSON.parse(localStorage.getItem("view") ?? "null"));
 view.subscribe((view) => localStorage.setItem("view", JSON.stringify(view)));
 
 // persist the views in localStorage
-export const views: Writable<View[]> = writable(JSON.parse(localStorage.getItem("views") ?? "[]"));
+export const views: Writable<Oil.View[]> = writable(JSON.parse(localStorage.getItem("views") ?? "[]"));
 views.subscribe((views) => localStorage.setItem("views", JSON.stringify(views)));
 
 // fetch views from the server
@@ -19,7 +34,7 @@ authToken.subscribe(async (token) => {
 				Authorization: `Bearer ${token}`
 			}
 		});
-		const body = await resp.json();
+		const body: Oil.View[] = await resp.json();
 		views.set(body);
 	}
 });

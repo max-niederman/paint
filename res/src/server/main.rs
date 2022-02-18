@@ -30,7 +30,7 @@ async fn main() -> Result<()> {
         .pretty()
         .init();
 
-    let listen_addr = std::env::var("PIGMENT_ADDR").unwrap_or_else(|_| "0.0.0.0:4211".into());
+    let listen_addr = std::env::var("EBAUCHE_ADDR").unwrap_or_else(|_| "0.0.0.0:4210".into());
     let listener = tokio::net::TcpListener::bind(&listen_addr)
         .await
         .into_diagnostic()

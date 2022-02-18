@@ -1,20 +1,14 @@
 <script lang="ts">
+	import { makeCanvasRequest, view } from "../view";
 	import FaArrowRight from "svelte-icons/fa/FaArrowRight.svelte";
 	import { Link } from "svelte-navigator";
 
 	// FIXME: fetch courses from Oil
-	const courses: Partial<Canvas.Course>[] = [
-		{
-            id: 81546,
-			name: "English 1-2",
-			course_code: "1560H290-Robins"
-		},
-		{
-            id: 81547,
-			name: "World History",
-			course_code: "2000H120-Smith"
-		}
-	];
+
+	let courses: Canvas.Course[] = [];
+	// this could theoretically cause a race condition, but it's probably fine
+	// since very few users will switch views anyway
+	$: makeCanvasRequest($view, "/api/v1").then(data => courses = data);
 </script>
 
 <h1>Courses</h1>
