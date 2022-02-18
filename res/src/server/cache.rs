@@ -31,12 +31,12 @@ impl EbaucheCache {
     }
 
     /// Fetch a view and write it into the cache.
-    pub fn fetch_view<'s, R, RStream>(
-        &'s self,
+    pub fn fetch_view<R, RStream>(
+        &self,
         resource_kind: ResourceKind,
         view: View,
         resources: RStream,
-    ) -> impl Stream<Item = Result<Response, BoxedDiagnostic>> + 's
+    ) -> impl Stream<Item = Result<Response, BoxedDiagnostic>> + '_
     where
         R: Cache,
         RStream: Stream<Item = fetch::Result<R>> + Unpin + Send + 'static,

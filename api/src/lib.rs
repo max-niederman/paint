@@ -4,7 +4,7 @@
 #![feature(result_option_inspect)]
 #![feature(trivial_bounds)]
 
-use poem_openapi::{OpenApi, Tags, payload::PlainText};
+use poem_openapi::{payload::PlainText, OpenApi, Tags};
 
 pub mod auth;
 pub mod view;

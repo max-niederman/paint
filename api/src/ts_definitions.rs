@@ -34,7 +34,7 @@ macro_rules! type_definitions_for {
 }
 
 pub fn definitions() -> String {
-    use oil::{view, auth};
+    use oil::{auth, view};
 
     type_definitions_for!(view::View, view::NewView)
 }

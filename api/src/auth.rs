@@ -110,8 +110,8 @@ impl<'a> ApiExtractor<'a> for Claims {
 
 static JWKS: SyncOnceCell<RwLock<jwk::JwkSet>> = SyncOnceCell::new();
 
-pub fn update_jwks() -> impl Stream<Item = Result<(), AuthError>> {
-    IntervalStream::new(tokio::time::interval(Duration::from_secs(5 * 60))).then(|_| {
+pub fn update_jwks(period: Duration) -> impl Stream<Item = Result<(), AuthError>> {
+    IntervalStream::new(tokio::time::interval(period)).then(|_| {
         async move {
             let jwks_url = env::var("OIL_JWKS_URL").map_err(AuthError::MissingJwksUrl)?;
 
@@ -182,8 +182,12 @@ impl ResponseError for AuthError {
             Self::FailedStringifyingAuthorizationHeader => StatusCode::BAD_REQUEST,
             Self::AuthorizationHeaderMissingBearer => StatusCode::BAD_REQUEST,
             Self::JsonWebToken(err) => match err.kind() {
-                jsonwebtoken::errors::ErrorKind::InvalidRsaKey(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                jsonwebtoken::errors::ErrorKind::InvalidAlgorithm => StatusCode::INTERNAL_SERVER_ERROR,
+                jsonwebtoken::errors::ErrorKind::InvalidRsaKey(_) => {
+                    StatusCode::INTERNAL_SERVER_ERROR
+                }
+                jsonwebtoken::errors::ErrorKind::InvalidAlgorithm => {
+                    StatusCode::INTERNAL_SERVER_ERROR
+                }
                 _ => StatusCode::UNAUTHORIZED,
             },
             Self::MissingKidClaim => StatusCode::BAD_REQUEST,

@@ -64,7 +64,7 @@ where
                 format!("/api/v1/courses/{}/assignments", dependency.id),
             )
             .extend_include(["submission", "overrides", "score_statistics"])
-            .paginate_owned(50)
+            .paginate_owned(1000)
             .map_err(Error::Canvas)?
             .items::<resource::Assignment>()
             .into(),

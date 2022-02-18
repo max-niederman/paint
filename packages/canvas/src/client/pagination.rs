@@ -18,6 +18,11 @@ use std::{
     time::Duration,
 };
 
+// TODO: allow the library consumer to configure these values
+//       this will allow Ebauche to modify the values on a per-instance basis
+const THROTTLE_THRESHOLD: f64 = 100.0;
+const THROTTLE_DELAY: Duration = Duration::from_secs(2);
+
 #[derive(Debug)]
 #[must_use = "streams do nothing unless polled"]
 pub struct Pagination<'c, Conn: Clone> {
@@ -62,12 +67,12 @@ where
     }
 }
 
-struct PaginationStateTransition<T> {
+struct PaginationStateTransduction<T> {
     new: PaginationState,
     ret: T,
 }
 
-impl<T> FromResidual<Result<Infallible>> for PaginationStateTransition<T>
+impl<T> FromResidual<Result<Infallible>> for PaginationStateTransduction<T>
 where
     T: FromResidual<Result<Infallible>>,
 {
@@ -81,7 +86,7 @@ where
 
 impl PaginationState {
     #[inline(always)]
-    fn transition<Ret, F: FnOnce(Self) -> PaginationStateTransition<Ret>>(&mut self, f: F) -> Ret {
+    fn transduce<Ret, F: FnOnce(Self) -> PaginationStateTransduction<Ret>>(&mut self, f: F) -> Ret {
         unsafe {
             //   EXPL: first, we reinterpret `self` as a `&mut MaybeUninit<Self>` and bind it to `this`
             //         this is completely safe on its own, so I'm not really sure why there's no safe function for it in `std`
@@ -91,7 +96,7 @@ impl PaginationState {
             //         with the new state returned. this has the effect of moving out of and then into `this`
             // SAFETY: assuming `this` to be initialized inbetween the call to [`MaybeUninit::assume_init_read`] and the
             //         call to [`MaybeUninit::write`] is unsafe
-            let PaginationStateTransition { new, ret } = f(this.assume_init_read());
+            let PaginationStateTransduction { new, ret } = f(this.assume_init_read());
             this.write(new);
 
             ret
@@ -107,8 +112,8 @@ impl PaginationState {
             .method(Method::GET)
             .uri(uri.clone());
 
-        // `builder` will not error because [`<Uri as TryFrom<Uri>>::try_from`] is infallible,
-        // so unwrapping the result will never panic
+        // `builder` will not error because the only possibly fallible operation it has performed thus far,
+        // [`<Uri as TryFrom<Uri>>::try_from`] is actually infallible, so unwrapping the result will never panic.
         *builder.headers_mut().unwrap() = headers;
 
         Ok(Self::AwaitingResponse {
@@ -135,25 +140,42 @@ where
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Option<Self::Item>> {
         let client = self.client.clone();
         let req_headers = self.headers.clone();
-        self.state.transition(|mut state| match state {
+        self.state.transduce(|mut state| match state {
             PaginationState::AwaitingResponse {
                 ref mut resp_fut,
                 ref uri,
             } => match resp_fut.poll_unpin(cx) {
                 Poll::Ready(Ok(response)) => {
-                    let _span = tracing::debug_span!(
-                        "handling pagination response",
-                        %uri,
-                        cost = response.headers().get("X-Request-Cost").and_then(|hv| Some(hv.to_str().ok()?.parse::<f32>().ok())),
-                        ratelimit_remaining = response.headers().get("X-Rate-Limit-Remaining").and_then(|hv| Some(hv.to_str().ok()?.parse::<f32>().ok()))
-                    ).entered();
+                    let response: Response = response.into();
+                    let throttling = response.throttling();
+
+                    let _span = tracing::debug_span!("handling pagination response", %uri, ?throttling).entered();
+
+                    if throttling.remaining()? < THROTTLE_THRESHOLD {
+                        if throttling.throttled {
+                            tracing::warn!("request throttled by Canvas");
+                        } else {
+                            tracing::debug!("artificially throttling request");
+                        }
+
+                        return PaginationStateTransduction {
+                            new: PaginationState::Throttled {
+                                timer: Delay::new(THROTTLE_DELAY),
+                                uri: uri.clone(),
+                            },
+                            ret: {
+                                cx.waker().wake_by_ref();
+                                Poll::Pending
+                            },
+                        };
+                    }
 
                     match response.status() {
                         StatusCode::OK => {
                             tracing::trace!("recieved page");
 
-                            PaginationStateTransition {
-                                new: match PaginationLinks::from_headers(response.headers())?.next() {
+                            PaginationStateTransduction {
+                                new: match response.pagination_links()?.next() {
                                     Ok(next) => PaginationState::awaiting_response(
                                         &client,
                                         next.clone(),
@@ -161,50 +183,35 @@ where
                                     )?,
                                     Err(_) => PaginationState::Finished,
                                 },
-                                ret: Poll::Ready(Some(Ok(response.into()))),
-                            }
-                        }
-
-                        StatusCode::FORBIDDEN => {
-                            tracing::warn!("request throttled");
-
-                            PaginationStateTransition {
-                                new: PaginationState::Throttled {
-                                    timer: Delay::new(Duration::from_secs_f32(2.0)), // TODO: adjust by ratelimit remaining and per Canvas instance
-                                    uri: uri.clone(),
-                                },
-                                ret: {
-                                    cx.waker().wake_by_ref();
-                                    Poll::Pending
-                                },
+                                ret: Poll::Ready(Some(Ok(response))),
                             }
                         }
 
                         StatusCode::UNAUTHORIZED => {
                             tracing::error!(message = "incorrect authorization", auth_header = ?response.headers().get(header::AUTHORIZATION));
 
-                            PaginationStateTransition {
+                            PaginationStateTransduction {
                                 new: PaginationState::Finished,
                                 ret: Poll::Ready(Some(Err(Error::Unauthorized)))
                             }
                         }
 
                         code => {
-                            tracing::warn!(message = "recieved response with unknown status code", %code);
+                            tracing::warn!(message = "recieved response with unexpected status code", %code);
 
-                            PaginationStateTransition {
+                            PaginationStateTransduction {
                                 new: PaginationState::Finished,
                                 ret: Poll::Ready(Some(Err(Error::UnknownHttpStatus {
                                     code,
                                     headers: response.headers().clone(),
-                                    response: response.into(),
+                                    response,
                                 })))
                             }
                         },
                     }
                 },
-                Poll::Ready(Err(err)) => PaginationStateTransition::from_residual(Err(err.into())),
-                Poll::Pending => PaginationStateTransition {
+                Poll::Ready(Err(err)) => PaginationStateTransduction::from_residual(Err(err.into())),
+                Poll::Pending => PaginationStateTransduction {
                     new: state,
                     ret: Poll::Pending,
                 },
@@ -213,19 +220,19 @@ where
                 ref mut timer,
                 ref uri,
             } => match timer.poll_unpin(cx) {
-                Poll::Ready(()) => PaginationStateTransition {
+                Poll::Ready(()) => PaginationStateTransduction {
                     new: PaginationState::awaiting_response(&client, uri.clone(), req_headers)?,
                     ret: {
                         cx.waker().wake_by_ref();
                         Poll::Pending
                     },
                 },
-                Poll::Pending => PaginationStateTransition {
+                Poll::Pending => PaginationStateTransduction {
                     new: state,
                     ret: Poll::Pending,
                 },
             },
-            PaginationState::Finished => PaginationStateTransition {
+            PaginationState::Finished => PaginationStateTransduction {
                 new: PaginationState::Finished,
                 ret: Poll::Ready(None),
             },

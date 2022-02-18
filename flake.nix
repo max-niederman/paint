@@ -48,6 +48,7 @@
                 rust
                 rust-analyzer
                 mold
+                bintools
 
                 # JS
                 nodejs-16_x

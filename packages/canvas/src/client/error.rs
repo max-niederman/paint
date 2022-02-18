@@ -36,6 +36,9 @@ pub enum Error {
     #[error("missing pagination link with relevance `{0}`")]
     MissingPaginationLink(&'static str),
 
+    #[error("missing throttling information of type `{0}`")]
+    MissingThrottlingInfo(&'static str),
+
     #[error("while parsing JSON data from Canvas")]
     #[diagnostic(code(canvas_lms::malformed_json))]
     MalformedJson {
@@ -51,6 +54,7 @@ pub enum Error {
 impl Error {
     // ATTRIBUTION: from Kat Marchán's `turron` project, which is licensed under Apache 2.0
     #[inline]
+    #[cold]
     pub fn from_json_err(err: serde_json::Error, json: String) -> Self {
         // These json strings can get VERY LONG and miette doesn't (yet?)
         // support any "windowing" mechanism for displaying stuff, so we have

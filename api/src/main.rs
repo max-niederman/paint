@@ -1,14 +1,15 @@
 extern crate canvas_lms as canvas;
 
 use futures::prelude::*;
-use oil::*;
 use miette::{IntoDiagnostic, WrapErr};
+use oil::*;
 use poem::{
     listener::TcpListener,
     middleware::{Cors, Tracing},
     EndpointExt, Route,
 };
 use poem_openapi::OpenApiService;
+use std::time::Duration;
 use tracing_subscriber::EnvFilter;
 
 // TODO: send proper, consistent error responses for all error types
@@ -50,7 +51,15 @@ async fn main() -> miette::Result<()> {
         .with(Cors::new())
         .with(Tracing);
 
-    let mut update_jwks = Box::pin(auth::update_jwks());
+    let mut update_jwks = auth::update_jwks(
+        std::env::var_os("OIL_JWKS_UPDATE_INTERVAL")
+            .as_ref()
+            .and_then(|s| s.to_str())
+            .and_then(|s| s.parse::<f64>().ok())
+            .map(Duration::from_secs_f64)
+            .unwrap_or_else(|| Duration::from_secs(5 * 60)),
+    )
+    .boxed();
     update_jwks.next().await.unwrap()?; // make sure we have a JWKS to start with
     tokio::spawn(async move {
         loop {
