@@ -15,8 +15,21 @@ const config: Auth0ClientOptions = {
 	client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
 	audience: import.meta.env.VITE_OIL_URL,
 	scope: "read:views write:views",
-	cacheLocation: "localstorage",
+	cacheLocation: "localstorage"
 };
+
+export type Auth = {
+    isLoading: Writable<boolean>;
+    isAuthenticated: Writable<boolean>;
+    authToken: Writable<string>;
+    authError: Writable<Error>;
+    login: (opts?: {
+        redirectPage?: string;
+        prompt?: "none" | "login" | "consent" | "select_account";
+    }) => Promise<void>;
+    logout: () => void;
+    userInfo: Writable<{}>;
+}
 
 // Default Auth0 expiration time is 10 hours or something like that.
 // If you want to get fancy you can parse the JWT token and get
@@ -97,7 +110,7 @@ function createAuth() {
 		});
 	};
 
-	const auth = {
+	const auth: Auth = {
 		isLoading,
 		isAuthenticated,
 		authToken,
@@ -116,7 +129,7 @@ function createAuth() {
 
 // helper function for child components
 // to access the auth context
-function getAuth() {
+function getAuth(): Auth {
 	return getContext(AUTH_KEY);
 }
 

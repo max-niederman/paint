@@ -5,8 +5,9 @@
 	import SearchPage from "./pages/Search.svelte";
 	import HomePage from "./pages/Home.svelte";
 	import CoursePage from "./pages/Course.svelte";
+	import OnboardPage from "./pages/Onboard.svelte";
 	import { isLoading as isAuthLoading, isAuthenticated, createAuth } from "./auth";
-	import { views } from "./view";
+	import { view, views } from "./view";
 
 	const auth = createAuth();
 
@@ -24,17 +25,24 @@
 
 			<div class="container">
 				<div class="page">
-					<Route path="/">
-						<HomePage />
-					</Route>
+					{#if $view}
+						<Route path="/">
+							<HomePage />
+						</Route>
 
-					<Route path="/search">
-						<SearchPage />
-					</Route>
+						<Route path="/search">
+							<SearchPage />
+						</Route>
 
-					<Route path="/courses/:id" let:params>
-						<CoursePage id={parseInt(params.id)} />
-					</Route>
+						<Route path="/courses/:id" let:params>
+							<CoursePage id={parseInt(params.id)} />
+						</Route>
+					{:else}
+						<Route path="/**">
+							<OnboardPage />
+						</Route>
+					{/if}
+
 
 					<Route path="/**">
 						<main>

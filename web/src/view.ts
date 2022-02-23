@@ -1,10 +1,15 @@
 import { writable, Writable } from "svelte/store";
-import { authToken } from "./auth";
+import { authToken, getAuth } from "./auth";
 import deepmerge from "deepmerge";
 
 export async function makeCanvasRequest<T>(view: Oil.View, path: string, init?: RequestInit): Promise<T> {
+	// TODO: should Oil consult its database to get the base URL and access token?
+	//       this would remove the need to share the token with the client as well as
+	//       allowing greater flexibility to cache Canvas resources on our backend,
+	//       but also increase database load and worsen performance.
+
 	const response = await fetch(
-		`${view.canvas_base_url}${path}`,
+		`${import.meta.env.VITE_OIL_URL}/proxy?url=${view.canvas_base_url}${path}`,
 		deepmerge(
 			{
 				headers: {
@@ -18,24 +23,64 @@ export async function makeCanvasRequest<T>(view: Oil.View, path: string, init?: 
 	return await response.json();
 }
 
-// persist the view in localStorage
-export const view: Writable<Oil.View> = writable(JSON.parse(localStorage.getItem("view") ?? "null"));
-view.subscribe((view) => localStorage.setItem("view", JSON.stringify(view)));
+class LocalStorageKey<T> {
+	constructor(private key: string) {
+		this.key = key;
+	}
 
-// persist the views in localStorage
-export const views: Writable<Oil.View[]> = writable(JSON.parse(localStorage.getItem("views") ?? "[]"));
-views.subscribe((views) => localStorage.setItem("views", JSON.stringify(views)));
+	get(defaultVal?: T): T {
+		const val = localStorage.getItem(this.key);
+		if (val == null) {
+			return defaultVal;
+		}
 
-// fetch views from the server
-authToken.subscribe(async (token) => {
-	if (token) {
-		const resp = await fetch(`${import.meta.env.VITE_OIL_URL}/views`, {
-			headers: {
-				Authorization: `Bearer ${token}`
+		try {
+			return JSON.parse(val);
+		} catch {
+			return defaultVal;
+		}
+	}
+
+	set(val: T): void {
+		localStorage.setItem(this.key, JSON.stringify(val));
+	}
+
+	subscribeTo(store: SvelteStore<T>): void {
+		store.subscribe((val) => {
+			// for whatever reason the store was sometimes calling subscribers with undefined on subscription
+			// this avoids writing undefined to local storage
+			if (val !== undefined) {
+				this.set(val);
 			}
 		});
-		const body: Oil.View[] = await resp.json();
-		views.set(body);
+	}
+}
+
+// persist the view in localStorage
+const viewLSKey = new LocalStorageKey<Oil.View>("view");
+export const view = writable(viewLSKey.get(null));
+viewLSKey.subscribeTo(view);
+
+// persist the views in localStorage
+const viewsLSKey = new LocalStorageKey<Oil.View[]>("views");
+export const views = writable(viewsLSKey.get([]));
+viewsLSKey.subscribeTo(views);
+
+
+async function fetchViews(token) {
+	const resp = await fetch(`${import.meta.env.VITE_OIL_URL}/views`, {
+		headers: {
+			Authorization: `Bearer ${token}`
+		}
+	});
+	const body: Oil.View[] = await resp.json();
+	views.set(body);
+}
+
+// fetch token on login
+authToken.subscribe(async (token) => {
+	if (token) {
+		await fetchViews(token);
 	}
 });
 
