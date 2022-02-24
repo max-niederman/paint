@@ -9,7 +9,7 @@ export async function makeCanvasRequest<T>(view: Oil.View, path: string, init?: 
 	//       but also increase database load and worsen performance.
 
 	const response = await fetch(
-		`${import.meta.env.VITE_OIL_URL}/proxy?url=${view.canvas_base_url}${path}`,
+		`https://cors-anywhere.herokuapp.com/${view.canvas_base_url}${path}`,
 		deepmerge(
 			{
 				headers: {
@@ -19,8 +19,53 @@ export async function makeCanvasRequest<T>(view: Oil.View, path: string, init?: 
 			init ?? {}
 		)
 	);
-	console.log(response);
+
+	if (!response.ok) {
+		throw new Error("response was not ok");
+	}
+
 	return await response.json();
+}
+
+export async function makeCanvasRequestPaginated<T>(view: Oil.View, path: string, init?: RequestInit): Promise<T[]> {
+	let next = `${view.canvas_base_url}${path}`;
+	let items: T[] = [];
+	pages: while (true) {
+		const response = await fetch(
+			`https://cors-anywhere.herokuapp.com/${next}`,
+			deepmerge(
+				{
+					headers: {
+						Authorization: `Bearer ${view.canvas_access_token}`
+					}
+				},
+				init ?? {}
+			)
+		);
+
+		if (!response.ok) {
+			throw new Error("response was not ok");
+		}
+
+		items = items.concat(await response.json());
+
+		const linkHeader = response.headers.get("Link");
+		const links = linkHeader.split(",");
+
+		for (const link of links) {
+			let [url, rel] = link.split(";").map((s) => s.trim());
+
+			url = url.slice(1, -1); // remove brackets
+			rel = rel.slice(5, -1); // remove `rel="X"`
+
+			if (rel === "next") {
+				next = url;
+				continue pages;
+			}
+		}
+
+		return items;
+	}
 }
 
 class LocalStorageKey<T> {
@@ -66,21 +111,16 @@ const viewsLSKey = new LocalStorageKey<Oil.View[]>("views");
 export const views = writable(viewsLSKey.get([]));
 viewsLSKey.subscribeTo(views);
 
-
-async function fetchViews(token) {
-	const resp = await fetch(`${import.meta.env.VITE_OIL_URL}/views`, {
-		headers: {
-			Authorization: `Bearer ${token}`
-		}
-	});
-	const body: Oil.View[] = await resp.json();
-	views.set(body);
-}
-
 // fetch token on login
 authToken.subscribe(async (token) => {
 	if (token) {
-		await fetchViews(token);
+		const resp = await fetch(`${import.meta.env.VITE_OIL_URL}/views`, {
+			headers: {
+				Authorization: `Bearer ${token}`
+			}
+		});
+		const body: Oil.View[] = await resp.json();
+		views.set(body);
 	}
 });
 

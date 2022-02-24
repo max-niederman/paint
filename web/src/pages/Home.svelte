@@ -1,19 +1,22 @@
 <script lang="ts">
-	import { makeCanvasRequest, view } from "../view";
+	import { makeCanvasRequest, makeCanvasRequestPaginated, view } from "../view";
 	import FaArrowRight from "svelte-icons/fa/FaArrowRight.svelte";
 	import { Link } from "svelte-navigator";
 
 	// FIXME: fetch courses from Oil
 
 	let courses: Canvas.Course[] = [];
-	// this could theoretically cause a race condition, but it's probably fine
-	// since very few users will switch views anyway
-	$: makeCanvasRequest($view, "/api/v1").then(data => courses = data);
+	// FIXME: currently if the user is enrolled in more classes than can be listed in one page, those classes will not be visible
+	//  NOTE: this could theoretically cause a race condition, but it's probably fine
+	//        since very few users will switch views anyway
+	$: makeCanvasRequestPaginated<Canvas.Course>($view, "/api/v1/courses?enrollment_state=active").then(data => courses = data);
+
+	$: visibleCourses = courses.filter((course) => course.overridden_course_visibility !== undefined);
 </script>
 
 <h1>Courses</h1>
 
-{#each courses as course}
+{#each visibleCourses as course}
 	<Link to={`/courses/${course.id}`}>
 		<div class="card">
 			<div class="card-content">
@@ -24,6 +27,8 @@
 			<span class="card-arrow"><FaArrowRight /></span>
 		</div>
 	</Link>
+{:else}
+	<p>Loading...</p>
 {/each}
 
 <style lang="scss">

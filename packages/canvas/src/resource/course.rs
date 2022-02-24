@@ -49,6 +49,10 @@ pub struct Course {
     pub course_format: Option<CourseFormat>, // present on include[]=course_format
     #[serde(default)]
     pub access_restricted_by_date: Option<bool>,
+
+    // undocumented. maybe because it only applies to students or something?
+    #[serde(default)]
+    pub overridden_course_visibility: Option<String>,
 }
 
 impl Resource for Course {}
