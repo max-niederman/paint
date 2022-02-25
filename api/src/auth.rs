@@ -5,7 +5,6 @@ use poem::{error::ResponseError, http::StatusCode, Request, RequestBody};
 use poem_openapi::{ApiExtractor, ApiExtractorType};
 use serde::{Deserialize, Serialize};
 use std::{env, lazy::SyncOnceCell, sync::RwLock, time::Duration};
-use tokio_stream::wrappers::IntervalStream;
 use tracing::Instrument;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,7 +110,7 @@ impl<'a> ApiExtractor<'a> for Claims {
 static JWKS: SyncOnceCell<RwLock<jwk::JwkSet>> = SyncOnceCell::new();
 
 pub fn update_jwks(period: Duration) -> impl Stream<Item = Result<(), AuthError>> {
-    IntervalStream::new(tokio::time::interval(period)).then(|_| {
+    async_std::stream::interval(period).then(|_| {
         async move {
             let jwks_url = env::var("OIL_JWKS_URL").map_err(AuthError::MissingJwksUrl)?;
 

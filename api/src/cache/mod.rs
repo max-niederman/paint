@@ -1,1 +1,0 @@
-//! Canvas cache layer.

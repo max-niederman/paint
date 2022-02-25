@@ -2,7 +2,8 @@ extern crate canvas_lms as canvas;
 
 use futures::prelude::*;
 use miette::{IntoDiagnostic, WrapErr};
-use oil::routes;
+use oil::{routes, auth};
+use async_std::task;
 use poem::{
     listener::TcpListener,
     middleware::{Cors, Tracing},
@@ -14,7 +15,7 @@ use tracing_subscriber::EnvFilter;
 
 // TODO: send proper, consistent error responses for all error types
 
-#[tokio::main]
+#[async_std::main]
 async fn main() -> miette::Result<()> {
     #[cfg(not(debug_assertions))]
     tracing_subscriber::fmt()
@@ -39,7 +40,7 @@ async fn main() -> miette::Result<()> {
     let database = mongo_client.database("oil");
 
     let api = OpenApiService::new(
-        (routes::Api, routes::view::Api::new(&database)),
+        (routes::RootApi, routes::view::Api::new(&database)),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )
@@ -61,7 +62,7 @@ async fn main() -> miette::Result<()> {
     )
     .boxed();
     update_jwks.next().await.unwrap()?; // make sure we have a JWKS to start with
-    tokio::spawn(async move {
+    task::spawn(async move {
         loop {
             update_jwks
                 .next()

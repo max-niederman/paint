@@ -55,8 +55,6 @@ pub struct Course {
     pub overridden_course_visibility: Option<String>,
 }
 
-impl Resource for Course {}
-
 #[cfg_attr(
     feature = "typescript-definitions",
     derive(typescript_definitions::TypeScriptify)

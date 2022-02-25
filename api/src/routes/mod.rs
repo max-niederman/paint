@@ -1,3 +1,5 @@
+use poem_openapi::{payload::PlainText, OpenApi, Tags};
+
 pub mod view;
 
 pub struct RootApi;

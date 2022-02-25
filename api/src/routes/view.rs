@@ -51,7 +51,8 @@ struct DbView {
     id: bson::Uuid,
     name: String,
     user: String,
-    canvas_view: pigment::View,
+    canvas_base_url: String,
+    canvas_user_id: u64,
     canvas_access_token: String,
 }
 
@@ -60,10 +61,8 @@ impl From<DbView> for View {
         View {
             id: db_view.id.into(),
             name: db_view.name,
-            canvas_base_url: db_view.canvas_view.truth.base_url,
-            canvas_user_id: match db_view.canvas_view.viewer {
-                pigment::view::Viewer::User(id) => id.into(),
-            },
+            canvas_base_url: db_view.canvas_base_url,
+            canvas_user_id: db_view.canvas_user_id,
             canvas_access_token: db_view.canvas_access_token,
         }
     }
@@ -129,12 +128,8 @@ impl Api {
             id: Uuid::new_v4().into(),
             name: new_view.name,
             user: claims.sub,
-            canvas_view: pigment::View {
-                truth: pigment::view::Canvas {
-                    base_url: new_view.canvas_base_url,
-                },
-                viewer: pigment::view::Viewer::User(new_view.canvas_user_id.into()),
-            },
+            canvas_base_url: new_view.canvas_base_url,
+            canvas_user_id: new_view.canvas_user_id,
             canvas_access_token: new_view.canvas_access_token,
         };
 
