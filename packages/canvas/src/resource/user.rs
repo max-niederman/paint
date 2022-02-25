@@ -1,4 +1,3 @@
-use super::Resource;
 use crate::Id;
 use serde::{Deserialize, Serialize};
 
@@ -19,5 +18,3 @@ pub struct User {
     pub first_name: String,
     pub short_name: String,
 }
-
-impl Resource for User {}

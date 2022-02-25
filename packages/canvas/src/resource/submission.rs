@@ -1,4 +1,4 @@
-use super::{Assignment, Course, Resource};
+use super::{Assignment, Course};
 use crate::Id;
 use serde::{Deserialize, Serialize};
 
@@ -44,8 +44,6 @@ pub struct Submission {
     pub grade: Option<String>,
     pub score: Option<f64>,
 }
-
-impl Resource for Submission {}
 
 #[cfg_attr(
     feature = "typescript-definitions",

@@ -1,4 +1,3 @@
-use super::Resource;
 use crate::Id;
 use serde::{Deserialize, Serialize};
 
@@ -19,5 +18,3 @@ pub struct GradingPeriod {
     pub weight: f64,
     pub is_closed: bool,
 }
-
-impl Resource for GradingPeriod {}

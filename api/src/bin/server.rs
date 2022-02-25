@@ -2,7 +2,7 @@ extern crate canvas_lms as canvas;
 
 use futures::prelude::*;
 use miette::{IntoDiagnostic, WrapErr};
-use oil::*;
+use oil::routes;
 use poem::{
     listener::TcpListener,
     middleware::{Cors, Tracing},
@@ -39,7 +39,7 @@ async fn main() -> miette::Result<()> {
     let database = mongo_client.database("oil");
 
     let api = OpenApiService::new(
-        (Api, view::Api::new(&database)),
+        (routes::Api, routes::view::Api::new(&database)),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )

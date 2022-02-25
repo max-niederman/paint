@@ -6,7 +6,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: paint
-  
+
   mongo_ui:
     image: mongo-express
     restart: always
@@ -16,8 +16,3 @@ services:
       ME_CONFIG_MONGODB_URL: mongodb://root:paint@mongo:27017/
     depends_on:
       - mongo
-
-  cors_proxy:
-    image: imjacobclark/cors-container
-    ports:
-      - 4221:3000

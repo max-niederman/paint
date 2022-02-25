@@ -1,4 +1,4 @@
-use super::{submission::SubmissionType, Resource};
+use super::submission::SubmissionType;
 use crate::Id;
 use serde::{Deserialize, Serialize};
 
@@ -37,8 +37,6 @@ pub struct Assignment {
 
     pub grading_type: GradingType,
 }
-
-impl Resource for Assignment {}
 
 #[cfg_attr(
     feature = "typescript-definitions",

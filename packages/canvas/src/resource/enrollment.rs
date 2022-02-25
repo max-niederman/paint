@@ -1,4 +1,4 @@
-use super::{user::User, Resource};
+use super::user::User;
 use crate::Id;
 use serde::{Deserialize, Serialize};
 
@@ -64,8 +64,6 @@ pub struct InlineEnrollment {
     #[serde(default)]
     pub computed_final_grade: Option<String>,
 }
-
-impl Resource for Enrollment {}
 
 #[cfg_attr(
     feature = "typescript-definitions",

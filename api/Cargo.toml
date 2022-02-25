@@ -8,11 +8,11 @@ path = "src/lib.rs"
 
 [[bin]]
 name = "oil"
-path = "src/main.rs"
+path = "src/bin/server.rs"
 
 [[bin]]
 name = "ts-definitions-oil"
-path = "src/ts_definitions.rs"
+path = "src/bin/ts_definitions.rs"
 required-features = ["typescript-definitions"]
 
 [dependencies]
@@ -33,7 +33,7 @@ bson = { version = "2.1", features = ["uuid-0_8"] }
 # bincode = "1.0"
 # async-bincode = "0.6"
 # chrono = { version = "0.4", features = ["serde"] }
-miette = { version = "3.2", features = ["fancy"] }
+miette = { version = "4.2", features = ["fancy"] }
 thiserror = "1.0"
 tracing = "0.1.29"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }

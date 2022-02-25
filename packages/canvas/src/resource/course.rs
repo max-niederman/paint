@@ -1,4 +1,4 @@
-use super::{enrollment::InlineEnrollment, grading_period::GradingPeriod, Resource};
+use super::{enrollment::InlineEnrollment, grading_period::GradingPeriod};
 use crate::Id;
 use serde::{Deserialize, Serialize};
 
