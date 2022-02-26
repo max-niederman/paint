@@ -3,6 +3,7 @@
 #![feature(box_patterns)]
 #![feature(result_option_inspect)]
 #![feature(trivial_bounds)]
+#![feature(generic_const_exprs)]
 
 pub mod routes;
 pub mod auth;
