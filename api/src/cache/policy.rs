@@ -26,7 +26,7 @@ impl<R: Resource> InvalidationPolicy<R> for MaxAge {
     fn validity(&self, entry: &CacheEntry<R>) -> Validity {
         let age = Utc::now() - entry.entered;
         if age > self.max_age {
-            Validity::Invalid 
+            Validity::Invalid
         } else {
             Validity::Valid
         }

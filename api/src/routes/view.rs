@@ -1,5 +1,5 @@
-use crate::auth::Claims;
 use super::ApiTags;
+use crate::auth::Claims;
 use bson::doc;
 use futures::prelude::*;
 use mongodb::{Collection, Database};

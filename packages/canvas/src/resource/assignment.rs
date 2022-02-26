@@ -1,5 +1,6 @@
 use super::submission::SubmissionType;
 use crate::Id;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Assignment.
@@ -19,11 +20,11 @@ pub struct Assignment {
     pub course_id: Id,
     pub html_url: String,
 
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-    pub due_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub lock_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub unlock_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub due_at: Option<DateTime<Utc>>,
+    pub lock_at: Option<DateTime<Utc>>,
+    pub unlock_at: Option<DateTime<Utc>>,
 
     pub submission_types: Vec<SubmissionType>,
     pub has_submitted_submissions: bool,
@@ -56,15 +57,15 @@ pub struct AssignmentOverride {
     pub course_section_id: Option<Id>,
 
     #[serde(default)]
-    pub due_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub due_at: Option<DateTime<Utc>>,
     #[serde(default)]
     pub all_day: Option<bool>,
     #[serde(default)]
-    pub all_day_date: Option<chrono::DateTime<chrono::Utc>>,
+    pub all_day_date: Option<DateTime<Utc>>,
     #[serde(default)]
-    pub unlock_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub unlock_at: Option<DateTime<Utc>>,
     #[serde(default)]
-    pub lock_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub lock_at: Option<DateTime<Utc>>,
 }
 
 #[cfg_attr(
@@ -100,6 +101,6 @@ pub struct ScoreStatistics {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LockInfo {
     pub asset_string: String,
-    pub unlock_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub lock_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub unlock_at: Option<DateTime<Utc>>,
+    pub lock_at: Option<DateTime<Utc>>,
 }

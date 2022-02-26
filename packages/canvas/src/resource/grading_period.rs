@@ -1,4 +1,5 @@
 use crate::Id;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Grading Period.
@@ -12,9 +13,9 @@ use serde::{Deserialize, Serialize};
 pub struct GradingPeriod {
     pub id: Id,
     pub title: String,
-    pub start_date: chrono::DateTime<chrono::Utc>,
-    pub end_date: chrono::DateTime<chrono::Utc>,
-    pub close_date: chrono::DateTime<chrono::Utc>,
+    pub start_date: DateTime<Utc>,
+    pub end_date: DateTime<Utc>,
+    pub close_date: DateTime<Utc>,
     pub weight: f64,
     pub is_closed: bool,
 }

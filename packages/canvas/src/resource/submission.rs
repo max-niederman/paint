@@ -1,5 +1,6 @@
 use super::{Assignment, Course};
 use crate::Id;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Submission.
@@ -22,9 +23,9 @@ pub struct Submission {
     #[serde(default)]
     pub preview: Option<String>,
 
-    pub posted_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub submitted_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub graded_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub posted_at: Option<DateTime<Utc>>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub graded_at: Option<DateTime<Utc>>,
 
     pub late: bool,
     pub excused: Option<bool>,

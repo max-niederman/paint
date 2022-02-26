@@ -1,7 +1,7 @@
+use async_std::task;
 use futures::prelude::*;
 use miette::{IntoDiagnostic, WrapErr};
-use oil::{routes, auth};
-use async_std::task;
+use oil::{auth, routes};
 use poem::{
     listener::TcpListener,
     middleware::{Cors, Tracing},

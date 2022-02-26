@@ -1,5 +1,6 @@
 use super::{enrollment::InlineEnrollment, grading_period::GradingPeriod};
 use crate::Id;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Course.
@@ -25,9 +26,9 @@ pub struct Course {
     pub grading_periods: Vec<GradingPeriod>,
     pub grading_standard_id: Option<Id>,
 
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub start_at: chrono::DateTime<chrono::Utc>,
-    pub end_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub start_at: DateTime<Utc>,
+    pub end_at: Option<DateTime<Utc>>,
 
     #[serde(default)]
     pub enrollments: Vec<InlineEnrollment>, // enrollment grades present on include[]=total_scores
@@ -91,9 +92,9 @@ pub struct Term {
     pub id: Id,
     pub name: String,
     #[serde(default)]
-    pub start_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub start_at: Option<DateTime<Utc>>,
     #[serde(default)]
-    pub end_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub end_at: Option<DateTime<Utc>>,
 }
 
 #[cfg_attr(
@@ -105,7 +106,7 @@ pub struct CourseProgress {
     pub requirement_count: u32,
     pub requirement_count_completed_count: u32,
     pub next_requirement_url: Option<String>,
-    pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
 }
 
 #[cfg_attr(

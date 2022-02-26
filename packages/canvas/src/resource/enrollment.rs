@@ -1,5 +1,6 @@
 use super::user::User;
 use crate::Id;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// A Canvas Enrollment.
@@ -21,12 +22,12 @@ pub struct Enrollment {
     #[serde(rename = "type")]
     pub enrollment_type: EnrollmentType,
 
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-    pub start_at: chrono::DateTime<chrono::Utc>,
-    pub end_at: chrono::DateTime<chrono::Utc>,
-    pub last_activity_at: chrono::DateTime<chrono::Utc>,
-    pub last_attended_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub start_at: DateTime<Utc>,
+    pub end_at: DateTime<Utc>,
+    pub last_activity_at: DateTime<Utc>,
+    pub last_attended_at: DateTime<Utc>,
     pub total_activity_time: f64,
 
     pub html_url: String,
