@@ -1,5 +1,3 @@
-extern crate canvas_lms as canvas;
-
 use futures::prelude::*;
 use miette::{IntoDiagnostic, WrapErr};
 use oil::{routes, auth};

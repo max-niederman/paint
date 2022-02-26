@@ -1684,6 +1684,7 @@ dependencies = [
  "canvas-lms",
  "chrono",
  "futures",
+ "heapless",
  "jsonwebtoken",
  "miette 4.2.1",
  "mongodb",

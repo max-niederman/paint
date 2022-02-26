@@ -1,12 +1,19 @@
 //! Caching endpoints.
 
 use chrono::{DateTime, Utc};
-use poem::{Endpoint, FromRequest, IntoResponse, Middleware, Request, Result};
+use poem::{
+    web::{Json, Path},
+    Endpoint, FromRequest, IntoResponse, Middleware, Request, Response, Result,
+};
 use policy::{InvalidationPolicy, Validity};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-pub mod error;
+pub mod key;
 pub mod policy;
+pub mod sled;
+
+pub use key::Key;
+use uuid::Uuid;
 
 // TODO: add tracing events
 
@@ -18,17 +25,6 @@ pub trait Resource: Serialize + DeserializeOwned + Send + Sync {
     fn key(&self) -> Self::Key;
 }
 
-/// A key uniquely identifying a resource in a cache.
-pub trait Key: Sized + Send + Sync {
-    /// The length in bytes of the serialized key.
-    const SER_LEN: usize;
-
-    /// Serialize the key into a byte array.
-    fn key_serialize(&self) -> Result<[u8; Self::SER_LEN]>;
-    /// Deserialize the key from a byte iterator.
-    fn key_deserialize<I: IntoIterator<Item = u8>>(&self) -> Result<Self>;
-}
-
 /// A backing store for a cache.
 ///
 /// A store's clone should always reflect changes in the original store like an [`Arc`] would.
@@ -37,15 +33,18 @@ pub trait Store: Clone + Send + Sync {
 
     fn get(
         &self,
+        view: Uuid,
         key: &<Self::Resource as Resource>::Key,
     ) -> Result<Option<CacheEntry<Self::Resource>>>;
     fn insert(
         &self,
+        view: Uuid,
         resource: &CacheEntry<Self::Resource>,
     ) -> Result<Option<CacheEntry<Self::Resource>>>;
 }
 
 /// An entry stored in a cache.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub struct CacheEntry<R> {
     resource: R,
 
@@ -78,8 +77,10 @@ where
 }
 
 impl<R: Resource> IntoResponse for CacheEntry<R> {
-    fn into_response(self) -> poem::Response {
-        todo!()
+    fn into_response(self) -> Response {
+        Json(self.resource)
+            .with_header("X-Cache-Entered", self.entered.to_string())
+            .into_response()
     }
 }
 
@@ -100,21 +101,26 @@ where
     type Output = CacheEntry<S::Resource>;
 
     async fn call(&self, req: Request) -> poem::Result<Self::Output> {
-        let key = FromRequest::from_request_without_body(&req).await?;
-        let cached = self.cache.store.get(&key)?;
+        #[derive(Deserialize)]
+        struct ViewPath {
+            view: Uuid,
+        }
+        let ViewPath { view } = Path::<ViewPath>::from_request_without_body(&req).await?.0;
 
-        match cached {
+        let key = <S::Resource as Resource>::Key::from_request_without_body(&req).await?;
+
+        match self.cache.store.get(view, &key)? {
             Some(cached) => match self.cache.invalidation.validity(&cached) {
                 Validity::Invalid => {
                     let entry = self.endpoint.call(req).await?;
-                    self.cache.store.insert(&entry)?;
+                    self.cache.store.insert(view, &entry)?;
                     Ok(entry)
                 }
                 Validity::Valid => Ok(cached),
             },
             None => {
                 let entry = self.endpoint.call(req).await?;
-                self.cache.store.insert(&entry)?;
+                self.cache.store.insert(view, &entry)?;
                 Ok(entry)
             }
         }

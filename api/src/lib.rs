@@ -3,8 +3,9 @@
 #![feature(box_patterns)]
 #![feature(result_option_inspect)]
 #![feature(trivial_bounds)]
-#![feature(generic_const_exprs)]
 
-pub mod routes;
+extern crate canvas_lms as canvas;
+
 pub mod auth;
 pub mod cache;
+pub mod routes;
