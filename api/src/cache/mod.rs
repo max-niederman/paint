@@ -10,6 +10,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub mod key;
 pub mod policy;
+pub mod resource;
 pub mod sled;
 
 pub use key::Key;
@@ -18,7 +19,7 @@ use uuid::Uuid;
 // TODO: add tracing events
 
 /// A resource which may be cached.
-pub trait Resource: Serialize + DeserializeOwned + Send + Sync {
+pub trait Cache: Serialize + DeserializeOwned + Send + Sync {
     type Key: Key;
 
     /// Get the key identifying the resource.
@@ -29,12 +30,12 @@ pub trait Resource: Serialize + DeserializeOwned + Send + Sync {
 ///
 /// A store's clone should always reflect changes in the original store like an [`Arc`] would.
 pub trait Store: Clone + Send + Sync {
-    type Resource: Resource;
+    type Resource: Cache;
 
     fn get(
         &self,
         view: Uuid,
-        key: &<Self::Resource as Resource>::Key,
+        key: &<Self::Resource as Cache>::Key,
     ) -> Result<Option<CacheEntry<Self::Resource>>>;
     fn insert(
         &self,
@@ -54,17 +55,17 @@ pub struct CacheEntry<R> {
 
 /// Cache middleware.
 #[derive(Debug, Clone, Copy)]
-pub struct Cache<S, I> {
+pub struct CacheMiddleware<S, I> {
     store: S,
     invalidation: I,
 }
 
-impl<E, S, I> Middleware<E> for Cache<S, I>
+impl<E, S, I> Middleware<E> for CacheMiddleware<S, I>
 where
     Self: Clone,
     E: Endpoint<Output = CacheEntry<S::Resource>>,
     S: Store,
-    for<'a> <S::Resource as Resource>::Key: FromRequest<'a>,
+    for<'a> Path<<S::Resource as Cache>::Key>: FromRequest<'a>,
     I: InvalidationPolicy<S::Resource>,
 {
     type Output = CacheEndpoint<E, S, I>;
@@ -76,7 +77,7 @@ where
     }
 }
 
-impl<R: Resource> IntoResponse for CacheEntry<R> {
+impl<R: Cache> IntoResponse for CacheEntry<R> {
     fn into_response(self) -> Response {
         Json(self.resource)
             .with_header("X-Cache-Entered", self.entered.to_string())
@@ -86,7 +87,7 @@ impl<R: Resource> IntoResponse for CacheEntry<R> {
 
 /// Cache endpoint.
 pub struct CacheEndpoint<E, S, I> {
-    cache: Cache<S, I>,
+    cache: CacheMiddleware<S, I>,
     endpoint: E,
 }
 
@@ -95,7 +96,7 @@ impl<E, S, I> Endpoint for CacheEndpoint<E, S, I>
 where
     E: Endpoint<Output = CacheEntry<S::Resource>>,
     S: Store,
-    for<'a> <S::Resource as Resource>::Key: FromRequest<'a>,
+    for<'a> Path<<S::Resource as Cache>::Key>: FromRequest<'a>,
     I: InvalidationPolicy<S::Resource>,
 {
     type Output = CacheEntry<S::Resource>;
@@ -107,7 +108,7 @@ where
         }
         let ViewPath { view } = Path::<ViewPath>::from_request_without_body(&req).await?.0;
 
-        let key = <S::Resource as Resource>::Key::from_request_without_body(&req).await?;
+        let key = Path::<<S::Resource as Cache>::Key>::from_request_without_body(&req).await?;
 
         match self.cache.store.get(view, &key)? {
             Some(cached) => match self.cache.invalidation.validity(&cached) {

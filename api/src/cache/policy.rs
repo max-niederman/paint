@@ -2,10 +2,10 @@
 
 use chrono::{Duration, Utc};
 
-use super::{CacheEntry, Resource};
+use super::{CacheEntry, Cache};
 
 /// Policy for invalidating cache resources.
-pub trait InvalidationPolicy<R: Resource>: Send + Sync {
+pub trait InvalidationPolicy<R: Cache>: Send + Sync {
     fn validity(&self, entry: &CacheEntry<R>) -> Validity;
 }
 
@@ -22,7 +22,7 @@ struct MaxAge {
     max_age: Duration,
 }
 
-impl<R: Resource> InvalidationPolicy<R> for MaxAge {
+impl<R: Cache> InvalidationPolicy<R> for MaxAge {
     fn validity(&self, entry: &CacheEntry<R>) -> Validity {
         let age = Utc::now() - entry.entered;
         if age > self.max_age {

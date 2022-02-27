@@ -1432,16 +1432,8 @@ version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd2adcfcced5d625bf90a958a82ae5b93231f57f3df1383fee28c9b5096d35ed"
 dependencies = [
- "atty",
- "backtrace",
  "miette-derive 3.3.0",
  "once_cell",
- "owo-colors",
- "supports-color",
- "supports-hyperlinks",
- "supports-unicode",
- "terminal_size",
- "textwrap",
  "thiserror",
 ]
 
@@ -1831,20 +1823,6 @@ dependencies = [
  "maplit",
  "pest",
  "sha-1 0.8.2",
-]
-
-[[package]]
-name = "pigment"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "canvas-lms",
- "futures",
- "heapless",
- "miette 3.3.0",
- "serde",
- "thiserror",
- "tracing",
 ]
 
 [[package]]

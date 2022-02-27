@@ -1,4 +1,4 @@
-use super::{CacheEntry, Key, Resource, Store};
+use super::{CacheEntry, Key, Cache, Store};
 use poem::{error::InternalServerError, Result};
 use std::marker::PhantomData;
 use uuid::Uuid;
@@ -18,13 +18,13 @@ impl<R> Clone for SledStore<R> {
     }
 }
 
-impl<R: Resource> Store for SledStore<R> {
+impl<R: Cache> Store for SledStore<R> {
     type Resource = R;
 
     fn get(
         &self,
         view: Uuid,
-        key: &<Self::Resource as Resource>::Key,
+        key: &<Self::Resource as Cache>::Key,
     ) -> Result<Option<CacheEntry<Self::Resource>>> {
         match self.tree.get(
             [
