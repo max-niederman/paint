@@ -10,6 +10,10 @@ pub use response::Response;
 
 use hyper::{client::HttpConnector, Method};
 
+// TODO: currently, we handle throttling only for paginated requests, but this causes problems when we make many paginated requests simultaneously
+//       and doesn't even attempt to handle non-paginated responses, leading to errors in some cases.
+//       at some point, we should move throttle handling to the `Client` so it acts on all requests, paginated or not.
+
 #[derive(Debug, Clone)]
 pub struct Client<Conn: Clone = HttpConnector> {
     hyper: hyper::Client<Conn>,

@@ -68,9 +68,9 @@ pub struct Throttling {
 }
 
 macro_rules! response_throttling_getter {
-    ($name:ident) => {
+    ($name:ident -> $ty:ty) => {
         #[inline]
-        pub fn $name(&self) -> Result<f64> {
+        pub fn $name(&self) -> Result<$ty> {
             self.$name
                 .ok_or_else(|| Error::MissingThrottlingInfo(stringify!($name)).into())
         }
@@ -82,6 +82,6 @@ impl Throttling {
         self.throttled
     }
 
-    response_throttling_getter!(cost);
-    response_throttling_getter!(remaining);
+    response_throttling_getter!(cost -> f64);
+    response_throttling_getter!(remaining -> f64);
 }
