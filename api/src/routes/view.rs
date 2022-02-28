@@ -1,5 +1,5 @@
 use super::ApiTags;
-use crate::auth::Claims;
+use crate::{auth::Claims, view::View};
 use bson::doc;
 use futures::prelude::*;
 use mongodb::{Collection, Database};
@@ -10,27 +10,6 @@ use poem::{
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-/// A Canvas view associated with a user
-#[cfg_attr(
-    feature = "typescript-definitions",
-    derive(typescript_definitions::TypeScriptify)
-)]
-#[derive(Debug, Clone, Serialize, Deserialize, Object)]
-pub struct View {
-    /// The unique identifier of the view.
-    pub id: Uuid,
-
-    /// The name of the view.
-    pub name: String,
-
-    /// The base URL of the Canvas view.
-    pub canvas_base_url: String,
-    /// The user's Canvas ID.
-    pub canvas_user_id: u64,
-    /// The user's Canvas access token.
-    pub canvas_access_token: String,
-}
 
 /// A new view to be created by the client
 #[cfg_attr(

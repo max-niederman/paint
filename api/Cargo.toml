@@ -16,7 +16,8 @@ path = "src/bin/ts_definitions.rs"
 required-features = ["typescript-definitions"]
 
 [dependencies]
-canvas-lms = { path = "../packages/canvas" }
+canvas-lms = { path = "../packages/canvas-lms", features = ["client"] }
+fallible-stream = { path = "../packages/fallible-stream" }
 futures = "0.3"
 poem = { version = "1.2", features = ["rustls"] }
 poem-openapi = { version = "1.2", features = ["uuid", "rapidoc"] }

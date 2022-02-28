@@ -1675,6 +1675,7 @@ dependencies = [
  "bson",
  "canvas-lms",
  "chrono",
+ "fallible-stream",
  "futures",
  "heapless",
  "jsonwebtoken",

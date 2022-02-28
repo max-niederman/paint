@@ -15,7 +15,7 @@
 //!
 //! ## Fetch
 //!
-//! Nodes which correspond to API requests also implement [`Fetch`]. They must implement a method [`Fetch::fetch_all`] which
+//! Nodes which correspond to API requests also implement [`FetchAll`] and/or [`FetchOne`]. They must implement a method which
 //! takes `&self` and an HTTP client and returns a homogeneous set of resources. Typically, this is achieved by constructing a
 //! URL based on the node's ancestors. Homogeneity is ensured by the supertrait bound `Fetch: HomoNode`.
 //!
@@ -28,6 +28,8 @@
 //!
 //! TODO: add poem endpoints
 
+pub mod impls;
+
 use futures::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::pin::Pin;
@@ -36,15 +38,11 @@ use std::pin::Pin;
 ///
 /// See module documentation for more details.
 pub trait Node {
-    type Parent: Node;
-
-    /// Get a reference to the parent of the node.
-    fn parent(&self) -> &Self::Parent;
-
     /// Get the cache prefix of the node, if there is one.
-    fn cache_prefix(&self) -> Option<CachePrefix>;
+    fn cache_prefix(&self) -> Option<CachePrefix> {
+        None
+    }
 }
-
 /// A node in the resource tree representing a homogenous set of resources.
 ///
 /// See module documentation for more details.
@@ -52,37 +50,33 @@ pub trait HomoNode<'r>: Node {
     type Resource: Serialize + Deserialize<'r> + 'r;
 }
 
-// NOTE: unfortunately this implementation is, at present, impossible because the trait solver recurses
-//       infinitely when `P == C`.
-//
-// /// All children of homogenous nodes are themselves homogenous.
-// impl<P, C> HomoNode for C
-// where
-//     P: HomoNode,
-//     C: Node<Parent = P>,
-// {
-//     type Resource = P::Resource;
-// }
-
 /// A node representing an API endpoint which can be fetched.
 ///
 /// One of the two methods must be implemented, or both will recurse infinitely.
 ///
 /// See module documentation for more details.
-pub trait Fetch<'r>
+pub trait FetchAll<'r, C>
 where
     Self: HomoNode<'r> + Sync,
     Self::Resource: Send,
+    C: Sync,
 {
-    fn fetch_all(&'r self) -> Pin<Box<dyn Stream<Item = Self::Resource> + Send + 'r>> {
-        futures::stream::once(self.fetch_one())
-            .filter_map(future::ready)
-            .boxed()
-    }
+    type Err;
 
-    fn fetch_one(&'r self) -> Pin<Box<dyn Future<Output = Option<Self::Resource>> + Send + 'r>> {
-        async move { self.fetch_all().next().await }.boxed()
-    }
+    type FetchAllStream: Stream<Item = Result<Self::Resource, Self::Err>> + Send + 'r;
+    fn fetch_all(&'r self, client: &'r C) -> Self::FetchAllStream;
+}
+
+pub trait FetchOne<'r, C>
+where
+    Self: HomoNode<'r> + Sync,
+    Self::Resource: Send,
+    C: Sync,
+{
+    type Err;
+
+    type FetchOneFuture: Future<Output = Result<Self::Resource, Self::Err>> + Send + 'r;
+    fn fetch_one(&'r self, client: &'r C) -> Self::FetchOneFuture;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

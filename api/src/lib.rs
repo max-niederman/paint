@@ -4,9 +4,7 @@
 #![feature(result_option_inspect)]
 #![feature(trivial_bounds)]
 
-extern crate canvas_lms as canvas;
-
 pub mod auth;
-pub mod cache;
-pub mod routes;
 pub mod res;
+pub mod routes;
+pub mod view;
