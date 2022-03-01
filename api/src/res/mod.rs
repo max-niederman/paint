@@ -1,82 +1,54 @@
 //! Canvas resource fetching and caching.
 //!
-//! ## Resource Tree
+//! ## Resources and Collections
 //!
-//! Imagine that all the resources of all possible views (of users into a Canvas instance) are arranged in a rooted
-//! tree. The leaves of the tree represent API requests which return a single resource. Forks represent sets of resources,
-//! sometimes with an associated API request. Branches represent containment of resources sets; e.g. the node representing
-//! active Courses only would be a child of the node representing all Courses.
+//! Canvas **resources** are single objects returned from the Canvas API and defined in the `canvas_lms::resource` module. **Collections** are
+//! homogeneous collections of one or more **resources**. All **resources** are also **collections** consisting of just one **resource**.
 //!
-//! ### Homogenous Nodes
+//! ## Caching
 //!
-//! Leaves and usually their close ancestors are "homogenous," meaning that they represent only a single type of resources. More formally,
-//! the set of resources is a subset of the set of values of a Rust type. This is represented by the trait [`HomoNode`] which is a
-//! subtrait of [`Node`] and has an associated type [`HomoNode::Resource`].
+//! All **collections** can be cached in a simple key-value store (we currently use [`sled`]). To implement this, the [`Collection`] trait
+//! has a method, [`Collection::cache_prefix`] which returns the tree name and key prefix which should contain the members of the **collection**.
 //!
-//! ## Fetch
+//! ## Fetching
 //!
-//! Nodes which correspond to API requests also implement [`FetchAll`] and/or [`FetchOne`]. They must implement a method which
-//! takes `&self` and an HTTP client and returns a homogeneous set of resources. Typically, this is achieved by constructing a
-//! URL based on the node's ancestors. Homogeneity is ensured by the supertrait bound `Fetch: HomoNode`.
-//!
-//! ## Cache
-//!
-//! Some [`Node`]s represent logical "prefixes" in the cache. This prefix, represented as a [`CachePrefix`] and optionally
-//! returned by [`Node::cache_prefix`] contains a keyspace name and a possibly empty key prefix represented as a byte vector.
-//!
-//! ## HTTP Endpoints
-//!
-//! TODO: add poem endpoints
+//! Most **collections** can be fetched from the Canvas API. This behavior is implemented using the [`Fetch`] trait, which is parameterized
+//! over a client type, typically a [`canvas_lms::Client`] of some `hyper` connector.
 
-pub mod impls;
-
+use crate::view::View;
 use futures::prelude::*;
-use serde::{Deserialize, Serialize};
-use std::pin::Pin;
+use serde::{de::DeserializeOwned, Serialize};
 
-/// A node in the resource tree.
-///
+/// A **resource** contained in a view into a Canvas instance.
+/// 
 /// See module documentation for more details.
-pub trait Node {
-    /// Get the cache prefix of the node, if there is one.
-    fn cache_prefix(&self) -> Option<CachePrefix> {
-        None
-    }
-}
-/// A node in the resource tree representing a homogenous set of resources.
-///
-/// See module documentation for more details.
-pub trait HomoNode<'r>: Node {
-    type Resource: Serialize + Deserialize<'r> + 'r;
-}
-
-/// A node representing an API endpoint which can be fetched.
-///
-/// One of the two methods must be implemented, or both will recurse infinitely.
-///
-/// See module documentation for more details.
-pub trait FetchAll<'r, C>
+pub trait Resource
 where
-    Self: HomoNode<'r> + Sync,
-    Self::Resource: Send,
-    C: Sync,
+    Self: Serialize + DeserializeOwned,
 {
+    fn key(&self, view: &View) -> Vec<u8>;
+}
+
+/// A **collection** of one or more **resources**.
+///
+/// See module documentation for more details.
+pub trait Collection {
+    /// The type of **resource** of which the **collection** consists.
+    type Resource: Resource;
+
+    /// Get the cache prefix of the collection.
+    fn cache_prefix(&self, view: &View) -> CachePrefix;
+}
+
+/// A **collection** which may be fetched from a **Canvas** API.
+///
+/// See module documentation for more details.
+pub trait Fetch<'f>: Collection {
     type Err;
 
-    type FetchAllStream: Stream<Item = Result<Self::Resource, Self::Err>> + Send + 'r;
-    fn fetch_all(&'r self, client: &'r C) -> Self::FetchAllStream;
-}
-
-pub trait FetchOne<'r, C>
-where
-    Self: HomoNode<'r> + Sync,
-    Self::Resource: Send,
-    C: Sync,
-{
-    type Err;
-
-    type FetchOneFuture: Future<Output = Result<Self::Resource, Self::Err>> + Send + 'r;
-    fn fetch_one(&'r self, client: &'r C) -> Self::FetchOneFuture;
+    type FetchAllStream: Stream<Item = Result<Self::Resource, Self::Err>> + 'f;
+    /// Get an asynchronous stream yielding all of **resources** of the **collection**.
+    fn fetch_all(&'f self, view: &'f View) -> Self::FetchAllStream;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -88,12 +60,4 @@ pub struct CachePrefix {
 
     /// The prefix of keys in the keyspace.
     pub key_prefix: Vec<u8>,
-}
-
-impl CachePrefix {
-    /// Join the [`CachePrefix`] with a key prefix.
-    pub fn join_key_prefix(mut self, key_prefix: &[u8]) -> Self {
-        self.key_prefix.extend_from_slice(key_prefix);
-        self
-    }
 }
