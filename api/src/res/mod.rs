@@ -16,6 +16,7 @@
 //! over a client type, typically a [`canvas_lms::Client`] of some `hyper` connector.
 
 mod impls;
+pub mod cache;
 
 use crate::view::View;
 use futures::prelude::*;
@@ -55,7 +56,7 @@ pub trait Collection {
 pub trait Fetch<'f, C>: Collection {
     type Err;
 
-    type FetchAllStream: Stream<Item = Result<Self::Resource, Self::Err>> + 'f;
+    type FetchAllStream: Stream<Item = Result<Self::Resource, Self::Err>> + Unpin + 'f;
     /// Get an asynchronous stream yielding all of **resources** of the **collection**.
     fn fetch_all(&'f self, view: &'f View, client: C) -> Self::FetchAllStream;
 }
@@ -63,9 +64,7 @@ pub trait Fetch<'f, C>: Collection {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CacheLocation {
     /// The name of the keyspace.
-    ///
-    /// It's a [`&'static str`] to ensure [`Node`]s don't accidentally make way too many [`sled::Tree`]s.
-    pub key_space: &'static str,
+    pub space: &'static str,
 
     /// The key or prefix of keys in the keyspace.
     pub key: Vec<u8>,
