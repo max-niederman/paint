@@ -15,14 +15,14 @@ use hyper::{client::HttpConnector, Method};
 //       at some point, we should move throttle handling to the `Client` so it acts on all requests, paginated or not.
 
 #[derive(Debug, Clone)]
-pub struct Client<Conn: Clone = HttpConnector> {
+pub struct Client<Conn = HttpConnector> {
     hyper: hyper::Client<Conn>,
 
     auth: Option<Auth>,
     base_uri: String,
 }
 
-impl<Conn: Clone> Client<Conn> {
+impl<Conn> Client<Conn> {
     pub fn builder() -> ClientBuilder {
         ClientBuilder::new()
     }

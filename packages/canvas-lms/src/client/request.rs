@@ -6,7 +6,7 @@ use hyper::{
 use std::{borrow::Cow, fmt::Write};
 
 #[derive(Debug)]
-pub struct RequestBuilder<'c, Conn: Clone> {
+pub struct RequestBuilder<'c, Conn> {
     hyper: HyperRequestBuilder,
     client: &'c Client<Conn>,
 
@@ -16,7 +16,7 @@ pub struct RequestBuilder<'c, Conn: Clone> {
     include: Vec<&'static str>,
 }
 
-impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
+impl<'c, Conn> RequestBuilder<'c, Conn> {
     #[inline]
     pub fn new(client: &'c Client<Conn>, method: Method, path: String) -> Self {
         Self {
@@ -84,9 +84,17 @@ impl<'c, Conn: Clone> RequestBuilder<'c, Conn> {
     }
 
     #[inline]
-    pub async fn send(self, body: Body) -> Result<Response>
+    pub async fn send(self) -> Result<Response>
     where
-        Conn: Connect + Send + Sync + 'static,
+        Conn: Connect + Clone + Send + Sync + 'static,
+    {
+        self.send_with_body(Body::empty()).await
+    }
+
+    #[inline]
+    pub async fn send_with_body(self, body: Body) -> Result<Response>
+    where
+        Conn: Connect + Clone + Send + Sync + 'static,
     {
         self.client
             .hyper

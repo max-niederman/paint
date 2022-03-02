@@ -15,6 +15,8 @@
 //! Most **collections** can be fetched from the Canvas API. This behavior is implemented using the [`Fetch`] trait, which is parameterized
 //! over a client type, typically a [`canvas_lms::Client`] of some `hyper` connector.
 
+mod impls;
+
 use crate::view::View;
 use futures::prelude::*;
 use serde::{de::DeserializeOwned, Serialize};
@@ -26,7 +28,14 @@ pub trait Resource
 where
     Self: Serialize + DeserializeOwned,
 {
-    fn key(&self, view: &View) -> Vec<u8>;
+    fn cache_location(&self, view: &View) -> CacheLocation;
+}
+
+impl<R: Resource> Collection for R {
+    type Resource = Self;
+    fn cache_prefix(&self, view: &View) -> CacheLocation {
+        self.cache_location(view)
+    }
 }
 
 /// A **collection** of one or more **resources**.
@@ -37,27 +46,32 @@ pub trait Collection {
     type Resource: Resource;
 
     /// Get the cache prefix of the collection.
-    fn cache_prefix(&self, view: &View) -> CachePrefix;
+    fn cache_prefix(&self, view: &View) -> CacheLocation;
 }
 
 /// A **collection** which may be fetched from a **Canvas** API.
 ///
 /// See module documentation for more details.
-pub trait Fetch<'f>: Collection {
+pub trait Fetch<'f, C>: Collection {
     type Err;
 
     type FetchAllStream: Stream<Item = Result<Self::Resource, Self::Err>> + 'f;
     /// Get an asynchronous stream yielding all of **resources** of the **collection**.
-    fn fetch_all(&'f self, view: &'f View) -> Self::FetchAllStream;
+    fn fetch_all(&'f self, view: &'f View, client: C) -> Self::FetchAllStream;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CachePrefix {
+pub struct CacheLocation {
     /// The name of the keyspace.
     ///
     /// It's a [`&'static str`] to ensure [`Node`]s don't accidentally make way too many [`sled::Tree`]s.
     pub key_space: &'static str,
 
-    /// The prefix of keys in the keyspace.
-    pub key_prefix: Vec<u8>,
+    /// The key or prefix of keys in the keyspace.
+    pub key: Vec<u8>,
+}
+
+/// Re-exported **collection** types.
+pub mod collections {
+    pub use super::impls::course::*;
 }
