@@ -15,15 +15,15 @@
 //! Most **collections** can be fetched from the Canvas API. This behavior is implemented using the [`Fetch`] trait, which is parameterized
 //! over a client type, typically a [`canvas_lms::Client`] of some `hyper` connector.
 
-mod impls;
 pub mod cache;
+mod impls;
 
 use crate::view::View;
 use futures::prelude::*;
 use serde::{de::DeserializeOwned, Serialize};
 
 /// A **resource** contained in a view into a Canvas instance.
-/// 
+///
 /// See module documentation for more details.
 pub trait Resource
 where

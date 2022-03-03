@@ -1,8 +1,8 @@
 mod prelude {
     pub use crate::{
+        impl_collection_fetch,
         res::{CacheLocation, Collection, Fetch, Resource},
         view::View,
-        impl_collection_fetch,
     };
     pub use canvas_lms::client::{self, hyper, pagination};
     pub use fallible_stream::YieldError;

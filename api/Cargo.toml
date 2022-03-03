@@ -19,6 +19,8 @@ required-features = ["typescript-definitions"]
 canvas-lms = { path = "../packages/canvas-lms", features = ["client"] }
 fallible-stream = { path = "../packages/fallible-stream" }
 futures = "0.3"
+tokio = { version = "1.0", features = ["rt-multi-thread"] }
+tokio-stream = "0.1"
 poem = { version = "1.2", features = ["rustls"] }
 poem-openapi = { version = "1.2", features = ["uuid", "rapidoc"] }
 hyper-rustls = { version = "0.23", features = ["http2"] }
@@ -36,10 +38,6 @@ miette = { version = "4.2", features = ["fancy"] }
 thiserror = "1.0"
 tracing = "0.1.29"
 tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
-
-[dependencies.async-std]
-version = "1.10"
-features = ["unstable", "attributes"]
 
 [dependencies.reqwest]
 version = "0.11"

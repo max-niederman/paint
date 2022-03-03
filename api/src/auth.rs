@@ -4,6 +4,8 @@ use miette::Diagnostic;
 use poem::{error::ResponseError, http::StatusCode, Request, RequestBody};
 use poem_openapi::{ApiExtractor, ApiExtractorType};
 use serde::{Deserialize, Serialize};
+use tokio::time::{Interval, interval};
+use tokio_stream::wrappers::IntervalStream;
 use std::{env, lazy::SyncOnceCell, sync::RwLock, time::Duration};
 use tracing::Instrument;
 
@@ -110,7 +112,7 @@ impl<'a> ApiExtractor<'a> for Claims {
 static JWKS: SyncOnceCell<RwLock<jwk::JwkSet>> = SyncOnceCell::new();
 
 pub fn update_jwks(period: Duration) -> impl Stream<Item = Result<(), AuthError>> {
-    async_std::stream::interval(period).then(|_| {
+    IntervalStream::new(interval(period)).then(|_| {
         async move {
             let jwks_url = env::var("OIL_JWKS_URL").map_err(AuthError::MissingJwksUrl)?;
 
@@ -167,7 +169,7 @@ pub enum AuthError {
     #[error("failed to fetch JWKs")]
     FailedFetchingJwks(#[source] reqwest::Error),
 
-    #[error("missing requisite scope: {missing} not found in {present:#?}")]
+    #[error("missing requisite scope: \"{missing}\" not found in {present:#?}")]
     MissingScope {
         missing: String,
         present: Vec<String>,

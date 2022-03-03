@@ -43,7 +43,7 @@ impl Api {
             .map_err(InternalServerError)?
             .ok_or(NotFoundError)?
             .into();
-        
+
         Ok(self
             .cache
             .cached_fetch(self.http.clone(), &view, &collections::AllCourses)

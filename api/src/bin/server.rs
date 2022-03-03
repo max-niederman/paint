@@ -1,9 +1,9 @@
-use async_std::task;
+use tokio::task;
 use canvas_lms::client::hyper;
 use futures::prelude::*;
 use hyper_rustls::HttpsConnectorBuilder;
 use miette::{IntoDiagnostic, WrapErr};
-use oil::{res, auth, routes};
+use oil::{auth, res, routes};
 use poem::{
     listener::TcpListener,
     middleware::{Cors, Tracing},
@@ -15,7 +15,7 @@ use tracing_subscriber::EnvFilter;
 
 // TODO: send proper, consistent error responses for all error types
 
-#[async_std::main]
+#[tokio::main]
 async fn main() -> miette::Result<()> {
     #[cfg(not(debug_assertions))]
     tracing_subscriber::fmt()
@@ -53,7 +53,12 @@ async fn main() -> miette::Result<()> {
             routes::RootApi,
             routes::view::Api::new(&database),
             routes::canvas::Api {
-                cache: res::cache::Cache::new(&"db", 60)?,
+                cache: res::cache::Cache::new(
+                    &std::env::var("OIL_RES_DB")
+                        .into_diagnostic()
+                        .wrap_err("missing OIL_RES_DB environment variable")?,
+                    60 * 60,
+                )?,
                 views: database.collection("views"),
                 http: http_client,
             },
@@ -61,7 +66,7 @@ async fn main() -> miette::Result<()> {
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )
-    .server("http://localhost:4210");
+    .server("http://localhost:4200");
 
     let app = Route::new()
         .nest("/docs", api.rapidoc())
@@ -69,6 +74,7 @@ async fn main() -> miette::Result<()> {
         .with(Cors::new())
         .with(Tracing);
 
+    tracing::info!("starting JWK update task");
     let mut update_jwks = auth::update_jwks(
         std::env::var_os("OIL_JWKS_UPDATE_INTERVAL")
             .as_ref()
@@ -90,6 +96,7 @@ async fn main() -> miette::Result<()> {
     });
 
     let listen_addr = std::env::var("OIL_ADDR").unwrap_or_else(|_| "0.0.0.0:4200".into());
+    tracing::info!(%listen_addr, "starting web server");
     poem::Server::new(TcpListener::bind(listen_addr))
         .run(app)
         .await

@@ -47,6 +47,7 @@
                 # Rust
                 rust
                 rust-analyzer
+                rustfmt
                 mold
                 bintools
 
@@ -67,9 +68,6 @@
                 "info"
                 "canvas_lms=debug"
                 "oil=debug"
-                "pigment=debug"
-                "ebauche=debug"
-                "ebac=debug"
               ];
           };
         }

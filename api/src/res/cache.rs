@@ -13,15 +13,16 @@ pub struct Cache {
 }
 
 impl Cache {
-    pub fn new(path: &impl AsRef<std::path::Path>, max_age_mins: u64) -> Result<Self> {
+    pub fn new(path: &impl AsRef<std::path::Path>, max_age: u64) -> Result<Self> {
         Ok(Self {
             db: sled::open(path)?,
-            max_age: Duration::seconds(max_age_mins as _),
+            max_age: Duration::seconds(max_age as _),
         })
     }
 }
 
 impl Cache {
+    #[tracing::instrument(skip(self, client, view, collection))]
     pub async fn cached_fetch<'f, F, C>(
         &self,
         client: C,
@@ -45,13 +46,21 @@ impl Cache {
             .map_err(Error::EntryMetaDeserialization)?;
 
         if let Some(meta) = meta {
-            if Utc::now() - meta.inserted > self.max_age {
+            if Utc::now() - meta.inserted < self.max_age {
+                tracing::debug!("cache hit and fresh");
+
                 let mut upper_bound = prefix.key.clone();
                 increment_key(&mut upper_bound);
 
                 return Ok(entry_tree.range(prefix.key..upper_bound));
             }
+
+            tracing::debug!("cache hit but stale");
+        } else {
+            tracing::debug!("cache miss");
         }
+
+        tracing::debug!("fetching collection from Canvas");
 
         let meta_serialized = bincode::serialize(&CacheMeta {
             inserted: Utc::now(),
@@ -79,6 +88,7 @@ impl Cache {
         Ok(entry_tree.range(prefix.key..upper_bound))
     }
 
+    #[tracing::instrument(skip(self, client, view, collection))]
     pub async fn cached_fetch_one<'f, F, C>(
         &self,
         client: C,

@@ -1,6 +1,7 @@
 import { onMount, setContext, getContext } from "svelte";
-import { Writable, writable } from "svelte/store";
+import { derived, Readable, Writable, writable } from "svelte/store";
 import createAuth0Client, { Auth0Client, Auth0ClientOptions } from "@auth0/auth0-spa-js";
+import deepmerge from "deepmerge";
 
 export const isLoading: Writable<boolean> = writable(true);
 export const isAuthenticated: Writable<boolean> = writable(false);
@@ -14,7 +15,7 @@ const config: Auth0ClientOptions = {
 	domain: import.meta.env.VITE_AUTH0_DOMAIN,
 	client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
 	audience: import.meta.env.VITE_OIL_URL,
-	scope: "read:views write:views",
+	scope: "read:views write:views read:canvas",
 	cacheLocation: "localstorage"
 };
 
@@ -73,6 +74,10 @@ function createAuth() {
 			// in Auth0 config, otherwise you will soon start throwing stuff!
 			const token = await auth0.getTokenSilently();
 			authToken.set(token);
+			
+			if (import.meta.env.DEV) {
+				console.log(`auth token: ${token}`);
+			}
 
 			// refresh token after specific period or things will stop
 			// working. Useful for long-lived apps like dashboards.
@@ -134,3 +139,20 @@ function getAuth(): Auth {
 }
 
 export { createAuth, getAuth };
+
+export const makeAuthedRequest: Readable<(path: string, init?: RequestInit) => Promise<Response>> = derived(
+	authToken, 
+	($authToken) => async (path: string, init?: RequestInit): Promise<Response> => {
+		return fetch(
+			`${import.meta.env.VITE_OIL_URL}${path}`,
+			deepmerge(
+				{
+					headers: {
+						"Authorization": `Bearer ${$authToken}`
+					},
+				},
+				init,
+			),
+		);
+	}
+);
