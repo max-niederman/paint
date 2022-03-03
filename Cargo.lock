@@ -1467,6 +1467,7 @@ dependencies = [
  "fallible-stream",
  "futures",
  "heapless",
+ "hyper",
  "hyper-rustls",
  "jsonwebtoken",
  "miette 4.2.1",

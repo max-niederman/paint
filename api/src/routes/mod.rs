@@ -15,7 +15,7 @@ impl RootApi {
 }
 
 #[derive(Tags)]
-enum ApiTags {
+pub enum ApiTags {
     /// Metadata about the API.
     Meta,
     /// A view is a user in a Canvas instance.

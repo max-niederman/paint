@@ -1,55 +1,40 @@
-use super::ApiTags;
-use crate::{
-    auth::Claims,
-    res::{cache, collections},
-    view::{DbView, View},
-};
-use bson::doc;
-use canvas_lms::client::hyper::{self, client::HttpConnector};
-use hyper_rustls::HttpsConnector;
-use mongodb::{Collection, Database};
-use poem::{
-    error::{InternalServerError, NotFoundError},
-    IntoResponse, Response, Result,
-};
-use poem_openapi::{param::Path, ApiResponse, OpenApi};
-use uuid::Uuid;
+pub mod course;
 
-pub struct Api {
-    pub cache: cache::Cache,
-    pub views: Collection<DbView>,
-    pub http: hyper::Client<HttpsConnector<HttpConnector>>,
-}
+use poem::{error::InternalServerError, IntoResponse, Response};
+use poem_openapi::ApiResponse;
 
-#[OpenApi]
-impl Api {
-    #[oai(
-        path = "/views/:view_id/courses",
-        method = "get",
-        tag = "ApiTags::Canvas"
-    )]
-    #[tracing::instrument(skip(self), fields(view_id = ?view_id.0))]
-    async fn get_all_courses(
-        &self,
-        claims: Claims,
-        view_id: Path<Uuid>,
-    ) -> Result<CollectionResponse> {
-        claims.ensure_scopes(["read:views", "read:canvas"])?;
+#[macro_export]
+macro_rules! canvas_api_struct {
+    ($vis:vis $name:ident) => {
+        $vis struct $name {
+            cache: $crate::res::cache::Cache,
+            views: mongodb::Collection<$crate::view::DbView>,
+            http: hyper::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>,
+        }
 
-        let view: View = self
-            .views
-            .find_one(doc! { "_id": view_id.0, "user": claims.sub }, None)
-            .await
-            .map_err(InternalServerError)?
-            .ok_or(NotFoundError)?
-            .into();
+        impl $name {
+            $vis fn new(
+                cache: $crate::res::cache::Cache,
+                database: &mongodb::Database,
+                http: hyper::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>,
+            ) -> Self {
+                Self {
+                    cache,
+                    views: database.collection("views"),
+                    http,
+                }
+            }
 
-        Ok(self
-            .cache
-            .cached_fetch(self.http.clone(), &view, &collections::AllCourses)
-            .await?
-            .into())
-    }
+            async fn get_view(&self, claims: &$crate::auth::Claims, id: uuid::Uuid) -> poem::Result<$crate::view::View> {
+                Ok(self.views
+                    .find_one(bson::doc! { "_id": id, "user": claims.sub.clone() }, None)
+                    .await
+                    .map_err(poem::error::InternalServerError)?
+                    .ok_or(poem::error::NotFoundError)?
+                    .into())
+            }
+        }
+    };
 }
 
 struct CollectionResponse(sled::Iter);

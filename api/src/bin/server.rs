@@ -1,5 +1,3 @@
-use tokio::task;
-use canvas_lms::client::hyper;
 use futures::prelude::*;
 use hyper_rustls::HttpsConnectorBuilder;
 use miette::{IntoDiagnostic, WrapErr};
@@ -11,6 +9,7 @@ use poem::{
 };
 use poem_openapi::OpenApiService;
 use std::time::Duration;
+use tokio::task;
 use tracing_subscriber::EnvFilter;
 
 // TODO: send proper, consistent error responses for all error types
@@ -48,20 +47,23 @@ async fn main() -> miette::Result<()> {
             .build(),
     );
 
+    let resource_db = sled::open(
+        std::env::var("OIL_RES_DB")
+            .into_diagnostic()
+            .wrap_err("missing OIL_RES_DB environment variable")?,
+    )
+    .into_diagnostic()
+    .wrap_err("failed to open resource database")?;
+
     let api = OpenApiService::new(
         (
             routes::RootApi,
             routes::view::Api::new(&database),
-            routes::canvas::Api {
-                cache: res::cache::Cache::new(
-                    &std::env::var("OIL_RES_DB")
-                        .into_diagnostic()
-                        .wrap_err("missing OIL_RES_DB environment variable")?,
-                    60 * 60,
-                )?,
-                views: database.collection("views"),
-                http: http_client,
-            },
+            routes::canvas::course::Api::new(
+                res::cache::Cache::new(resource_db.clone(), 60 * 60),
+                &database,
+                http_client,
+            ),
         ),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),

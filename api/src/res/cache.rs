@@ -13,11 +13,11 @@ pub struct Cache {
 }
 
 impl Cache {
-    pub fn new(path: &impl AsRef<std::path::Path>, max_age: u64) -> Result<Self> {
-        Ok(Self {
-            db: sled::open(path)?,
+    pub fn new(db: sled::Db, max_age: u64) -> Self {
+        Self {
+            db,
             max_age: Duration::seconds(max_age as _),
-        })
+        }
     }
 }
 

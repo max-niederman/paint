@@ -4,9 +4,9 @@ use miette::Diagnostic;
 use poem::{error::ResponseError, http::StatusCode, Request, RequestBody};
 use poem_openapi::{ApiExtractor, ApiExtractorType};
 use serde::{Deserialize, Serialize};
-use tokio::time::{Interval, interval};
-use tokio_stream::wrappers::IntervalStream;
 use std::{env, lazy::SyncOnceCell, sync::RwLock, time::Duration};
+use tokio::time::{interval, Interval};
+use tokio_stream::wrappers::IntervalStream;
 use tracing::Instrument;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
