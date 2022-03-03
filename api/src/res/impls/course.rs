@@ -14,8 +14,25 @@ impl Resource for Course {
     }
 }
 
+impl_collection_fetch!(Course, single, |Course { id, .. }, _| format!(
+    "/api/v1/courses/{id}"
+));
 
-impl_collection_fetch!(Course, paginated, |_, _| "/api/v1/courses".into());
+#[derive(Debug, Clone, Copy)]
+pub struct AllCourses;
+
+impl Collection for AllCourses {
+    type Resource = Course;
+
+    fn cache_prefix(&self, view: &View) -> CacheLocation {
+        CacheLocation {
+            space: "course",
+            key: view.id.as_bytes().to_vec(),
+        }
+    }
+}
+
+impl_collection_fetch!(AllCourses, paginated, |_, _| "/api/v1/courses".into());
 
 #[derive(Debug, Clone, Copy)]
 pub struct CourseById(canvas_lms::Id);
@@ -35,4 +52,6 @@ impl Collection for CourseById {
     }
 }
 
-impl_collection_fetch!(CourseById, single, |CourseById(id), _| format!("/api/v1/courses/{id}"));
+impl_collection_fetch!(CourseById, single, |CourseById(id), _| format!(
+    "/api/v1/courses/{id}"
+));

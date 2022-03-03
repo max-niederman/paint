@@ -25,7 +25,7 @@ pub struct NewView {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct DbView {
+pub struct DbView {
     #[serde(rename = "_id")]
     id: bson::Uuid,
     name: String,

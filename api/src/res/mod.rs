@@ -53,10 +53,10 @@ pub trait Collection {
 /// A **collection** which may be fetched from a **Canvas** API.
 ///
 /// See module documentation for more details.
-pub trait Fetch<'f, C>: Collection {
+pub trait Fetch<'f, C>: Collection + 'f {
     type Err;
 
-    type FetchAllStream: Stream<Item = Result<Self::Resource, Self::Err>> + Unpin + 'f;
+    type FetchAllStream: Stream<Item = Result<Self::Resource, Self::Err>> + Unpin;
     /// Get an asynchronous stream yielding all of **resources** of the **collection**.
     fn fetch_all(&'f self, view: &'f View, client: C) -> Self::FetchAllStream;
 }

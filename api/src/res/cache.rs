@@ -3,12 +3,22 @@ use crate::{res::Resource, view::View};
 use chrono::{DateTime, Duration, Utc};
 use futures::prelude::*;
 use miette::Diagnostic;
+use poem::error::ResponseError;
 use serde::{Deserialize, Serialize};
 use sled::IVec;
 
 pub struct Cache {
     db: sled::Db,
     max_age: Duration,
+}
+
+impl Cache {
+    pub fn new(path: &impl AsRef<std::path::Path>, max_age_mins: u64) -> Result<Self> {
+        Ok(Self {
+            db: sled::open(path)?,
+            max_age: Duration::seconds(max_age_mins as _),
+        })
+    }
 }
 
 impl Cache {
@@ -175,6 +185,9 @@ pub enum Error {
     #[error(transparent)]
     Sled(#[from] sled::Error),
 
+    #[error(transparent)]
+    Canvas(#[from] canvas_lms::client::Error),
+
     #[error("entry meta could not be serialized")]
     EntryMetaSerialization(#[source] bincode::Error),
 
@@ -183,6 +196,12 @@ pub enum Error {
 
     #[error("entry could not be serialized to JSON")]
     EntrySerialization(#[source] serde_json::Error),
+}
+
+impl ResponseError for Error {
+    fn status(&self) -> reqwest::StatusCode {
+        reqwest::StatusCode::INTERNAL_SERVER_ERROR
+    }
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

@@ -1,7 +1,9 @@
 use async_std::task;
+use canvas_lms::client::hyper;
 use futures::prelude::*;
+use hyper_rustls::HttpsConnectorBuilder;
 use miette::{IntoDiagnostic, WrapErr};
-use oil::{auth, routes};
+use oil::{res, auth, routes};
 use poem::{
     listener::TcpListener,
     middleware::{Cors, Tracing},
@@ -37,8 +39,25 @@ async fn main() -> miette::Result<()> {
     .wrap_err("failed to create MongoDB client")?;
     let database = mongo_client.database("oil");
 
+    let http_client = hyper::Client::builder().build(
+        HttpsConnectorBuilder::new()
+            .with_native_roots()
+            .https_or_http()
+            .enable_http1()
+            .enable_http2()
+            .build(),
+    );
+
     let api = OpenApiService::new(
-        (routes::RootApi, routes::view::Api::new(&database)),
+        (
+            routes::RootApi,
+            routes::view::Api::new(&database),
+            routes::canvas::Api {
+                cache: res::cache::Cache::new(&"db", 60)?,
+                views: database.collection("views"),
+                http: http_client,
+            },
+        ),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )
