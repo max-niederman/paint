@@ -7,9 +7,11 @@
 	// FIXME: fetch courses from Oil
 
 	let courses: Canvas.Course[] = [];
-	$: $makeAuthedRequest(`/views/${$view.id}/courses`).then(resp => resp.json()).then(data => courses = data);
+	$: $makeAuthedRequest(`/views/${$view.id}/courses`)
+		.then((resp) => resp.json())
+		.then((data) => (courses = data));
 
-	$: visibleCourses = courses.filter((course) => course.overridden_course_visibility !== undefined);
+	$: visibleCourses = courses.filter((course) => course.overridden_course_visibility !== null);
 </script>
 
 <h1>Courses</h1>
@@ -40,7 +42,7 @@
 		flex-direction: row;
 
 		background-color: var(--color-blue);
-        color: var(--color-grey-900);
+		color: var(--color-grey-900);
 
 		.card-content {
 			flex-grow: 1;

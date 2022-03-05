@@ -1,3 +1,5 @@
+use std::ops::{Range, RangeBounds};
+
 use super::Fetch;
 use crate::{res::Resource, view::View};
 use chrono::{DateTime, Duration, Utc};
@@ -70,16 +72,25 @@ impl Cache {
         // FIXME: this should almost certainly be a multi-tree transaction
 
         let mut resource_stream = collection.fetch_all(view, client);
+        let mut gap_start = prefix.key.clone();
         while let Some(resource) = resource_stream.next().await {
             let resource = resource?;
-            let location = resource.cache_location(view);
+            let location = collection.cache_location(view, &resource);
             assert_eq!(location.space, prefix.space);
+
+            let gap = gap_start.as_slice()..location.key.as_slice();
+            remove_range(&entry_tree, gap.clone())?;
+            remove_range(&meta_tree, gap)?;
 
             entry_tree.insert(
                 &location.key,
                 serde_json::to_vec(&resource).map_err(Error::EntrySerialization)?,
             )?;
             meta_tree.insert(&location.key, meta_serialized.as_slice())?;
+
+            // move the gap to the next key
+            gap_start = location.key;
+            increment_key(&mut gap_start);
         }
         meta_tree.insert(&prefix.key, meta_serialized)?;
 
@@ -158,8 +169,8 @@ pub struct CacheMeta {
     inserted: DateTime<Utc>,
 }
 
-#[inline]
-pub fn increment_key(key: &mut [u8]) {
+#[inline(always)]
+fn increment_key(key: &mut [u8]) {
     if let Some((last, rest)) = key.split_last_mut() {
         let (new, overflowed) = last.overflowing_add(1);
         *last = new;
@@ -188,6 +199,19 @@ fn increments_key() {
         [0x0, 0xFF] => [0x1, 0x0],
         [0x0, 0xFF, 0xFF] => [0x1, 0x0, 0x0],
     );
+}
+
+#[inline(always)]
+fn remove_range<K, R>(tree: &sled::Tree, range: R) -> Result<()> 
+where
+    K: AsRef<[u8]>,
+    R: RangeBounds<K>,
+{
+    for item in tree.range(range) {
+        let (key, _) = item?;
+        tree.remove(key)?;
+    }
+    Ok(())
 }
 
 #[derive(Debug, thiserror::Error, Diagnostic)]

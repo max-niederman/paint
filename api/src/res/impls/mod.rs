@@ -22,14 +22,18 @@ macro_rules! impl_collection_fetch {
             type Err = canvas_lms::client::Error;
 
             type FetchAllStream =
-                stream::Once<Pin<Box<dyn Future<Output = Result<Self::Resource, Self::Err>>>>>;
+                stream::Once<Pin<Box<dyn Future<Output = Result<Self::Resource, Self::Err>> + Send >>>;
             fn fetch_all(
                 &'f self,
                 view: &'f View,
                 http: hyper::Client<Conn>,
             ) -> Self::FetchAllStream {
                 let path_gen: fn(&'f Self, &'f View) -> String = $path_gen;
-                let path = path_gen(self, view);
+                let mut path = path_gen(self, view);
+
+                // append resource query parameters
+                path.push('?');
+                path.push_str(Self::Resource::query_string());
 
                 let client = view.client(http);
                 stream::once(

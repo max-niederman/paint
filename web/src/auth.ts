@@ -151,7 +151,7 @@ export const makeAuthedRequest: Readable<(path: string, init?: RequestInit) => P
 						"Authorization": `Bearer ${$authToken}`
 					},
 				},
-				init,
+				init ?? {},
 			),
 		);
 	}

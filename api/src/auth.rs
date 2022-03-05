@@ -5,7 +5,7 @@ use poem::{error::ResponseError, http::StatusCode, Request, RequestBody};
 use poem_openapi::{ApiExtractor, ApiExtractorType};
 use serde::{Deserialize, Serialize};
 use std::{env, lazy::SyncOnceCell, sync::RwLock, time::Duration};
-use tokio::time::{interval, Interval};
+use tokio::time::interval;
 use tokio_stream::wrappers::IntervalStream;
 use tracing::Instrument;
 
