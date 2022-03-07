@@ -41,8 +41,12 @@ impl Response {
     }
 
     #[inline]
-    pub fn pagination_links(&self) -> Result<PaginationLinks> {
-        PaginationLinks::from_headers(self.hyper.headers())
+    pub fn pagination_links(&self) -> Result<Option<PaginationLinks>> {
+        match PaginationLinks::from_headers(self.hyper.headers()) {
+            Ok(links) => Ok(Some(links)),
+            Err(Error::MissingLinksHeader) => Ok(None),
+            Err(err) => Err(err),
+        }
     }
 }
 

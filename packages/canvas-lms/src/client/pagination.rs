@@ -175,13 +175,19 @@ where
                             tracing::trace!("recieved page");
 
                             PaginationStateTransduction {
-                                new: match response.pagination_links()?.next() {
-                                    Ok(next) => PaginationState::awaiting_response(
+                                new: match response.pagination_links()? {
+                                    Some(links) => match links.next() {
+                                        Ok(next) => PaginationState::awaiting_response(
                                         &client,
                                         next.clone(),
                                         req_headers,
                                     )?,
-                                    Err(_) => PaginationState::Finished,
+                                    Err(_) => {
+                                        tracing::warn!("page missing Links header, finishing stream...");
+                                        PaginationState::Finished
+                                    }
+                                }
+                                    None => PaginationState::Finished,
                                 },
                                 ret: Poll::Ready(Some(Ok(response))),
                             }

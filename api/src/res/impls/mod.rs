@@ -14,7 +14,13 @@ pub mod course;
 
 #[macro_export]
 macro_rules! impl_collection_fetch {
-    ($ty:ty, single, $path_gen:expr) => {
+    (
+        collection = $ty:ty;
+        method = SINGLE;
+        path = $path_gen:expr;
+        $( include = $include:expr; )?
+        $( query = $query:expr; )?
+    ) => {
         impl<'f, Conn> Fetch<'f, hyper::Client<Conn>> for $ty
         where
             Conn: hyper::client::connect::Connect + Clone + Unpin + Send + Sync + 'static,
@@ -29,17 +35,15 @@ macro_rules! impl_collection_fetch {
                 http: hyper::Client<Conn>,
             ) -> Self::FetchAllStream {
                 let path_gen: fn(&'f Self, &'f View) -> String = $path_gen;
-                let mut path = path_gen(self, view);
-
-                // append resource query parameters
-                path.push('?');
-                path.push_str(Self::Resource::query_string());
+                let path = path_gen(self, view);
 
                 let client = view.client(http);
                 stream::once(
                     async move {
                         client
                             .request(hyper::Method::GET, path)
+                            $( .extend_include($include) )?
+                            $( .extend_query($query) )?
                             .send()
                             .and_then(client::Response::deserialize)
                             .await
@@ -49,7 +53,13 @@ macro_rules! impl_collection_fetch {
             }
         }
     };
-    ($ty:ty, paginated, $path_gen:expr) => {
+    (
+        collection = $ty:ty;
+        method = PAGINATED;
+        path = $path_gen:expr;
+        $( include = $include:expr; )?
+        $( query = $query:expr; )?
+    ) => {
         impl<'f, Conn> Fetch<'f, hyper::Client<Conn>> for $ty
         where
             Conn: hyper::client::connect::Connect + Clone + Unpin + Send + Sync + 'static,
@@ -68,6 +78,8 @@ macro_rules! impl_collection_fetch {
                 YieldError::Ok(
                     view.client(http)
                         .request(hyper::Method::GET, path)
+                        $( .extend_include($include) )?
+                        $( .extend_query($query) )?
                         .paginate_owned(100)?
                         .items(),
                 )

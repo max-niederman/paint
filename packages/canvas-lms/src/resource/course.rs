@@ -51,9 +51,9 @@ pub struct Course {
     #[serde(default)]
     pub access_restricted_by_date: Option<bool>,
 
-    // undocumented. maybe because it only applies to students or something?
+    // undocumented
     #[serde(default)]
-    pub overridden_course_visibility: Option<String>,
+    pub is_favorite: Option<bool>, // present on include[]=favorites
 }
 
 #[cfg_attr(
@@ -103,10 +103,12 @@ pub struct Term {
 )]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CourseProgress {
-    pub requirement_count: u32,
-    pub requirement_count_completed_count: u32,
     pub next_requirement_url: Option<String>,
     pub completed_at: Option<DateTime<Utc>>,
+    #[serde(default)]
+    pub requirement_count: Option<u32>,
+    #[serde(default)]
+    pub requirement_count_completed_count: Option<u32>,
 }
 
 #[cfg_attr(

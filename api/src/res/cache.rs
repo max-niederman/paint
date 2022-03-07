@@ -1,7 +1,7 @@
-use std::ops::{Range, RangeBounds};
+use std::ops::RangeBounds;
 
 use super::Fetch;
-use crate::{res::Resource, view::View};
+use crate::view::View;
 use chrono::{DateTime, Duration, Utc};
 use futures::prelude::*;
 use miette::Diagnostic;
@@ -69,7 +69,7 @@ impl Cache {
         })
         .map_err(Error::EntryMetaSerialization)?;
 
-        // FIXME: this should almost certainly be a multi-tree transaction
+        // FIXME: this should almost certainly be an atomic multi-tree transaction
 
         let mut resource_stream = collection.fetch_all(view, client);
         let mut gap_start = prefix.key.clone();
@@ -88,7 +88,7 @@ impl Cache {
             )?;
             meta_tree.insert(&location.key, meta_serialized.as_slice())?;
 
-            // move the gap to the next key
+            // move the gap to the processed key
             gap_start = location.key;
             increment_key(&mut gap_start);
         }
@@ -202,7 +202,7 @@ fn increments_key() {
 }
 
 #[inline(always)]
-fn remove_range<K, R>(tree: &sled::Tree, range: R) -> Result<()> 
+fn remove_range<K, R>(tree: &sled::Tree, range: R) -> Result<()>
 where
     K: AsRef<[u8]>,
     R: RangeBounds<K>,

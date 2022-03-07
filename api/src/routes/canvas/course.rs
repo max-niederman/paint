@@ -1,7 +1,10 @@
 use super::{CollectionResponse, CollectionResponseSingle};
 use crate::{auth::Claims, canvas_api_struct, res::collections, routes::ApiTags};
-use poem::{Result, error::NotFoundError};
-use poem_openapi::{param::Path, OpenApi};
+use poem::{error::NotFoundError, Result};
+use poem_openapi::{
+    param::Path,
+    OpenApi,
+};
 use uuid::Uuid;
 
 canvas_api_struct!(pub Api);

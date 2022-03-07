@@ -13,7 +13,7 @@ pub struct RequestBuilder<'c, Conn> {
     path: String,
     query: Vec<(String, String)>,
 
-    include: Vec<&'static str>,
+    include: Vec<String>,
 }
 
 impl<'c, Conn> RequestBuilder<'c, Conn> {
@@ -162,18 +162,19 @@ impl<'c, Conn> RequestBuilder<'c, Conn> {
 
     #[inline]
     #[must_use = "request builder methods create new builders"]
-    pub fn include(mut self, val: &'static str) -> Self {
-        self.include.push(val);
+    pub fn include(mut self, val: impl ToString) -> Self {
+        self.include.push(val.to_string());
         self
     }
 
     #[inline]
     #[must_use = "request builder methods create new builders"]
-    pub fn extend_include<I>(mut self, iter: I) -> Self
+    pub fn extend_include<S, I>(mut self, iter: I) -> Self
     where
-        I: IntoIterator<Item = &'static str>,
+        S: Into<String>,
+        I: IntoIterator<Item = S>,
     {
-        self.include.extend(iter.into_iter());
+        self.include.extend(iter.into_iter().map(Into::into));
         self
     }
 }

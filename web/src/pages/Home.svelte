@@ -7,16 +7,20 @@
 	// FIXME: fetch courses from Oil
 
 	let courses: Canvas.Course[] = [];
-	$: $makeAuthedRequest(`/views/${$view.id}/courses`)
-		.then((resp) => resp.json())
-		.then((data) => (courses = data));
 
-	$: visibleCourses = courses.filter((course) => course.overridden_course_visibility !== null);
+	// NOTE: for whatever reason using a reactive statement sends two requests.
+	makeAuthedRequest.subscribe(async (request) =>
+		request(`/views/${$view.id}/courses`)
+			.then((resp) => resp.json())
+			.then((data) => (courses = data))
+	);
+
+	$: favoriteCourses = courses.filter((course) => course.is_favorite);
 </script>
 
 <h1>Courses</h1>
 
-{#each visibleCourses as course}
+{#each favoriteCourses as course}
 	<Link to={`/courses/${course.id}`}>
 		<div class="card">
 			<div class="card-content">

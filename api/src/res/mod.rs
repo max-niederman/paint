@@ -10,7 +10,7 @@
 //! All **collections** can be cached in a simple key-value store (we currently use [`sled`]). To implement this, the [`Collection`] trait
 //! has a method, [`Collection::cache_prefix`] which returns the tree name and key prefix which should contain the members of the **collection**
 //! and [`Collection::cache_location`] which returns the tree name and key prefix at which a **resource** should be stored.
-//! 
+//!
 //! [`Collection`] implementors must be careful to prevent stepping on each others' cache locations, as there is no easy way to verify this
 //! statically.
 //!
@@ -26,22 +26,10 @@ use crate::view::View;
 use futures::prelude::*;
 use serde::{de::DeserializeOwned, Serialize};
 
-use self::cache::Cache;
-
 /// A **resource** contained in a view into a Canvas instance.
 ///
 /// See module documentation for more details.
-pub trait Resource
-where
-    Self: Serialize + DeserializeOwned,
-{
-    /// Query string to append to any requests for the resource.
-    ///
-    /// Typically used to add `include[]` queries.
-    fn query_string() -> &'static str {
-        ""
-    }
-}
+pub trait Resource: Serialize + DeserializeOwned {}
 
 /// A **collection** of one or more **resources**.
 ///
