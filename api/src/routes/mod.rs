@@ -21,6 +21,4 @@ pub enum ApiTags {
     /// A view is a user in a Canvas instance.
     /// Most users will have only one view corresponding to their student account, but some users may have multiple.
     View,
-    /// Cached methods to get Canvas data.
-    Canvas,
 }

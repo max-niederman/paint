@@ -6,6 +6,5 @@
 #![feature(associated_type_defaults)]
 
 pub mod auth;
-pub mod res;
 pub mod routes;
 pub mod view;

@@ -1,7 +1,7 @@
 use futures::prelude::*;
 use hyper_rustls::HttpsConnectorBuilder;
 use miette::{IntoDiagnostic, WrapErr};
-use oil::{auth, res, routes};
+use oil::{auth, routes};
 use poem::{
     listener::TcpListener,
     middleware::{Cors, Tracing},
@@ -47,32 +47,22 @@ async fn main() -> miette::Result<()> {
             .build(),
     );
 
-    let resource_db = sled::open(
-        std::env::var("OIL_RES_DB")
-            .into_diagnostic()
-            .wrap_err("missing OIL_RES_DB environment variable")?,
-    )
-    .into_diagnostic()
-    .wrap_err("failed to open resource database")?;
-
     let api = OpenApiService::new(
         (
             routes::RootApi,
             routes::view::Api::new(&database),
-            routes::canvas::course::Api::new(
-                res::cache::Cache::new(resource_db.clone(), 60 * 60),
-                &database,
-                http_client,
-            ),
         ),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )
     .server("http://localhost:4200");
 
+    let canvas_api = routes::canvas::CanvasEndpoint::new(http_client);
+
     let app = Route::new()
         .nest("/docs", api.rapidoc())
         .nest("/", api)
+        .nest("/canvas", canvas_api)
         .with(Cors::new())
         .with(Tracing);
 
