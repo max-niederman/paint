@@ -1,21 +1,19 @@
-use poem::{Endpoint, Response, Request};
+use poem::{Endpoint, Request, Response};
 
 pub struct CanvasEndpoint<Conn> {
-    http: hyper::Client<Conn>
+    http: hyper::Client<Conn>,
 }
 
 impl<Conn> CanvasEndpoint<Conn> {
     pub fn new(http: hyper::Client<Conn>) -> Self {
-        Self {
-            http
-        }
+        Self { http }
     }
 }
 
 #[poem::async_trait]
 impl<Conn> Endpoint for CanvasEndpoint<Conn>
 where
-    Conn: Send + Sync
+    Conn: Send + Sync,
 {
     type Output = Response;
 

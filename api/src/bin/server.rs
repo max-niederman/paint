@@ -10,22 +10,12 @@ use poem::{
 use poem_openapi::OpenApiService;
 use std::time::Duration;
 use tokio::task;
-use tracing_subscriber::EnvFilter;
 
 // TODO: send proper, consistent error responses for all error types
 
 #[tokio::main]
 async fn main() -> miette::Result<()> {
-    #[cfg(not(debug_assertions))]
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .json()
-        .init();
-    #[cfg(debug_assertions)]
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .pretty()
-        .init();
+    init_logging();
 
     tracing::info!("connecting to MongoDB");
     let mongo_client = mongodb::Client::with_uri_str(
@@ -48,10 +38,7 @@ async fn main() -> miette::Result<()> {
     );
 
     let api = OpenApiService::new(
-        (
-            routes::RootApi,
-            routes::view::Api::new(&database),
-        ),
+        (routes::RootApi, routes::view::Api::new(&database)),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )
@@ -93,4 +80,18 @@ async fn main() -> miette::Result<()> {
         .run(app)
         .await
         .into_diagnostic()
+}
+
+fn init_logging() {
+    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Registry};
+    use tracing_tree::HierarchicalLayer;
+
+    Registry::default()
+        .with(EnvFilter::from_default_env())
+        .with(
+            HierarchicalLayer::new(2)
+                .with_targets(true)
+                .with_bracketed_fields(true),
+        )
+        .init();
 }
