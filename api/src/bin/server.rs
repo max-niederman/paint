@@ -35,7 +35,7 @@ async fn main() -> miette::Result<()> {
     )
     .server("http://localhost:4200");
 
-    let canvas_api = routes::canvas::CanvasEndpoint::new(
+    let canvas_api = routes::canvas_proxy::CanvasEndpoint::new(
         &database,
         hyper::Client::builder().build(
             HttpsConnectorBuilder::new()
@@ -50,7 +50,6 @@ async fn main() -> miette::Result<()> {
     let app = Route::new()
         .nest("/docs", api.rapidoc())
         .nest("/", api)
-        .at("/canvas/:view_id/*path", canvas_api)
         .with(Cors::new())
         .with(Tracing);
 

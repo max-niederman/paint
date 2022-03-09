@@ -19,7 +19,6 @@ pub struct View {
     pub canvas_domain: String,
     /// The user's Canvas ID.
     pub canvas_user_id: u64,
-
     // /// The user's Canvas access token.
     // pub canvas_access_token: String,
 }

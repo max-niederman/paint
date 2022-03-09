@@ -13,13 +13,11 @@
 		request(`/api/v1/users/self/favorites/courses`)
 			.then((data) => (courses = data))
 	);
-
-	$: favoriteCourses = courses.filter((course) => course.is_favorite);
 </script>
 
 <h1>Courses</h1>
 
-{#each favoriteCourses as course}
+{#each courses as course}
 	<Link to={`/courses/${course.id}`}>
 		<div class="card">
 			<div class="card-content">
