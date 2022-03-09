@@ -1,7 +1,7 @@
 use futures::prelude::*;
 use jsonwebtoken::jwk;
 use miette::Diagnostic;
-use poem::{error::ResponseError, http::StatusCode, Request, RequestBody};
+use poem::{error::ResponseError, http::StatusCode, Request, RequestBody, FromRequest};
 use poem_openapi::{ApiExtractor, ApiExtractorType};
 use serde::{Deserialize, Serialize};
 use std::{env, lazy::SyncOnceCell, sync::RwLock, time::Duration};

@@ -28,15 +28,6 @@ async fn main() -> miette::Result<()> {
     .wrap_err("failed to create MongoDB client")?;
     let database = mongo_client.database("oil");
 
-    let http_client = hyper::Client::builder().build(
-        HttpsConnectorBuilder::new()
-            .with_native_roots()
-            .https_or_http()
-            .enable_http1()
-            .enable_http2()
-            .build(),
-    );
-
     let api = OpenApiService::new(
         (routes::RootApi, routes::view::Api::new(&database)),
         env!("CARGO_PKG_NAME"),
@@ -44,12 +35,22 @@ async fn main() -> miette::Result<()> {
     )
     .server("http://localhost:4200");
 
-    let canvas_api = routes::canvas::CanvasEndpoint::new(http_client);
+    let canvas_api = routes::canvas::CanvasEndpoint::new(
+        &database,
+        hyper::Client::builder().build(
+            HttpsConnectorBuilder::new()
+                .with_native_roots()
+                .https_or_http()
+                .enable_http1()
+                .enable_http2()
+                .build(),
+        ),
+    );
 
     let app = Route::new()
         .nest("/docs", api.rapidoc())
         .nest("/", api)
-        .nest("/canvas", canvas_api)
+        .at("/canvas/:view_id/*path", canvas_api)
         .with(Cors::new())
         .with(Tracing);
 

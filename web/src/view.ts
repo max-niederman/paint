@@ -1,5 +1,5 @@
-import { writable, Writable } from "svelte/store";
-import { authToken, getAuth } from "./auth";
+import { derived, Readable, writable, Writable } from "svelte/store";
+import { authToken, getAuth, makeAuthedRequest } from "./auth";
 import deepmerge from "deepmerge";
 
 class LocalStorageKey<T> {
@@ -64,3 +64,45 @@ views.subscribe((views) => {
 		view.update((view) => (view === null ? views[0] : view));
 	}
 });
+
+export const makeCanvasRequest: Readable<(path: string, init?: RequestInit) => Promise<Response>> = derived(
+	[makeAuthedRequest, view],
+	([$makeAuthedRequest, $view]) =>
+		(path: string, init?: RequestInit) =>
+			$makeAuthedRequest(`/canvas/${$view.id}${path}`, init)
+);
+
+export const makeCanvasRequestPaginated: Readable<(path: string, init?: RequestInit) => Promise<any[]>> = derived(
+	makeCanvasRequest,
+	($makeCanvasRequest) => async (path: string, init?: RequestInit) => {
+		let next = path;
+		let items = [];
+		pages: while (true) {
+			const response = await $makeCanvasRequest(next, init);
+			if (!response.ok) {
+				throw new Error("response was not ok");
+			}
+
+			items = items.concat(await response.json());
+
+			const linkHeader = response.headers.get("Link");
+			const links = linkHeader.split(",");
+
+			for (const link of links) {
+				let [url, rel] = link.split(";").map((s) => s.trim());
+
+				url = url.slice(1, -1); // remove brackets
+				rel = rel.slice(5, -1); // remove `rel="X"`
+
+				if (rel === "next") {
+					// NOTE: technically this is contrary to Canvas's recommendation of treating links opaquely,
+					//       but there isn't really another way to do it.
+					next = new URL(url).pathname;
+					continue pages;
+				}
+			}
+
+			return items;
+		}
+	}
+);
