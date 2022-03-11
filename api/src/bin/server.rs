@@ -26,26 +26,27 @@ async fn main() -> miette::Result<()> {
     .await
     .into_diagnostic()
     .wrap_err("failed to create MongoDB client")?;
+
     let database = mongo_client.database("oil");
-
-    let api = OpenApiService::new(
-        (routes::RootApi, routes::view::Api::new(&database)),
-        env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION"),
-    )
-    .server("http://localhost:4200");
-
-    let canvas_api = routes::canvas_proxy::CanvasEndpoint::new(
-        &database,
-        hyper::Client::builder().build(
+    let http_client = hyper::Client::builder().build(
             HttpsConnectorBuilder::new()
                 .with_native_roots()
                 .https_or_http()
                 .enable_http1()
                 .enable_http2()
                 .build(),
+        );
+
+    let api = OpenApiService::new(
+        (
+            routes::RootApi,
+            routes::view::Api::new(&database),
+            routes::canvas::make_api(&database, &http_client)
         ),
-    );
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+    )
+    .server("http://localhost:4200");
 
     let app = Route::new()
         .nest("/docs", api.rapidoc())

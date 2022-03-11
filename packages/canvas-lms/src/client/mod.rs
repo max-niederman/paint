@@ -19,6 +19,7 @@ pub struct Client<Conn = HttpConnector> {
     hyper: hyper::Client<Conn>,
 
     auth: Option<Auth>,
+    // TODO: store domain instead of URL prefix
     base_uri: String,
 }
 

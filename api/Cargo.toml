@@ -21,7 +21,7 @@ tokio = { version = "1.0", features = ["rt-multi-thread"] }
 tokio-stream = "0.1"
 poem = { version = "1.2", features = ["rustls"] }
 poem-openapi = { version = "1.2", features = ["uuid", "rapidoc"] }
-canvas-lms = { path = "../packages/canvas-lms" }
+canvas-lms = { path = "../packages/canvas-lms", features = ["client"] }
 hyper = { version = "0.14" }
 hyper-rustls = { version = "0.23", features = ["http2"] }
 mongodb = "2.1"

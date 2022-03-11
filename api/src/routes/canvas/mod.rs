@@ -28,10 +28,11 @@ type HttpClient = hyper::Client<hyper_rustls::HttpsConnector<hyper::client::Http
 
 macro_rules! composite_api {
     ($( $api:ty ),* $(,)?) => {
-        type Api = ( $($api),*, );
+        // NOTE: we can remove the unit once poem-rs/poem#232 is merged
+        type Api = ( $($api),*, () );
 
         pub fn make_api(database: &mongodb::Database, http: &HttpClient) -> Api {
-            ( $( <$api>::new(database, http.clone()) ),*, )
+            ( $( <$api>::new(database, http.clone()) ),*, () )
         }
     };
 }

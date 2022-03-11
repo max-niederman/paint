@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { view } from "../view";
+	import { makeViewRequest, view } from "../view";
 	import FaArrowRight from "svelte-icons/fa/FaArrowRight.svelte";
 	import { Link } from "svelte-navigator";
-	import { makeCanvasRequestPaginated } from "../view";
 
 	// FIXME: fetch courses from Oil
 
 	let courses: Canvas.Course[] = [];
 
 	// NOTE: for whatever reason using a reactive statement sends two requests.
-	makeCanvasRequestPaginated.subscribe(async (request) =>
-		request(`/api/v1/users/self/favorites/courses`)
-			.then((data) => (courses = data))
+	makeViewRequest.subscribe(async (request) =>
+		request(`/courses`)
+			.then((resp) => resp.json())
+			.then((data) => courses = data)
 	);
 </script>
 

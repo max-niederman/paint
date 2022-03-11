@@ -23,6 +23,7 @@ pub struct View {
     // pub canvas_access_token: String,
 }
 
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DbView {
     #[serde(rename = "_id")]
@@ -32,6 +33,15 @@ pub struct DbView {
     pub canvas_domain: String,
     pub canvas_user_id: u64,
     pub canvas_access_token: String,
+}
+
+impl DbView {
+    pub fn client<Conn: Clone>(&self, http: hyper::Client<Conn>) -> canvas_lms::Client<Conn> {
+        canvas_lms::Client::<Conn>::builder()
+            .base_url(format!("https://{}", self.canvas_domain))
+            .auth(canvas_lms::client::Auth::Bearer(self.canvas_access_token.clone()))
+            .build(http)
+    }
 }
 
 impl From<DbView> for View {
