@@ -1,22 +1,20 @@
-use super::{get_view, DbResource, HttpClient};
+use std::time::Duration;
+
+use super::{expiration_index, get_view, DbResource, HttpClient};
 use crate::routes::ApiTags;
 use crate::{auth::Claims, view::*};
 use bson::doc;
 use canvas_lms::resource::Course;
-use chrono::format::InternalNumeric;
-use chrono::Utc;
 use futures::prelude::*;
 use hyper::client::HttpConnector;
 use hyper::Method;
 use hyper_rustls::HttpsConnector;
+use miette::{IntoDiagnostic, WrapErr};
 use mongodb::{Collection, Database};
-use poem::{
-    error::{InternalServerError, NotFoundError},
-    Result,
-};
+use poem::{error::InternalServerError, Result};
 use poem_openapi::types::Any;
-use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
-use serde::{Deserialize, Serialize};
+use poem_openapi::{param::Path, payload::Json, OpenApi};
+use tracing::Instrument;
 use uuid::Uuid;
 
 pub struct Api {
@@ -33,6 +31,21 @@ impl Api {
             courses: database.collection("courses"),
             http,
         }
+    }
+
+    pub async fn init_database(database: &Database) -> miette::Result<()> {
+        let collection: Collection<DbResource<Course>> = database.collection("courses");
+
+        collection
+            .create_index(
+                expiration_index(Duration::from_secs(60 * 60 * 24 * 7)),
+                None,
+            )
+            .await
+            .into_diagnostic()
+            .wrap_err("failed creating expiration index")?;
+
+        Ok(())
     }
 }
 
@@ -67,7 +80,7 @@ impl Api {
         if cached_courses.is_empty() {
             tracing::debug!("cache miss");
 
-            let mut courses = view
+            let mut canvas_courses = view
                 .client(self.http.clone())
                 .request(Method::GET, "/api/v1/courses")
                 .paginate_owned(100)
@@ -75,24 +88,37 @@ impl Api {
                 .items::<Course>()
                 .map_err(InternalServerError);
 
-            while let Some(item) = courses.next().await {
+            while let Some(item) = canvas_courses.next().await {
                 let course = item?;
 
-                self.courses
-                    .insert_one(
-                        DbResource {
-                            view: view.id.into(),
-                            inserted_at: Utc::now(),
-                            resource: course.clone(),
-                        },
-                        None,
-                    )
-                    .await
-                    .map_err(InternalServerError)?;
-
                 cached_courses.push(Any(course));
-
             }
+
+            tokio::spawn({
+                let course_collection = self.courses.clone();
+                let cached_courses = cached_courses.clone();
+                let view_id = view.id.into();
+                async move {
+                    let now = bson::DateTime::now();
+
+                    let res = course_collection
+                        .insert_many(
+                            cached_courses.into_iter().map(|course| DbResource {
+                                view: view_id,
+                                inserted_at: now,
+                                resource: course.0,
+                            }),
+                            None,
+                        )
+                        .await;
+
+                    match res {
+                        Ok(_) => tracing::debug!("successfully updated cache"),
+                        Err(err) => tracing::error!("failed to update cache: {}", err),
+                    }
+                }
+                .instrument(tracing::info_span!("cache_update"))
+            });
         }
 
         Ok(Json(cached_courses))

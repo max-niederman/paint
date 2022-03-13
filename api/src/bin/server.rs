@@ -29,19 +29,23 @@ async fn main() -> miette::Result<()> {
 
     let database = mongo_client.database("oil");
     let http_client = hyper::Client::builder().build(
-            HttpsConnectorBuilder::new()
-                .with_native_roots()
-                .https_or_http()
-                .enable_http1()
-                .enable_http2()
-                .build(),
-        );
+        HttpsConnectorBuilder::new()
+            .with_native_roots()
+            .https_or_http()
+            .enable_http1()
+            .enable_http2()
+            .build(),
+    );
+
+    routes::canvas::init_database(&database)
+        .await
+        .wrap_err("failed to initialize MongoDB for Canvas routes")?;
 
     let api = OpenApiService::new(
         (
             routes::RootApi,
             routes::view::Api::new(&database),
-            routes::canvas::make_api(&database, &http_client)
+            routes::canvas::make_api(&database, &http_client),
         ),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
