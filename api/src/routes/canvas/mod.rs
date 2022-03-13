@@ -1,14 +1,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::view::DbView;
 
 pub mod course;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Hash, Serialize, Deserialize)]
 struct DbResource<R> {
-    view: Uuid,
+    view: bson::Uuid,
     inserted_at: DateTime<Utc>,
     resource: R,
 }

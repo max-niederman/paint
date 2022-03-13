@@ -200,28 +200,6 @@ impl ResponseError for AuthError {
             Self::MissingScope { .. } => StatusCode::UNAUTHORIZED,
         }
     }
-
-    fn as_response(&self) -> poem::Response
-    where
-        Self: std::error::Error + Send + Sync + 'static,
-    {
-        use miette::{GraphicalReportHandler, GraphicalTheme, ReportHandler};
-        use std::fmt::{self, Display};
-
-        struct PrettyDiagnostic<'d, D>(&'d D);
-
-        impl<'d, D: Diagnostic> Display for PrettyDiagnostic<'d, D> {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                GraphicalReportHandler::new()
-                    .with_theme(GraphicalTheme::none())
-                    .debug(self.0, f)
-            }
-        }
-
-        poem::Response::builder()
-            .status(self.status())
-            .body(format!("{}", PrettyDiagnostic(self)))
-    }
 }
 
 // we deserialize the claims as [`ClaimsSerialized`] so that we can convert `scope` to a [`Vec<String>`]
