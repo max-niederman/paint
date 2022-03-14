@@ -13,11 +13,13 @@
 			.then((resp) => resp.json())
 			.then((data) => courses = data)
 	);
+
+	$: favoriteCourses = courses.filter((course) => course.is_favorite);
 </script>
 
 <h1>Courses</h1>
 
-{#each courses as course}
+{#each favoriteCourses as course}
 	<Link to={`/courses/${course.id}`}>
 		<div class="card">
 			<div class="card-content">

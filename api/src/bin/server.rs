@@ -37,10 +37,6 @@ async fn main() -> miette::Result<()> {
             .build(),
     );
 
-    routes::canvas::init_database(&database)
-        .await
-        .wrap_err("failed to initialize MongoDB for Canvas routes")?;
-
     let api = OpenApiService::new(
         (
             routes::RootApi,

@@ -8,3 +8,5 @@
 pub mod auth;
 pub mod routes;
 pub mod view;
+
+// TODO: make error handling more consistent and observable
