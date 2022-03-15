@@ -5,7 +5,7 @@
 
 	// FIXME: fetch courses from Oil
 
-	let courses: Canvas.Course[] = [];
+	let courses: Canvas.Course[] = null;
 
 	// NOTE: for whatever reason using a reactive statement sends two requests.
 	makeViewRequest.subscribe(async (request) =>
@@ -14,25 +14,45 @@
 			.then((data) => courses = data)
 	);
 
-	$: favoriteCourses = courses.filter((course) => course.is_favorite);
+	let displayedCourses: Canvas.Course[] = null;
+	$: {
+		if (courses !== null) {
+			let favorites = courses.filter((course) => course.is_favorite);
+			if (favorites.length !== 0) {
+				displayedCourses = favorites;
+			} else {
+				displayedCourses = courses;
+			}
+		}
+	}
 </script>
 
 <h1>Courses</h1>
 
-{#each favoriteCourses as course}
-	<Link to={`/courses/${course.id}`}>
-		<div class="card">
-			<div class="card-content">
-				<h2>{course.name}</h2>
-				<p>{course.course_code}</p>
-			</div>
+{#if displayedCourses !== null}
+	{#each displayedCourses as course}
+		<Link to={`/courses/${course.id}`}>
+			<div class="card">
+				<div class="card-content">
+					<h2>{course.name}</h2>
+					<p>{course.course_code}</p>
+				</div>
 
-			<span class="card-arrow"><FaArrowRight /></span>
-		</div>
-	</Link>
+				<span class="card-arrow"><FaArrowRight /></span>
+			</div>
+		</Link>
+	{:else}
+		<p>Well... this is awkward; you have no courses. This leaves two possibilities:<p>
+		<ol>
+			<li>I fucked up.</li>
+			<li>You're trying to use Paint with an empty Canvas account.</li>
+		</ol>
+		<p>Given how weird #2 is, this is probably the former.</p>
+		<em>Well, <b>FUCK</b></em>
+	{/each}
 {:else}
 	<p>Loading...</p>
-{/each}
+{/if}
 
 <style lang="scss">
 	.card {

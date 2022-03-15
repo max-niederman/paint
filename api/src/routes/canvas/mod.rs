@@ -1,6 +1,4 @@
-use futures::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 
 use crate::view::DbView;
 
@@ -13,6 +11,7 @@ struct DbResource<R> {
     resource: R,
 }
 
+// TODO: can we refactor this into a struct implementing `FromRequest` perhaps?
 async fn get_view(
     views: &mongodb::Collection<DbView>,
     view_id: bson::Uuid,
@@ -31,8 +30,8 @@ macro_rules! composite_api {
         // NOTE: we can remove the unit once poem-rs/poem#232 is merged
         type Api = ( $($api),*, () );
 
-        pub fn make_api(database: &mongodb::Database, http: &HttpClient) -> Api {
-            ( $( <$api>::new(database, http.clone()) ),*, () )
+        pub fn make_api(database: &mongodb::Database, db_client: &mongodb::Client, http: &HttpClient) -> Api {
+            ( $( <$api>::new(database, db_client, http.clone()) ),*, () )
         }
     };
 }

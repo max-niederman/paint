@@ -18,12 +18,19 @@ async fn main() -> miette::Result<()> {
     init_logging();
 
     tracing::info!("connecting to MongoDB");
-    let mongo_client = mongodb::Client::with_uri_str(
-        std::env::var("OIL_MONGODB_URI")
-            .into_diagnostic()
-            .wrap_err("missing OIL_MONGODB_URI environment variable")?,
+    let mongo_client = mongodb::Client::with_options(
+        mongodb::options::ClientOptions::builder()
+            .app_name(Some("oil".into()))
+            .hosts(vec!["localhost:27017".parse().unwrap()])
+            .credential(
+                mongodb::options::Credential::builder()
+                    .username(Some("root".into()))
+                    .password(Some("paint".into()))
+                    .build(),
+            )
+            .retry_writes(Some(false))
+            .build(),
     )
-    .await
     .into_diagnostic()
     .wrap_err("failed to create MongoDB client")?;
 
@@ -41,7 +48,7 @@ async fn main() -> miette::Result<()> {
         (
             routes::RootApi,
             routes::view::Api::new(&database),
-            routes::canvas::make_api(&database, &http_client),
+            routes::canvas::make_api(&database, &mongo_client, &http_client),
         ),
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
@@ -51,7 +58,7 @@ async fn main() -> miette::Result<()> {
     let app = Route::new()
         .nest("/docs", api.rapidoc())
         .nest("/", api)
-        .with(Cors::new())
+        .with(Cors::new().allow_origins(["http://localhost:4210"]))
         .with(Tracing);
 
     tracing::info!("starting JWK update task");

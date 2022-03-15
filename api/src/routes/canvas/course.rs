@@ -15,6 +15,7 @@ use poem_openapi::{param::Path, payload::Json, OpenApi};
 use uuid::Uuid;
 
 pub struct Api {
+    db_client: mongodb::Client,
     views: Collection<DbView>,
     courses: Collection<DbResource<Course>>,
 
@@ -22,8 +23,13 @@ pub struct Api {
 }
 
 impl Api {
-    pub fn new(database: &Database, http: hyper::Client<HttpsConnector<HttpConnector>>) -> Self {
+    pub fn new(
+        database: &Database,
+        db_client: &mongodb::Client,
+        http: hyper::Client<HttpsConnector<HttpConnector>>,
+    ) -> Self {
         Self {
+            db_client: db_client.clone(),
             views: database.collection("views"),
             courses: database.collection("courses"),
             http,
@@ -33,7 +39,7 @@ impl Api {
 
 #[OpenApi]
 impl Api {
-    /// Update the cache of courses.
+    /// Update the course cache.
     #[oai(
         path = "/views/:view_id/courses/update",
         method = "post",
@@ -41,7 +47,56 @@ impl Api {
     )]
     #[tracing::instrument(skip(self), fields(view_id = ?view_id.0))]
     async fn update_courses(&self, claims: Claims, view_id: Path<Uuid>) -> Result<()> {
-        todo!()
+        let view = get_view(&self.views, view_id.0.into()).await?;
+
+        let mut session = self
+            .db_client
+            .start_session(None)
+            .await
+            .map_err(InternalServerError)?;
+
+        session
+            .start_transaction(None)
+            .await
+            .map_err(InternalServerError)?;
+
+        self.courses
+            .delete_many_with_session(doc! { "view": view.id }, None, &mut session)
+            .await
+            .map_err(InternalServerError)?;
+
+        let mut upstream_pages = view
+            .client(self.http.clone())
+            .request(Method::GET, "/api/v1/courses")
+            .extend_include(["favorites"])
+            .paginate_owned(100)
+            .map_err(InternalServerError)?
+            .and_then(|resp| resp.deserialize::<Vec<Course>>().boxed())
+            .map_err(InternalServerError);
+
+        // TODO: it would be slightly better to allow each insertion to run concurrently rather than blocking on each one
+        let now = bson::DateTime::now();
+        while let Some(page) = upstream_pages.next().await.transpose()? {
+            self.courses
+                .insert_many_with_session(
+                    page.into_iter().map(|course| DbResource {
+                        view: view.id,
+                        inserted_at: now,
+                        resource: course,
+                    }),
+                    None,
+                    &mut session,
+                )
+                .map_err(InternalServerError)
+                .await?;
+        }
+
+        session
+            .commit_transaction()
+            .await
+            .map_err(InternalServerError)?;
+
+        Ok(())
     }
 
     /// Get all courses.
@@ -85,7 +140,7 @@ impl Api {
         &self,
         claims: Claims,
         view_id: Path<Uuid>,
-        course_id: Path<u32>,
+        course_id: Path<i32>,
     ) -> Result<Json<Any<Course>>> {
         claims.ensure_scopes(["read:canvas"])?;
 
@@ -94,7 +149,7 @@ impl Api {
         let course = self
             .courses
             .find_one(
-                doc! { "view": view.id, "resource": { "id": course_id.0 } },
+                doc! { "view": view.id, "resource.id": course_id.0 },
                 None,
             )
             .await
