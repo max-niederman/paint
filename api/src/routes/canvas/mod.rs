@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
-
-use crate::view::DbView;
+use crate::{view::DbView, Result, Error};
 
 pub mod course;
 
@@ -15,12 +14,11 @@ struct DbResource<R> {
 async fn get_view(
     views: &mongodb::Collection<DbView>,
     view_id: bson::Uuid,
-) -> poem::Result<DbView> {
+) -> Result<Option<DbView>> {
     views
         .find_one(bson::doc! { "_id": view_id }, None)
         .await
-        .map_err(poem::error::InternalServerError)?
-        .ok_or_else(|| poem::error::NotFoundError.into())
+        .map_err(|err| Error::database_while("fetching view information", err))
 }
 
 type HttpClient = hyper::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>;

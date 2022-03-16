@@ -6,7 +6,10 @@
 #![feature(associated_type_defaults)]
 
 pub mod auth;
+pub mod error;
 pub mod routes;
 pub mod view;
+
+pub use error::{Error, Result};
 
 // TODO: make error handling more consistent and observable
