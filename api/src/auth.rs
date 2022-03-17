@@ -1,7 +1,8 @@
+use crate::error::ErrResponse;
 use futures::prelude::*;
 use jsonwebtoken::jwk;
 use miette::Diagnostic;
-use poem::{error::ResponseError, http::StatusCode, FromRequest, Request, RequestBody};
+use poem::{error::ResponseError, http::StatusCode, Request, RequestBody};
 use poem_openapi::{ApiExtractor, ApiExtractorType};
 use serde::{Deserialize, Serialize};
 use std::{env, lazy::SyncOnceCell, sync::RwLock, time::Duration};
@@ -199,6 +200,25 @@ impl ResponseError for AuthError {
             Self::FailedFetchingJwks(_) => StatusCode::INTERNAL_SERVER_ERROR,
             Self::MissingScope { .. } => StatusCode::UNAUTHORIZED,
         }
+    }
+
+    fn as_response(&self) -> poem::Response {
+        poem::Response::builder().status(self.status()).body(
+            poem::Body::from_json(ErrResponse::from_diagnostic(self)).unwrap_or_else(|ser_err| {
+                poem::Body::from_string(format!(
+                    r#"
+                    CRITICAL: failed to serialize authentication error response
+                    
+                    Error: {:#?}
+                    Response: {:#?}
+                    Serialization Error: {}
+                    "#,
+                    self,
+                    ErrResponse::from_diagnostic(self),
+                    ser_err,
+                ))
+            }),
+        )
     }
 }
 
