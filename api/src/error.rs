@@ -1,4 +1,3 @@
-use crate::auth;
 use hyper::StatusCode;
 use miette::Diagnostic;
 use poem::{error::ResponseError, Body, Response};

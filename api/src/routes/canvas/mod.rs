@@ -1,6 +1,7 @@
+use crate::{view::DbView, Error, Result};
 use serde::{Deserialize, Serialize};
-use crate::{view::DbView, Result, Error};
 
+pub mod assignment;
 pub mod course;
 
 #[derive(Debug, Clone, Hash, Serialize, Deserialize)]
@@ -26,12 +27,12 @@ type HttpClient = hyper::Client<hyper_rustls::HttpsConnector<hyper::client::Http
 macro_rules! composite_api {
     ($( $api:ty ),* $(,)?) => {
         // NOTE: we can remove the unit once poem-rs/poem#232 is merged
-        type Api = ( $($api),*, () );
+        type Api = ( $($api),*, );
 
         pub fn make_api(database: &mongodb::Database, db_client: &mongodb::Client, http: &HttpClient) -> Api {
-            ( $( <$api>::new(database, db_client, http.clone()) ),*, () )
+            ( $( <$api>::new(database, db_client, http.clone()) ),*, )
         }
     };
 }
 
-composite_api!(course::Api);
+composite_api!(course::Api, assignment::Api);
