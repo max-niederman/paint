@@ -40,10 +40,14 @@
 			<div class="card-content">
 				<h3>{assignment.name}</h3>
 				<p>
-					Due: {displayISODate(assignment.due_at)}
-					Locks: {displayISODate(assignment.lock_at)}
+					Due: {displayISODate(assignment.due_at)},
+					Locks: {displayISODate(assignment.lock_at)},
+					Submitted: {assignment.has_submitted_submissions ? "Yes" : "No"}
 				</p>
 			</div>
+
+			<span slot="right">
+			</span>
 
 			<span slot="icon">
 				{#if assignment.locked_for_user}

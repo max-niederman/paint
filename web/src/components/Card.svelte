@@ -3,16 +3,19 @@
 </script>
 
 <div class="card">
-
-    <div class="card-content">
+    <div class="main-content">
         <slot />
     </div>
 
-	<span class="card-icon">
-        <slot name="icon">
-            <FaArrowRight />
-        </slot>
-    </span>
+	<div class="right-content">
+		<slot name="right" />
+
+		<span class="icon">
+			<slot name="icon">
+				<FaArrowRight />
+			</slot>
+		</span>
+	</div>
 </div>
 
 <style lang="scss">
@@ -28,11 +31,11 @@
 		background-color: var(--color-blue);
 		color: var(--color-grey-900);
 
-		.card-content {
+		.main-content {
 			flex-grow: 1;
 		}
 
-		.card-icon {
+		.icon {
 			width: var(--scale-4);
 
 			// center icon
