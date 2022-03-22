@@ -16,6 +16,7 @@
 		"deepmerge": "^4.2.2",
 		"pollen-css": "^4.2.0",
 		"prettier": "^2.5.1",
+		"sanitize-html": "^2.7.0",
 		"sass": "^1.49.0",
 		"svelte": "^3.46.3",
 		"svelte-check": "^2.3.0",

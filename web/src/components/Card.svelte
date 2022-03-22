@@ -9,12 +9,6 @@
 
 	<div class="right-content">
 		<slot name="right" />
-
-		<span class="icon">
-			<slot name="icon">
-				<FaArrowRight />
-			</slot>
-		</span>
 	</div>
 </div>
 
@@ -28,20 +22,17 @@
 		display: flex;
 		flex-direction: row;
 
-		background-color: var(--color-blue);
+		background-color: var(--color-green-300);
 		color: var(--color-grey-900);
 
 		.main-content {
 			flex-grow: 1;
 		}
 
-		.icon {
-			width: var(--scale-4);
-
-			// center icon
-			display: flex;
-			flex-direction: column;
-			justify-content: center;
-		}
+        .right-content {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
 	}
 </style>

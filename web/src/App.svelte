@@ -6,8 +6,9 @@
 	import HomePage from "./pages/Home.svelte";
 	import CoursePage from "./pages/Course.svelte";
 	import OnboardPage from "./pages/Onboard.svelte";
+	import AssignmentPage from "./pages/Assignment.svelte";
 	import { isLoading as isAuthLoading, isAuthenticated, createAuth } from "./auth";
-	import { view, views } from "./view";
+	import { views } from "./view";
 
 	const auth = createAuth();
 
@@ -25,7 +26,7 @@
 
 			<div class="container">
 				<div class="page">
-					{#if $view}
+					{#if $views}
 						<Route path="/">
 							<HomePage />
 						</Route>
@@ -36,6 +37,10 @@
 
 						<Route path="/courses/:id" let:params>
 							<CoursePage id={parseInt(params.id)} />
+						</Route>
+
+						<Route path="/courses/:courseId/assignments/:id" let:params>
+							<AssignmentPage courseId={parseInt(params.courseId)} id={parseInt(params.id)} />
 						</Route>
 					{:else}
 						<Route path="/**">

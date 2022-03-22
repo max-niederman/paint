@@ -43,6 +43,10 @@
 					<h2>{course.name}</h2>
 					<p>{course.course_code}</p>
 				</div>
+
+				<span class="card-arrow" slot="right">
+					<FaArrowRight />
+				</span>
 			</Card>
 		</Link>
 	{:else}
@@ -68,5 +72,15 @@
 		p {
 			margin: 0;
 		}
+	}
+
+	.card-arrow {
+		height: 100%;
+		width: var(--scale-4);
+
+		// center icon
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
 	}
 </style>
