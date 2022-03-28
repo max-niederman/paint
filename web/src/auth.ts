@@ -108,6 +108,9 @@ function createAuth() {
 	};
 
 	const logout = () => {
+		// clear local storage, which includes views among other things
+		localStorage.clear();
+
 		auth0.logout({
 			returnTo: window.location.origin
 		});

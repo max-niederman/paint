@@ -46,16 +46,20 @@ const viewsLSKey = new LocalStorageKey<Oil.View[]>("views");
 export const views = writable(viewsLSKey.get([]));
 viewsLSKey.subscribeTo(views);
 
+export async function updateViews(token: string) {
+	const resp = await fetch(`${import.meta.env.VITE_OIL_URL}/views`, {
+		headers: {
+			Authorization: `Bearer ${token}`
+		}
+	});
+	const body: Oil.View[] = await resp.json();
+	views.set(body);
+}
+
 // fetch token on login
-dedupe(authToken).subscribe(async (token) => {
+dedupe(authToken).subscribe((token) => {
 	if (token) {
-		const resp = await fetch(`${import.meta.env.VITE_OIL_URL}/views`, {
-			headers: {
-				Authorization: `Bearer ${token}`
-			}
-		});
-		const body: Oil.View[] = await resp.json();
-		views.set(body);
+		updateViews(token)
 	}
 });
 
