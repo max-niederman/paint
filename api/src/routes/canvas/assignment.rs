@@ -16,7 +16,7 @@ use uuid::Uuid;
 pub struct Api {
     db_client: mongodb::Client,
     views: Collection<DbView>,
-    courses: Collection<DbResource<Assignment>>,
+    assignments: Collection<DbResource<Assignment>>,
 
     http: HttpClient,
 }
@@ -30,7 +30,7 @@ impl Api {
         Self {
             db_client: db_client.clone(),
             views: database.collection("views"),
-            courses: database.collection("assignments"),
+            assignments: database.collection("assignments"),
             http,
         }
     }
@@ -63,11 +63,11 @@ impl Api {
             Error::database_while("starting transaction for atomic cache update", err)
         })?;
 
-        self.courses
+        self.assignments
             .delete_many_with_session(doc! { "view": view.id }, None, &mut session)
             .await
             .map_err(|err| Error::database_while("deleting old cache data", err))?;
-
+        
         let mut upstream_pages = view
             .client(self.http.clone())
             .request(
@@ -83,7 +83,7 @@ impl Api {
         // TODO: it would be slightly better to allow each insertion to run concurrently rather than blocking on each one
         let now = bson::DateTime::now();
         while let Some(page) = upstream_pages.next().await.transpose()? {
-            self.courses
+            self.assignments
                 .insert_many_with_session(
                     page.into_iter().map(|resource| DbResource {
                         view: view.id,
@@ -128,7 +128,7 @@ impl Api {
 
         // TODO: can we avoid the buffering here and start sending immediately?
         let courses: Vec<_> = self
-            .courses
+            .assignments
             .find(doc! { "view": view.id, "resource.course_id": course_id.0 }, None)
             .await
             .map_err(|err| Error::database_while("creating assignment cursor", err))?
@@ -136,6 +136,8 @@ impl Api {
             .try_collect()
             .await
             .map_err(|err| Error::database_while("collecting assignments into list", err))?;
+        
+        tracing::debug!("found {} assignments", courses.len());
 
         Ok(Json(courses.into_iter().map(Any).collect()))
     }
@@ -160,8 +162,8 @@ impl Api {
             .await?
             .ok_or(NotFoundError)?;
 
-        let course = self
-            .courses
+        let assignment = self
+            .assignments
             .find_one(doc! { "view": view.id, "resource.course_id": course_id.0, "resource.id": assignment_id.0 }, None)
             .await
             .map_err(|err| Error::database_while("fetching course", err))?
