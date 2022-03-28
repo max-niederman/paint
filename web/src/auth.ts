@@ -2,6 +2,7 @@ import { onMount, setContext, getContext } from "svelte";
 import { derived, Readable, Writable, writable } from "svelte/store";
 import createAuth0Client, { Auth0Client, Auth0ClientOptions } from "@auth0/auth0-spa-js";
 import deepmerge from "deepmerge";
+import dedupe from "./utils/dedupe-store";
 
 export const isLoading: Writable<boolean> = writable(true);
 export const isAuthenticated: Writable<boolean> = writable(false);
@@ -20,17 +21,14 @@ const config: Auth0ClientOptions = {
 };
 
 export type Auth = {
-    isLoading: Writable<boolean>;
-    isAuthenticated: Writable<boolean>;
-    authToken: Writable<string>;
-    authError: Writable<Error>;
-    login: (opts?: {
-        redirectPage?: string;
-        prompt?: "none" | "login" | "consent" | "select_account";
-    }) => Promise<void>;
-    logout: () => void;
-    userInfo: Writable<{}>;
-}
+	isLoading: Writable<boolean>;
+	isAuthenticated: Writable<boolean>;
+	authToken: Writable<string>;
+	authError: Writable<Error>;
+	login: (opts?: { redirectPage?: string; prompt?: "none" | "login" | "consent" | "select_account" }) => Promise<void>;
+	logout: () => void;
+	userInfo: Writable<{}>;
+};
 
 // Default Auth0 expiration time is 10 hours or something like that.
 // If you want to get fancy you can parse the JWT token and get
@@ -74,7 +72,7 @@ function createAuth() {
 			// in Auth0 config, otherwise you will soon start throwing stuff!
 			const token = await auth0.getTokenSilently();
 			authToken.set(token);
-			
+
 			if (import.meta.env.DEV) {
 				console.log(`auth token: ${token}`);
 			}
@@ -110,6 +108,9 @@ function createAuth() {
 	};
 
 	const logout = () => {
+		// clear local storage, which includes views among other things
+		localStorage.clear();
+
 		auth0.logout({
 			returnTo: window.location.origin
 		});
@@ -141,18 +142,19 @@ function getAuth(): Auth {
 export { createAuth, getAuth };
 
 export const makeAuthedRequest: Readable<(path: string, init?: RequestInit) => Promise<Response>> = derived(
-	authToken, 
-	($authToken) => async (path: string, init?: RequestInit): Promise<Response> => {
-		return fetch(
-			`${import.meta.env.VITE_OIL_URL}${path}`,
-			deepmerge(
-				{
-					headers: {
-						"Authorization": `Bearer ${$authToken}`
+	authToken,
+	($authToken) =>
+		async (path: string, init?: RequestInit): Promise<Response> => {
+			return fetch(
+				`${import.meta.env.VITE_OIL_URL}${path}`,
+				deepmerge(
+					{
+						headers: {
+							Authorization: `Bearer ${$authToken}`
+						}
 					},
-				},
-				init ?? {},
-			),
-		);
-	}
+					init ?? {}
+				)
+			);
+		}
 );

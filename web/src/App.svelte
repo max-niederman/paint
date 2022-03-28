@@ -2,7 +2,7 @@
 	import { Router, Route, Link } from "svelte-navigator";
 	import Nav from "./components/Nav.svelte";
 	import Button from "./components/Button.svelte";
-	import SearchPage from "./pages/Search.svelte";
+	import SettingsPage from "./pages/Settings.svelte";
 	import HomePage from "./pages/Home.svelte";
 	import CoursePage from "./pages/Course.svelte";
 	import OnboardPage from "./pages/Onboard.svelte";
@@ -27,12 +27,16 @@
 			<div class="container">
 				<div class="page">
 					{#if $views}
+						<Route path="/**">
+							<OnboardPage />
+						</Route>
+					{:else}
 						<Route path="/">
 							<HomePage />
 						</Route>
 
-						<Route path="/search">
-							<SearchPage />
+						<Route path="/settings">
+							<SettingsPage />
 						</Route>
 
 						<Route path="/courses/:id" let:params>
@@ -41,10 +45,6 @@
 
 						<Route path="/courses/:courseId/assignments/:id" let:params>
 							<AssignmentPage courseId={parseInt(params.courseId)} id={parseInt(params.id)} />
-						</Route>
-					{:else}
-						<Route path="/**">
-							<OnboardPage />
 						</Route>
 					{/if}
 
