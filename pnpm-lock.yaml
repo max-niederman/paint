@@ -7,6 +7,7 @@ importers:
       '@auth0/auth0-spa-js': ^1.19.4
       '@sveltejs/vite-plugin-svelte': ^1.0.0-next.37
       '@tsconfig/svelte': ^2.0.1
+      deep-eql: ^4.0.1
       deepmerge: ^4.2.2
       pollen-css: ^4.2.0
       prettier: ^2.5.1
@@ -24,6 +25,7 @@ importers:
       '@auth0/auth0-spa-js': 1.19.4
       '@sveltejs/vite-plugin-svelte': 1.0.0-next.37_svelte@3.46.3+vite@2.8.0
       '@tsconfig/svelte': 2.0.1
+      deep-eql: 4.0.1
       deepmerge: 4.2.2
       pollen-css: 4.2.0
       prettier: 2.5.1
@@ -289,6 +291,13 @@ packages:
 
   /dedent-js/1.0.1:
     resolution: {integrity: sha1-vuX7fJ5yfYXf+iRZDRDsGrElUwU=}
+    dev: true
+
+  /deep-eql/4.0.1:
+    resolution: {integrity: sha512-D/Oxqobjr+kxaHsgiQBZq9b6iAWdEj5W/JdJm8deNduAPc9CwXQ3BJJCuEqlrPXcy45iOMkGPZ0T81Dnz7UDCA==}
+    engines: {node: '>=6'}
+    dependencies:
+      type-detect: 4.0.8
     dev: true
 
   /deepmerge/4.2.2:
@@ -1164,6 +1173,11 @@ packages:
 
   /tslib/2.3.1:
     resolution: {integrity: sha512-77EbyPPpMz+FRFRuAFlWMtmgUWGe9UOG2Z25NqCwiIjRhOf5iKGuzSe5P2w1laq+FkRy4p+PCuVkJSGkzTEKVw==}
+    dev: true
+
+  /type-detect/4.0.8:
+    resolution: {integrity: sha512-0fr/mIH1dlO+x7TlcMy+bIDqKPsw/70tVyeHW787goQjhmqaZe10uwLujubK9q9Lg6Fiho1KUKDYz0Z7k7g5/g==}
+    engines: {node: '>=4'}
     dev: true
 
   /typescript/4.5.5:

@@ -1,6 +1,7 @@
-import { derived, Readable, writable, Writable } from "svelte/store";
+import { Readable, writable, derived, Writable } from "svelte/store";
 import { authToken, getAuth, makeAuthedRequest } from "./auth";
-import deepmerge from "deepmerge";
+import dedupe from "./utils/dedupe-store";
+import deepEql from "deep-eql";
 
 class LocalStorageKey<T> {
 	constructor(private key: string) {
@@ -46,7 +47,7 @@ export const views = writable(viewsLSKey.get([]));
 viewsLSKey.subscribeTo(views);
 
 // fetch token on login
-authToken.subscribe(async (token) => {
+dedupe(authToken).subscribe(async (token) => {
 	if (token) {
 		const resp = await fetch(`${import.meta.env.VITE_OIL_URL}/views`, {
 			headers: {
@@ -66,9 +67,8 @@ views.subscribe((views) => {
 });
 
 export const makeViewRequest: Readable<(path: string, init?: RequestInit) => Promise<Response>> = derived(
-	[makeAuthedRequest, view],
+	[dedupe(makeAuthedRequest), dedupe(view, deepEql)],
 	([$makeAuthedRequest, $view]) =>
 		(path: string, init?: RequestInit) =>
 			$makeAuthedRequest(`/views/${$view.id}${path}`, init)
 );
-
