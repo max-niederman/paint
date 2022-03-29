@@ -32,7 +32,7 @@
           packages = rec {
             paint = naersk-lib.buildPackage {
               pname = "paint";
-              root = ./.;
+              root = ./api;
               copyBins = true;
               copyLibs = true;
             };

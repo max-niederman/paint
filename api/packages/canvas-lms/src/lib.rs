@@ -1,5 +1,6 @@
 #![feature(result_flattening)]
 #![feature(try_trait_v2)]
+#![feature(maybe_uninit_extra)]
 
 #[cfg(feature = "client")]
 pub mod client;
