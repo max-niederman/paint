@@ -1,0 +1,6 @@
+# build outputs
+target/
+
+# performance profiling
+perf.data
+flamegraph.svg

@@ -37,6 +37,8 @@ async fn main() -> miette::Result<()> {
             .build(),
     );
 
+    let listen_addr = std::env::var("OIL_ADDR").unwrap_or_else(|_| "0.0.0.0:80".into());
+
     let api = OpenApiService::new(
         (
             routes::RootApi,
@@ -46,7 +48,7 @@ async fn main() -> miette::Result<()> {
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )
-    .server("http://localhost:4200");
+    .server(&listen_addr);
 
     let app = Route::new()
         .nest("/docs", api.rapidoc())
@@ -75,7 +77,6 @@ async fn main() -> miette::Result<()> {
         }
     });
 
-    let listen_addr = std::env::var("OIL_ADDR").unwrap_or_else(|_| "0.0.0.0:4200".into());
     tracing::info!(%listen_addr, "starting web server");
     poem::Server::new(TcpListener::bind(listen_addr))
         .run(app)

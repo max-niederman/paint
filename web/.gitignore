@@ -1,4 +1,8 @@
-/node_modules/
-/dist/
-/.rsw/
-.DS_Store
+# dependencies
+node_modules/
+
+# build outputs
+dist/
+
+# logs
+.pnpm-debug.log
