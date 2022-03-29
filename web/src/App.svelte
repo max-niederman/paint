@@ -26,7 +26,7 @@
 
 			<div class="container">
 				<div class="page">
-					{#if $views}
+					{#if $views.length === 0}
 						<Route path="/**">
 							<OnboardPage />
 						</Route>
@@ -47,7 +47,6 @@
 							<AssignmentPage courseId={parseInt(params.courseId)} id={parseInt(params.id)} />
 						</Route>
 					{/if}
-
 
 					<Route path="/**">
 						<main>

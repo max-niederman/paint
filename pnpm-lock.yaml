@@ -2,6 +2,14 @@ lockfileVersion: 5.3
 
 importers:
 
+  .:
+    specifiers:
+      prettier: ^2.5.1
+      prettier-plugin-svelte: ^2.6.0
+    devDependencies:
+      prettier: 2.5.1
+      prettier-plugin-svelte: 2.6.0_prettier@2.5.1
+
   web:
     specifiers:
       '@auth0/auth0-spa-js': ^1.19.4
@@ -10,7 +18,6 @@ importers:
       deep-eql: ^4.0.1
       deepmerge: ^4.2.2
       pollen-css: ^4.2.0
-      prettier: ^2.5.1
       sanitize-html: ^2.7.0
       sass: ^1.49.0
       svelte: ^3.46.3
@@ -28,7 +35,6 @@ importers:
       deep-eql: 4.0.1
       deepmerge: 4.2.2
       pollen-css: 4.2.0
-      prettier: 2.5.1
       sanitize-html: 2.7.0
       sass: 1.49.0
       svelte: 3.46.3
@@ -900,6 +906,15 @@ packages:
       nanoid: 3.2.0
       picocolors: 1.0.0
       source-map-js: 1.0.2
+    dev: true
+
+  /prettier-plugin-svelte/2.6.0_prettier@2.5.1:
+    resolution: {integrity: sha512-NPSRf6Y5rufRlBleok/pqg4+1FyGsL0zYhkYP6hnueeL1J/uCm3OfOZPsLX4zqD9VAdcXfyEL2PYqGv8ZoOSfA==}
+    peerDependencies:
+      prettier: ^1.16.4 || ^2.0.0
+      svelte: ^3.2.0
+    dependencies:
+      prettier: 2.5.1
     dev: true
 
   /prettier/2.5.1:

@@ -8,15 +8,15 @@
 
 <style lang="scss">
 	button {
-        display: inline-block;
+		display: inline-block;
 
 		padding: var(--size-4);
 		text-align: center;
-        text-decoration: none;
+		text-decoration: none;
 
 		font-family: var(--font-sans);
 		font-size: inherit;
-        font-weight: 800;
+		font-weight: 800;
 
 		cursor: pointer;
 
@@ -24,6 +24,6 @@
 		color: var(--color-background);
 
 		border: none;
-        border-radius: var(--size-2);
+		border-radius: var(--size-2);
 	}
 </style>

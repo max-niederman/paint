@@ -45,9 +45,9 @@
 				formatted += `${typeNames[type]}, `;
 			});
 
-            formatted += `or ${typeNames[types[types.length - 1]]}`;
+			formatted += `or ${typeNames[types[types.length - 1]]}`;
 
-            return formatted;
+			return formatted;
 		}
 	}
 

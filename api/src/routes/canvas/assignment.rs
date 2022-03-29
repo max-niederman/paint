@@ -1,6 +1,5 @@
-use super::{get_view, DbResource, HttpClient};
-use crate::Error;
-use crate::{auth::Claims, routes::ApiTags, view::*};
+use super::{get_view, DbResource};
+use crate::{Error, HttpClient, auth::Claims, routes::ApiTags, view::*};
 use bson::doc;
 use canvas_lms::resource::Assignment;
 use futures::prelude::*;
@@ -170,6 +169,6 @@ impl Api {
             .ok_or(NotFoundError)?
             .resource;
 
-        Ok(Json(Any(course)))
+        Ok(Json(Any(assignment)))
     }
 }

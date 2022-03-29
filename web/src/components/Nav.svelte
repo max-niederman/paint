@@ -1,6 +1,6 @@
 <script lang="ts">
 	import FaHome from "svelte-icons/fa/FaHome.svelte";
-	import FaExternalLinkAlt from 'svelte-icons/fa/FaExternalLinkAlt.svelte';
+	import FaExternalLinkAlt from "svelte-icons/fa/FaExternalLinkAlt.svelte";
 	import MdSettings from "svelte-icons/md/MdSettings.svelte";
 	import { Link, useLocation } from "svelte-navigator";
 	import ViewSelector from "./ViewSelector.svelte";
@@ -12,7 +12,7 @@
 
 	$: {
 		if ($view && $location.pathname.match(/^\/courses\/\d+(\/assignments\/\d+)?$/)) {
-			upstreamURL = `https://${$view.canvas_domain}/${$location.pathname}`;
+			upstreamURL = `https://${$view.canvas_domain}${$location.pathname}`;
 		} else {
 			upstreamURL = null;
 		}
@@ -22,15 +22,13 @@
 <nav>
 	<div>
 		<Link to="/"><div class="icon"><FaHome /></div></Link>
-
-
 	</div>
 	<div>
 		<ViewSelector />
 		<div class="spacer" />
 
 		{#if upstreamURL}
-			<a href={upstreamURL} rel="prefetch">
+			<a href={upstreamURL}>
 				<div class="icon"><FaExternalLinkAlt /></div>
 			</a>
 			<div class="spacer" />

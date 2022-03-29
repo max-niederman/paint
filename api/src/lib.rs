@@ -12,4 +12,4 @@ pub mod view;
 
 pub use error::{Error, Result};
 
-// TODO: make error handling more consistent and observable
+pub type HttpClient = hyper::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>;

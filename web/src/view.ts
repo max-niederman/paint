@@ -43,7 +43,7 @@ viewLSKey.subscribeTo(view);
 
 // persist the views in localStorage
 const viewsLSKey = new LocalStorageKey<Oil.View[]>("views");
-export const views = writable(viewsLSKey.get([]));
+export const views = writable(viewsLSKey.get(null));
 viewsLSKey.subscribeTo(views);
 
 export async function updateViews(token: string) {
@@ -59,13 +59,13 @@ export async function updateViews(token: string) {
 // fetch token on login
 dedupe(authToken).subscribe((token) => {
 	if (token) {
-		updateViews(token)
+		updateViews(token);
 	}
 });
 
 // if we don't have a view set, set it to the first view available
 views.subscribe((views) => {
-	if (views.length > 0) {
+	if (views !== null && views.length > 0) {
 		view.update((view) => (view === null ? views[0] : view));
 	}
 });

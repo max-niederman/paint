@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { getAuth } from "../auth";
-    import Button from "../components/Button.svelte";
+	import { getAuth } from "../auth";
+	import Button from "../components/Button.svelte";
 </script>
 
 <h1>Settings</h1>

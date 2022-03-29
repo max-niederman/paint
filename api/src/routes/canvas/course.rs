@@ -1,6 +1,5 @@
-use super::{get_view, DbResource, HttpClient};
-use crate::Error;
-use crate::{auth::Claims, routes::ApiTags, view::*};
+use super::{get_view, DbResource};
+use crate::{Error, HttpClient, auth::Claims, routes::ApiTags, view::*};
 use bson::doc;
 use canvas_lms::resource::Course;
 use futures::prelude::*;

@@ -1,7 +1,8 @@
 use super::ApiTags;
-use crate::{auth::Claims, view::*, Error};
+use crate::{auth::Claims, view::*, Error, HttpClient};
 use bson::doc;
 use futures::prelude::*;
+use hyper::Method;
 use mongodb::{Collection, Database};
 use poem::error::NotFoundError;
 use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
@@ -17,18 +18,19 @@ use uuid::Uuid;
 pub struct NewView {
     pub name: String,
     pub canvas_domain: String,
-    pub canvas_user_id: u64,
     pub canvas_access_token: String,
 }
 
 pub struct Api {
     collection: Collection<DbView>,
+    http_client: HttpClient,
 }
 
 impl Api {
-    pub fn new(database: &Database) -> Self {
+    pub fn new(database: &Database, http_client: HttpClient) -> Self {
         Api {
             collection: database.collection("views"),
+            http_client,
         }
     }
 }
@@ -77,12 +79,26 @@ impl Api {
 
         claims.ensure_scopes(["write:views"])?;
 
+        let user: canvas_lms::resource::User = canvas_lms::Client::<HttpClient>::builder()
+            .base_url(format!("https://{}", new_view.canvas_domain))
+            .auth(canvas_lms::client::Auth::Bearer(
+                new_view.canvas_access_token.clone(),
+            ))
+            .build(self.http_client.clone())
+            .request(Method::GET, "/api/v1/users/self")
+            .send()
+            .await
+            .map_err(|err| Error::canvas_while("fetching user id", err))?
+            .deserialize()
+            .await
+            .map_err(|err| Error::canvas_while("deserializing user response", err))?;
+
         let db_view = DbView {
             id: Uuid::new_v4().into(),
             name: new_view.name,
             user: claims.sub,
             canvas_domain: new_view.canvas_domain,
-            canvas_user_id: new_view.canvas_user_id,
+            canvas_user_id: user.id.into(),
             canvas_access_token: new_view.canvas_access_token,
         };
 

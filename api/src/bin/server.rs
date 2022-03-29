@@ -40,7 +40,7 @@ async fn main() -> miette::Result<()> {
     let api = OpenApiService::new(
         (
             routes::RootApi,
-            routes::view::Api::new(&database),
+            routes::view::Api::new(&database, http_client.clone()),
             routes::canvas::make_api(&database, &mongo_client, &http_client),
         ),
         env!("CARGO_PKG_NAME"),

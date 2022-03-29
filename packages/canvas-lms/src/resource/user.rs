@@ -1,4 +1,5 @@
 use crate::Id;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// A Canvas User.
@@ -11,10 +12,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct User {
     pub id: Id,
-    pub login_id: String,
+
+    pub created_at: DateTime<Utc>,
 
     pub name: String,
-    pub last_name: String,
-    pub first_name: String,
     pub short_name: String,
+    pub sortable_name: String,
+
+    pub locale: Option<String>,
+    pub effective_locale: Option<String>,
 }

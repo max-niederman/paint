@@ -1,4 +1,4 @@
-use crate::{view::DbView, Error, Result};
+use crate::{view::DbView, Error, HttpClient, Result};
 use serde::{Deserialize, Serialize};
 
 pub mod assignment;
@@ -21,8 +21,6 @@ async fn get_view(
         .await
         .map_err(|err| Error::database_while("fetching view information", err))
 }
-
-type HttpClient = hyper::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>;
 
 macro_rules! composite_api {
     ($( $api:ty ),* $(,)?) => {

@@ -1,11 +1,11 @@
 <script lang="ts">
-    import FaArrowRight from "svelte-icons/fa/FaArrowRight.svelte";
+	import FaArrowRight from "svelte-icons/fa/FaArrowRight.svelte";
 </script>
 
 <div class="card">
-    <div class="main-content">
-        <slot />
-    </div>
+	<div class="main-content">
+		<slot />
+	</div>
 
 	<div class="right-content">
 		<slot name="right" />
@@ -29,10 +29,10 @@
 			flex-grow: 1;
 		}
 
-        .right-content {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-        }
+		.right-content {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+		}
 	}
 </style>
