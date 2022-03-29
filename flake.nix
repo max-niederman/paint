@@ -53,7 +53,7 @@
 
                 # JS
                 nodejs-16_x
-                nodePackages.pnpm
+                nodePackages.yarn
                 nodePackages.prettier
               ];
 
