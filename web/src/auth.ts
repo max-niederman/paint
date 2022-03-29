@@ -15,7 +15,7 @@ const AUTH_KEY = {};
 const config: Auth0ClientOptions = {
 	domain: import.meta.env.VITE_AUTH0_DOMAIN,
 	client_id: import.meta.env.VITE_AUTH0_CLIENT_ID,
-	audience: import.meta.env.VITE_OIL_URL,
+	audience: "oil",
 	scope: "read:views write:views read:canvas",
 	cacheLocation: "localstorage"
 };
