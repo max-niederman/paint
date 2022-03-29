@@ -8,7 +8,7 @@ use poem::{
     EndpointExt, Route,
 };
 use poem_openapi::OpenApiService;
-use std::time::Duration;
+use std::{net::Ipv4Addr, time::Duration};
 use tokio::task;
 
 // TODO: send proper, consistent error responses for all error types
@@ -37,8 +37,6 @@ async fn main() -> miette::Result<()> {
             .build(),
     );
 
-    let listen_addr = std::env::var("OIL_ADDR").unwrap_or_else(|_| "0.0.0.0:80".into());
-
     let api = OpenApiService::new(
         (
             routes::RootApi,
@@ -48,7 +46,7 @@ async fn main() -> miette::Result<()> {
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )
-    .server(&listen_addr);
+    .server(std::env::var("RAILWAY_STATIC_URL").unwrap_or_else(|_| "localhost:4200".into()));
 
     let app = Route::new()
         .nest("/docs", api.rapidoc())
@@ -77,7 +75,14 @@ async fn main() -> miette::Result<()> {
         }
     });
 
-    tracing::info!(%listen_addr, "starting web server");
+    let listen_addr = (
+        Ipv4Addr::new(0, 0, 0, 0),
+        std::env::var("PORT")
+            .ok()
+            .and_then(|s| s.parse::<u16>().ok())
+            .unwrap_or(4200),
+    );
+    tracing::info!(?listen_addr, "starting web server");
     poem::Server::new(TcpListener::bind(listen_addr))
         .run(app)
         .await
