@@ -63,7 +63,7 @@ impl Api {
         })?;
 
         self.assignments
-            .delete_many_with_session(doc! { "view": view.id }, None, &mut session)
+            .delete_many_with_session(doc! { "view": view.id, "resource.course_id": course_id.0 }, None, &mut session)
             .await
             .map_err(|err| Error::database_while("deleting old cache data", err))?;
         
@@ -128,7 +128,8 @@ impl Api {
         // TODO: can we avoid the buffering here and start sending immediately?
         let courses: Vec<_> = self
             .assignments
-            .find(doc! { "view": view.id, "resource.course_id": course_id.0 }, None)
+            .find(doc! { "resource.course_id": course_id.0 }, None)
+            // .find(doc! { "view": view.id, "resource.course_id": course_id.0 }, None)
             .await
             .map_err(|err| Error::database_while("creating assignment cursor", err))?
             .map_ok(|course| course.resource)
