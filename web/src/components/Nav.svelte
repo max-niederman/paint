@@ -1,22 +1,17 @@
 <script lang="ts">
 	import FaHome from "svelte-icons/fa/FaHome.svelte";
 	import FaExternalLinkAlt from "svelte-icons/fa/FaExternalLinkAlt.svelte";
+	import FaSyncAlt from 'svelte-icons/fa/FaSyncAlt.svelte'
 	import MdSettings from "svelte-icons/md/MdSettings.svelte";
-	import { Link, useLocation } from "svelte-navigator";
+	import { Link } from "svelte-navigator";
 	import ViewSelector from "./ViewSelector.svelte";
-	import { view } from "../view";
+</script>
 
-	const location = useLocation();
+<script context="module" lang="ts">
+	import { Writable, writable } from "svelte/store";
 
-	let upstreamURL: string = null;
-
-	$: {
-		if ($view && $location.pathname.match(/^\/courses\/\d+(\/assignments\/\d+)?$/)) {
-			upstreamURL = `https://${$view.canvas_domain}${$location.pathname}`;
-		} else {
-			upstreamURL = null;
-		}
-	}
+	export const upstreamURL: Writable<string> = writable(null);
+	export const update: Writable<() => Promise<void>> = writable(null);
 </script>
 
 <nav>
@@ -27,8 +22,15 @@
 		<ViewSelector />
 		<div class="spacer" />
 
-		{#if upstreamURL}
-			<a href={upstreamURL}>
+		{#if $update}
+			<span on:click={$update}>
+				<div class="icon"><FaSyncAlt /></div>
+			</span>
+			<div class="spacer" />
+		{/if}
+
+		{#if $upstreamURL}
+			<a href={$upstreamURL}>
 				<div class="icon"><FaExternalLinkAlt /></div>
 			</a>
 			<div class="spacer" />
@@ -59,6 +61,7 @@
 			height: $icon-size;
 			width: $icon-size;
 			color: var(--color-foreground);
+			cursor: pointer;
 		}
 
 		.spacer {

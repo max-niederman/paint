@@ -6,8 +6,14 @@
 	import FaRegSquare from "svelte-icons/fa/FaRegSquare.svelte";
 	import FaRegMinusSquare from "svelte-icons/fa/FaRegMinusSquare.svelte";
 	import FaRegCheckSquare from "svelte-icons/fa/FaRegCheckSquare.svelte";
+	import * as nav from "../components/Nav.svelte";
 
 	export let id: number;
+
+	$: nav.upstreamURL.set(`https://${$view.canvas_domain}/courses/${id}`);
+	$: nav.update.set(async () => {
+		await $makeViewRequest(`/courses/${id}/assignments/update`, { method: "POST" });
+	});
 
 	let course: Canvas.Course = null;
 	let assignments: Canvas.Assignment[] = [];
