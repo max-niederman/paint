@@ -3,22 +3,18 @@
 	import FaArrowRight from "svelte-icons/fa/FaArrowRight.svelte";
 	import { Link } from "svelte-navigator";
 	import Card from "../components/Card.svelte";
+	import * as nav from "../components/Nav.svelte";
 
 	let courses: Canvas.Course[] = null;
-	makeViewRequest.subscribe(async (request) =>
-		request(`/courses`)
-			.then((resp) => resp.json())
-			.then(async (data) => {
-				if (data.length > 0) {
-					courses = data;
-				} else {
-					await request(`/courses/update`, { method: "POST" });
+	makeViewRequest.subscribe(async (request) => {
+		courses = await (await request(`/courses`)).json();
 
-					const resp = await request(`/courses`);
-					courses = await resp.json();
-				}
-			})
-	);
+		if (courses.length === 0) {
+			courses = null;
+			await request(`/courses/update`, { method: "POST" });
+			courses = await (await request(`/courses`)).json();
+		}
+	});
 
 	let displayedCourses: Canvas.Course[] = null;
 	$: {
@@ -31,6 +27,15 @@
 			}
 		}
 	}
+	
+	$: nav.upstreamURL.set(`https://${$view.canvas_domain}`);
+	$: nav.update.set(async () => {
+		displayedCourses = null;
+		await $makeViewRequest(`/courses/update`, { method: "POST" });
+		courses = await (await $makeViewRequest(`/courses`)).json();
+	})
+
+	$: console.log("courses", courses)
 </script>
 
 <h1>Courses</h1>
@@ -59,7 +64,7 @@
 		<p>Given how weird #2 is, this is probably the former.</p>
 	{/each}
 {:else}
-	<p>Loading...</p>
+	<p>Loading courses...</p>
 {/if}
 
 <style lang="scss">

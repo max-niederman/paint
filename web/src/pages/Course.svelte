@@ -10,21 +10,26 @@
 
 	export let id: number;
 
-	$: nav.upstreamURL.set(`https://${$view.canvas_domain}/courses/${id}`);
-	$: nav.update.set(async () => {
-		await $makeViewRequest(`/courses/${id}/assignments/update`, { method: "POST" });
-	});
-
 	let course: Canvas.Course = null;
-	let assignments: Canvas.Assignment[] = [];
 	makeViewRequest.subscribe(async (request) => {
 		course = await (await request(`/courses/${id}`)).json();
+	});
+
+	let assignments: Canvas.Assignment[] = [];
+	makeViewRequest.subscribe(async (request) => {
 		assignments = await (await request(`/courses/${id}/assignments`)).json();
 
 		if (assignments.length === 0) {
 			await request(`/courses/${id}/assignments/update`, { method: "POST" });
 			assignments = await (await request(`/courses/${id}/assignments`)).json();
 		}
+	});
+	
+	$: nav.upstreamURL.set(`https://${$view.canvas_domain}/courses/${id}`);
+	$: nav.update.set(async () => {
+		assignments = [];
+		await $makeViewRequest(`/courses/${id}/assignments/update`, { method: "POST" });
+		assignments = await (await $makeViewRequest(`/courses/${id}/assignments`)).json();
 	});
 
 	$: sortedAssignments = assignments

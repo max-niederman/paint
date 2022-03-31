@@ -12,6 +12,11 @@
 
 	export const upstreamURL: Writable<string> = writable(null);
 	export const update: Writable<() => Promise<void>> = writable(null);
+
+	export function clear() {
+		upstreamURL.set(null);
+		update.set(null);
+	}
 </script>
 
 <nav>

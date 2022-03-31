@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { authToken, makeAuthedRequest } from "../auth";
-	import { updateViews, views } from "../view";
+	import { updateViews } from "../view";
 	import Button from "../components/Button.svelte";
+	import * as nav from "../components/Nav.svelte";
+
+	nav.clear();
 
 	let formValues = {
 		canvasDomain: "",

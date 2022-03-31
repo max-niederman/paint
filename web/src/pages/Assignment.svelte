@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { makeViewRequest, view } from "../view";
-	import { Link, navigate } from "svelte-navigator";
+	import { Link } from "svelte-navigator";
 	import sanitizeHtml from "sanitize-html";
+	import * as nav from "../components/Nav.svelte";
 
 	export let courseId: number;
 	export let id: number;
@@ -15,6 +16,9 @@
 	makeViewRequest.subscribe(async (request) => {
 		assignment = await (await request(`/courses/${courseId}/assignments/${id}`)).json();
 	});
+
+	nav.update.set(null);
+	$: nav.upstreamURL.set(`https://${$view.canvas_domain}/courses/${courseId}/assignments/${id}`);
 
 	function formatSubmissionTypes(types: Canvas.SubmissionType[]) {
 		const typeNames: Record<Canvas.SubmissionType, string> = {
@@ -88,7 +92,15 @@
 	<h2>Submission</h2>
 	<p><b>Type:</b> {formatSubmissionTypes(assignment.submission_types)}</p>
 {:else}
-	<h1>Assignment #{id} of Course #{course !== null ? course.name : courseId}</h1>
+	<h1>Assignment #{id}</h1>
+	<div class="subheading">
+		In
+		<span class="course-link">
+			<Link to={`/courses/${courseId}`}>
+				{course !== null ? course.name : `Course #${courseId}`}
+			</Link>
+		</span>
+	</div>
 	<p>Loading...</p>
 {/if}
 
