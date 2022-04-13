@@ -3,6 +3,7 @@ import { derived, Readable, Writable, writable } from "svelte/store";
 import createAuth0Client, { Auth0Client, Auth0ClientOptions } from "@auth0/auth0-spa-js";
 import deepmerge from "deepmerge";
 import dedupe from "./utils/dedupe-store";
+import { error } from "./error";
 
 export const isLoading: Writable<boolean> = writable(true);
 export const isAuthenticated: Writable<boolean> = writable(false);
@@ -145,7 +146,7 @@ export const makeAuthedRequest: Readable<(path: string, init?: RequestInit) => P
 	authToken,
 	($authToken) =>
 		async (path: string, init?: RequestInit): Promise<Response> => {
-			return fetch(
+			const resp = await fetch(
 				`${import.meta.env.VITE_OIL_URL}${path}`,
 				deepmerge(
 					{
@@ -156,5 +157,18 @@ export const makeAuthedRequest: Readable<(path: string, init?: RequestInit) => P
 					init ?? {}
 				)
 			);
+
+			switch (resp.status) {
+				case 500:
+					error.set({ type: "server_error", body: await resp.json() });
+					break;
+
+				case 200:
+				case 404:
+					return resp;
+
+				default:
+					error.set({ type: "unknown_http_status", status: resp.status, resp });
+			}
 		}
 );

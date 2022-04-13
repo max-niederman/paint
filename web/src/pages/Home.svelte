@@ -28,14 +28,12 @@
 		}
 	}
 	
-	$: nav.upstreamURL.set(`https://${$view.canvas_domain}`);
+	$: nav.upstreamURL.set(`https://${$view?.canvas_domain}`);
 	$: nav.update.set(async () => {
 		displayedCourses = null;
 		await $makeViewRequest(`/courses/update`, { method: "POST" });
 		courses = await (await $makeViewRequest(`/courses`)).json();
 	})
-
-	$: console.log("courses", courses)
 </script>
 
 <h1>Courses</h1>
@@ -55,13 +53,8 @@
 			</Card>
 		</Link>
 	{:else}
-		<p>Well... this is awkward; you have no courses. This leaves two possibilities:</p>
-		<p />
-		<ol>
-			<li>I messed up.</li>
-			<li>You're trying to use Paint with an empty Canvas account.</li>
-		</ol>
-		<p>Given how weird #2 is, this is probably the former.</p>
+		<p>Well... this is awkward; you have no courses.</p>
+		<p>Most likely, this means you misconfigured your Canvas access token.</p>
 	{/each}
 {:else}
 	<p>Loading courses...</p>

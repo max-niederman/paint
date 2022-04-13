@@ -2,6 +2,7 @@ import { Readable, writable, derived, Writable } from "svelte/store";
 import { authToken, getAuth, makeAuthedRequest } from "./auth";
 import dedupe from "./utils/dedupe-store";
 import deepEql from "deep-eql";
+import { error } from "./error";
 
 class LocalStorageKey<T> {
 	constructor(private key: string) {
@@ -73,6 +74,19 @@ views.subscribe((views) => {
 export const makeViewRequest: Readable<(path: string, init?: RequestInit) => Promise<Response>> = derived(
 	[dedupe(makeAuthedRequest), dedupe(view, deepEql)],
 	([$makeAuthedRequest, $view]) =>
-		(path: string, init?: RequestInit) =>
-			$makeAuthedRequest(`/views/${$view.id}${path}`, init)
+		async (path: string, init?: RequestInit) => {
+			const resp = await $makeAuthedRequest(`/views/${$view.id}${path}`, init);
+
+			switch (resp.status) {
+				case 404:
+					error.set({
+						type: "not_found",
+						help: "The resource you requested may have been deleted since this URL was valid. Try updating the page linking here."
+					});
+					break;
+				
+				default:
+					return resp;
+			}
+		}
 );

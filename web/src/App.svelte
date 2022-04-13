@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Router, Route, Link } from "svelte-navigator";
+	import { Router, Route, Link, useLocation } from "svelte-navigator";
 	import Nav from "./components/Nav.svelte";
 	import Button from "./components/Button.svelte";
 	import SettingsPage from "./pages/Settings.svelte";
@@ -7,8 +7,10 @@
 	import CoursePage from "./pages/Course.svelte";
 	import OnboardPage from "./pages/Onboard.svelte";
 	import AssignmentPage from "./pages/Assignment.svelte";
+	import NotFoundPage from "./pages/NotFound.svelte";
 	import { isLoading as isAuthLoading, isAuthenticated, createAuth } from "./auth";
 	import { views } from "./view";
+	import { error } from "./error";
 
 	const auth = createAuth();
 
@@ -26,35 +28,47 @@
 
 			<div class="container">
 				<div class="page">
-					{#if $views.length === 0}
+					{#if $error === null}
+						{#if $views?.length === 0}
+							<Route path="/**">
+								<OnboardPage />
+							</Route>
+						{:else}
+							<Route path="/">
+								<HomePage />
+							</Route>
+
+							<Route path="/settings">
+								<SettingsPage />
+							</Route>
+
+							<Route path="/courses/:id" let:params>
+								<CoursePage id={parseInt(params.id)} />
+							</Route>
+
+							<Route path="/courses/:courseId/assignments/:id" let:params>
+								<AssignmentPage courseId={parseInt(params.courseId)} id={parseInt(params.id)} />
+							</Route>
+						{/if}
+
 						<Route path="/**">
-							<OnboardPage />
+							<NotFoundPage />
 						</Route>
 					{:else}
-						<Route path="/">
-							<HomePage />
-						</Route>
+						{#if $error?.type === "not_found"}
+							<NotFoundPage />
+						{:else if $error?.type === "server_error"}
+							<main>
+								<h1>Internal Server Error</h1>
+								<p>Please try again later. Sorry for the inconvenience.</p>
 
-						<Route path="/settings">
-							<SettingsPage />
-						</Route>
-
-						<Route path="/courses/:id" let:params>
-							<CoursePage id={parseInt(params.id)} />
-						</Route>
-
-						<Route path="/courses/:courseId/assignments/:id" let:params>
-							<AssignmentPage courseId={parseInt(params.courseId)} id={parseInt(params.id)} />
-						</Route>
+								<details>
+									<summary>Error Details</summary>
+									<code>{JSON.stringify($error.body, undefined, 4)}</code>
+								</details>
+							</main>
+						{/if}
 					{/if}
-
-					<Route path="/**">
-						<main>
-							<h1>404 Not Found</h1>
-							<p>It looks like you're lost.</p>
-							<Link to="/"><Button>Back Home</Button></Link>
-						</main>
-					</Route>
 				</div>
 			</div>
 		</Router>
