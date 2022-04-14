@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Router, Route, Link, useLocation } from "svelte-navigator";
 	import Nav from "./components/Nav.svelte";
-	import Button from "./components/Button.svelte";
+	import ErrorClear from "./components/ErrorClear.svelte";
 	import SettingsPage from "./pages/Settings.svelte";
 	import HomePage from "./pages/Home.svelte";
 	import CoursePage from "./pages/Course.svelte";
@@ -25,6 +25,8 @@
 	{#if $isAuthenticated}
 		<Router>
 			<Nav />
+
+			<ErrorClear />
 
 			<div class="container">
 				<div class="page">
@@ -54,20 +56,29 @@
 						<Route path="/**">
 							<NotFoundPage />
 						</Route>
-					{:else}
-						{#if $error?.type === "not_found"}
-							<NotFoundPage />
-						{:else if $error?.type === "server_error"}
-							<main>
-								<h1>Internal Server Error</h1>
-								<p>Please try again later. Sorry for the inconvenience.</p>
+					{:else if $error?.type === "not_found"}
+						<NotFoundPage />
+					{:else if $error?.type === "unknown_http_status"}
+						<main>
+							<h1>Unknown HTTP Status Error</h1>
+							<p>Please try again later. Sorry for the inconvenience.</p>
 
-								<details>
-									<summary>Error Details</summary>
-									<code>{JSON.stringify($error.body, undefined, 4)}</code>
-								</details>
-							</main>
-						{/if}
+							<details>
+								<summary>Error Details</summary>
+								<p>Status: {$error.status}</p>
+								<code>{JSON.stringify($error.resp, undefined, 4)}</code>
+							</details>
+						</main>
+					{:else if $error?.type === "server_error"}
+						<main>
+							<h1>Internal Server Error</h1>
+							<p>Please try again later. Sorry for the inconvenience.</p>
+
+							<details>
+								<summary>Error Details</summary>
+								<code>{JSON.stringify($error.body, undefined, 4)}</code>
+							</details>
+						</main>
 					{/if}
 				</div>
 			</div>

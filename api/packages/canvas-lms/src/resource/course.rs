@@ -13,7 +13,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Course {
     pub id: Id,
-    pub uuid: String,
 
     pub name: String,
     pub course_code: String,

@@ -46,7 +46,7 @@ async fn main() -> miette::Result<()> {
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )
-    .server(std::env::var("RAILWAY_STATIC_URL").unwrap_or_else(|_| "localhost:4200".into()));
+    .server("");
 
     let app = Route::new()
         .nest("/docs", api.rapidoc())

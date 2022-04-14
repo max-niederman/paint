@@ -56,14 +56,14 @@ impl Api {
     }
 
     /// Get a view by its ID
-    #[oai(path = "/views/:id", method = "get", tag = "ApiTags::View")]
-    #[tracing::instrument(skip(self), fields(id = ?id.0))]
-    async fn get_view(&self, claims: Claims, id: Path<Uuid>) -> poem::Result<Json<View>> {
+    #[oai(path = "/views/:view_id", method = "get", tag = "ApiTags::View")]
+    #[tracing::instrument(skip(self), fields(view_id = ?view_id.0))]
+    async fn get_view(&self, claims: Claims, view_id: Path<Uuid>) -> poem::Result<Json<View>> {
         claims.ensure_scopes(["read:views"])?;
 
         Ok(Json(
             self.collection
-                .find_one(doc! { "_id": id.0, "user": claims.sub }, None)
+                .find_one(doc! { "_id": view_id.0, "user": claims.sub }, None)
                 .await
                 .map_err(|err| Error::database_while("fetching view", err))?
                 .ok_or(NotFoundError)?
@@ -111,13 +111,13 @@ impl Api {
     }
 
     /// Delete a view
-    #[oai(path = "/views/:id", method = "delete", tag = "ApiTags::View")]
-    #[tracing::instrument(skip(self), fields(id = ?id.0))]
-    async fn delete_view(&self, claims: Claims, id: Path<Uuid>) -> poem::Result<()> {
+    #[oai(path = "/views/:view_id", method = "delete", tag = "ApiTags::View")]
+    #[tracing::instrument(skip(self), fields(view_id = ?view_id.0))]
+    async fn delete_view(&self, claims: Claims, view_id: Path<Uuid>) -> poem::Result<()> {
         claims.ensure_scopes(["write:views"])?;
 
         self.collection
-            .delete_one(doc! { "_id": id.0, "user": claims.sub }, None)
+            .delete_one(doc! { "_id": view_id.0, "user": claims.sub }, None)
             .await
             .map_err(|err| Error::database_while("deleting view", err))?;
 

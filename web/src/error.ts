@@ -16,3 +16,4 @@ export type Error =
 	  };
 
 export const error: Writable<Error> = writable(null);
+error.subscribe(console.error);
