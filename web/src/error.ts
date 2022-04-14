@@ -12,7 +12,7 @@ export type Error =
 	| {
 			type: "unknown_http_status";
 			status: number;
-            resp: Response;
+			resp: Response;
 	  };
 
 export const error: Writable<Error> = writable(null);

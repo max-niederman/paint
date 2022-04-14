@@ -24,7 +24,7 @@
 			assignments = await (await request(`/courses/${id}/assignments`)).json();
 		}
 	});
-	
+
 	$: nav.upstreamURL.set(`https://${$view.canvas_domain}/courses/${id}`);
 	$: nav.update.set(async () => {
 		assignments = [];

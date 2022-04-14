@@ -27,13 +27,13 @@
 			}
 		}
 	}
-	
+
 	$: nav.upstreamURL.set(`https://${$view?.canvas_domain}`);
 	$: nav.update.set(async () => {
 		displayedCourses = null;
 		await $makeViewRequest(`/courses/update`, { method: "POST" });
 		courses = await (await $makeViewRequest(`/courses`)).json();
-	})
+	});
 </script>
 
 <h1>Courses</h1>

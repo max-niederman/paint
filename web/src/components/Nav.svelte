@@ -1,12 +1,3 @@
-<script lang="ts">
-	import FaHome from "svelte-icons/fa/FaHome.svelte";
-	import FaExternalLinkAlt from "svelte-icons/fa/FaExternalLinkAlt.svelte";
-	import FaSyncAlt from 'svelte-icons/fa/FaSyncAlt.svelte'
-	import MdSettings from "svelte-icons/md/MdSettings.svelte";
-	import { Link } from "svelte-navigator";
-	import ViewSelector from "./ViewSelector.svelte";
-</script>
-
 <script context="module" lang="ts">
 	import { Writable, writable } from "svelte/store";
 
@@ -17,6 +8,15 @@
 		upstreamURL.set(null);
 		update.set(null);
 	}
+</script>
+
+<script lang="ts">
+	import FaHome from "svelte-icons/fa/FaHome.svelte";
+	import FaExternalLinkAlt from "svelte-icons/fa/FaExternalLinkAlt.svelte";
+	import FaSyncAlt from "svelte-icons/fa/FaSyncAlt.svelte";
+	import MdSettings from "svelte-icons/md/MdSettings.svelte";
+	import { Link } from "svelte-navigator";
+	import ViewSelector from "./ViewSelector.svelte";
 </script>
 
 <nav>

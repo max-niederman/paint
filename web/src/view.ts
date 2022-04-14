@@ -84,7 +84,7 @@ export const makeViewRequest: Readable<(path: string, init?: RequestInit) => Pro
 						help: "The resource you requested may have been deleted since this URL was valid. Try updating the page linking here."
 					});
 					break;
-				
+
 				default:
 					return resp;
 			}
